@@ -57,6 +57,10 @@ BOOL g_bFullScreen = FALSE;
 // Blocking on a vblank instead makes the display, not the limiter, set the
 // tick rate - see the note on MarniDX::Present.
 BOOL g_bVSync = FALSE;
+// config.ini [Display] KeepAspect (port addition). On by default: the game is
+// laid out for a 4:3 screen, so a wider (or taller) window or display gets
+// black bars instead of a stretched picture. 0 stretches to fill.
+BOOL g_bKeepAspect = TRUE;
 // 0x004d642c
 int g_dwBitDepth = 16;
 // 0x004d6430

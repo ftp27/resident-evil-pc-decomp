@@ -20,6 +20,7 @@
 #include <vector>
 
 extern "C" unsigned int re1_rand_state(void);   // Globals.cpp
+extern bool g_marniCaptureFullDrawable;          // MarniDX_GL.cpp
 
 namespace {
 
@@ -94,7 +95,7 @@ std::string ButtonsToText(DWORD mask)
 // ---------------------------------------------------------------------------
 // Script
 // ---------------------------------------------------------------------------
-enum CmdType { CMD_HOLD, CMD_RELEASE, CMD_CAPTURE, CMD_DUMP, CMD_EXPECT, CMD_QUIT };
+enum CmdType { CMD_HOLD, CMD_RELEASE, CMD_CAPTURE, CMD_CAPTURE_FULL, CMD_DUMP, CMD_EXPECT, CMD_QUIT };
 
 struct Command {
     int         frame;
@@ -187,6 +188,9 @@ bool ParseScript(const char* path)
             c.type = CMD_RELEASE;
         } else if (strcmp(cmd, "capture") == 0 && n == 3) {
             c.type = CMD_CAPTURE;
+            c.arg = tok[2];
+        } else if (strcmp(cmd, "capture-full") == 0 && n == 3) {
+            c.type = CMD_CAPTURE_FULL;
             c.arg = tok[2];
         } else if (strcmp(cmd, "dump") == 0 && n == 3) {
             c.type = CMD_DUMP;
@@ -535,6 +539,11 @@ bool test_frame_begin(int frame)
             break;
         case CMD_CAPTURE:
             Capture(c.arg.c_str());
+            break;
+        case CMD_CAPTURE_FULL:
+            g_marniCaptureFullDrawable = true;
+            Capture(c.arg.c_str());
+            g_marniCaptureFullDrawable = false;
             break;
         case CMD_DUMP:
             DumpState(c.arg.c_str());

@@ -33,8 +33,15 @@
 struct MarniDX::Impl {
     SDL_Window*   window = nullptr;
     SDL_GLContext ctx    = nullptr;
+    // The backbuffer the game sees: the drawable, or with KeepAspect the
+    // largest 4:3 rectangle in it, centred at (vpX, vpY) with black bars
+    // around it.
     int  width  = 0;
     int  height = 0;
+    int  vpX    = 0;
+    int  vpY    = 0;
+    int  drawW  = 0;   // the whole drawable
+    int  drawH  = 0;
     bool ready  = false;
 
     GLuint program = 0;
@@ -71,6 +78,35 @@ struct MarniDX::Impl {
 };
 
 static MarniDX* g_pDX = nullptr;
+
+extern BOOL g_bKeepAspect;   // config.ini [Display] KeepAspect (Globals.cpp)
+
+// Test hook (platform/linux/testmode.cpp `capture-full`): make the next
+// CaptureBackbufferToRGBA read the whole drawable, bars included.
+bool g_marniCaptureFullDrawable = false;
+
+// Fit the game's backbuffer into a drawable of dw x dh. The game lays out a
+// 320x240 (4:3) screen scaled to whatever size it is told the backbuffer is,
+// so reporting a 4:3 rectangle and drawing into it pillarboxes a widescreen
+// display (letterboxes a taller one) without touching game code.
+static void SetDrawableSize(MarniDX::Impl* p, int dw, int dh)
+{
+    if (dw <= 0 || dh <= 0) return;
+    p->drawW = dw;
+    p->drawH = dh;
+    p->width = dw;
+    p->height = dh;
+    p->vpX = 0;
+    p->vpY = 0;
+    if (!g_bKeepAspect) return;
+    if (dw * 3 > dh * 4) {
+        p->width = (dh * 4 + 1) / 3;
+        p->vpX = (dw - p->width) / 2;
+    } else if (dw * 3 < dh * 4) {
+        p->height = (dw * 3 + 2) / 4;
+        p->vpY = (dh - p->height) / 2;
+    }
+}
 
 MarniDX* Marni_DX() { return g_pDX; }
 
@@ -326,8 +362,7 @@ BOOL MarniDX::Create(HWND hWnd, int width, int height, BOOL fullScreen,
 
     int dw = 0, dh = 0;
     SDL_GL_GetDrawableSize(p->window, &dw, &dh);
-    p->width  = (dw > 0) ? dw : width;
-    p->height = (dh > 0) ? dh : height;
+    SetDrawableSize(p, (dw > 0) ? dw : width, (dh > 0) ? dh : height);
 
     if (!BuildPipeline(p)) return FALSE;
 
@@ -382,8 +417,7 @@ int MarniDX::ChangeDisplayMode(DWORD newWidth, DWORD newHeight, BOOL fullScreen)
 
     int dw = 0, dh = 0;
     SDL_GL_GetDrawableSize(p->window, &dw, &dh);
-    if (dw > 0) p->width = dw;
-    if (dh > 0) p->height = dh;
+    SetDrawableSize(p, dw, dh);
     return 1;
 }
 
@@ -394,8 +428,7 @@ int MarniDX::HandleWindowMessage(HWND, UINT msg, WPARAM, LPARAM)
     if (msg == WM_SIZE && m_pImpl != nullptr && m_pImpl->window != nullptr) {
         int dw = 0, dh = 0;
         SDL_GL_GetDrawableSize(m_pImpl->window, &dw, &dh);
-        if (dw > 0) m_pImpl->width = dw;
-        if (dh > 0) m_pImpl->height = dh;
+        SetDrawableSize(m_pImpl, dw, dh);
     }
     return 1;
 }
@@ -445,7 +478,17 @@ void MarniDX::Clear(float r, float g, float b, float a)
 {
     Impl* p = m_pImpl;
     if (p == nullptr || !p->ready) return;
-    glViewport(0, 0, p->width, p->height);
+    const bool bars = (p->width != p->drawW || p->height != p->drawH);
+    if (bars) {
+        // Black bars over the whole drawable, then the game's clear inside
+        // the picture rectangle only.
+        glViewport(0, 0, p->drawW, p->drawH);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(p->vpX, p->vpY, p->width, p->height);
+    }
+    glViewport(p->vpX, p->vpY, p->width, p->height);
     glClearColor(r, g, b, a);
     // glClear is masked by the depth write mask. The 2D path leaves it GL_FALSE
     // (DrawBatch disables it for every non-depth draw), so without forcing it
@@ -456,6 +499,7 @@ void MarniDX::Clear(float r, float g, float b, float a)
     // fragments that happened to be no farther than last frame's surface.
     glDepthMask(GL_TRUE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (bars) glDisable(GL_SCISSOR_TEST);
 }
 
 void MarniDX::Present()
@@ -701,31 +745,36 @@ BOOL MarniDX::CaptureBackbufferToRGBA(void** outPixels, DWORD* outWidth, DWORD* 
     Impl* p = m_pImpl;
     if (p == nullptr || !p->ready || outPixels == nullptr) return FALSE;
 
-    size_t size = (size_t)p->width * p->height * 4;
+    // Normally the picture rectangle only - what the game drew, without the
+    // bars; the test hook asks for the whole drawable.
+    const bool full = g_marniCaptureFullDrawable;
+    const int rx = full ? 0 : p->vpX, ry = full ? 0 : p->vpY;
+    const int rw = full ? p->drawW : p->width, rh = full ? p->drawH : p->height;
+    size_t size = (size_t)rw * rh * 4;
     // operator_new, per the header contract: the caller parks the buffer in a
     // 32-bit CMarniBits slot and releases it with operator_delete.
     unsigned char* buf = (unsigned char*)operator_new(size);
     if (buf == nullptr) return FALSE;
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glReadPixels(0, 0, p->width, p->height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+    glReadPixels(rx, ry, rw, rh, GL_RGBA, GL_UNSIGNED_BYTE, buf);
 
     // GL reads bottom-up; the callers expect top-down.
-    unsigned char* row = (unsigned char*)malloc((size_t)p->width * 4);
+    unsigned char* row = (unsigned char*)malloc((size_t)rw * 4);
     if (row != nullptr) {
-        for (int y = 0; y < p->height / 2; ++y) {
-            unsigned char* a = buf + (size_t)y * p->width * 4;
-            unsigned char* b = buf + (size_t)(p->height - 1 - y) * p->width * 4;
-            memcpy(row, a, (size_t)p->width * 4);
-            memcpy(a, b, (size_t)p->width * 4);
-            memcpy(b, row, (size_t)p->width * 4);
+        for (int y = 0; y < rh / 2; ++y) {
+            unsigned char* a = buf + (size_t)y * rw * 4;
+            unsigned char* b = buf + (size_t)(rh - 1 - y) * rw * 4;
+            memcpy(row, a, (size_t)rw * 4);
+            memcpy(a, b, (size_t)rw * 4);
+            memcpy(b, row, (size_t)rw * 4);
         }
         free(row);
     }
 
     *outPixels = buf;
-    if (outWidth)  *outWidth  = (DWORD)p->width;
-    if (outHeight) *outHeight = (DWORD)p->height;
+    if (outWidth)  *outWidth  = (DWORD)rw;
+    if (outHeight) *outHeight = (DWORD)rh;
     return TRUE;
 }
 

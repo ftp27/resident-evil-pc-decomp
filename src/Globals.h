@@ -72,6 +72,7 @@ extern DWORD         g_dwScreenWidth;                  // 0x007d9150
 extern DWORD         g_dwScreenHeight;                 // 0x007d9154
 extern BOOL          g_bFullScreen;
 extern BOOL          g_bVSync;                         // config.ini [Display] VSync                    // 0x007d9158
+extern BOOL          g_bKeepAspect;                    // config.ini [Display] KeepAspect (port addition)
 extern int           g_dwBitDepth;                     // 0x004d642c
 extern DWORD         g_GPU_VENDOR_ID;                  // 0x004bcb64
 

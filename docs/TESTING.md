@@ -59,7 +59,8 @@ seed 1234                      # optional; also --seed
 900   press ACTION 10          # hold for 10 frames
 1000  hold UP+RUN 90           # buttons combine with '+'
 1100  release                  # drop every held button
-1200  capture shot.png         # back buffer as PNG
+1200  capture shot.png         # the game's picture as PNG
+1200  capture-full win.png     # the whole window, KeepAspect bars included
 1200  dump state.json          # game state as JSON
 1200  expect room == 5         # assertion; ops: == != < <= > >=
 1300  quit                     # end the run (required)

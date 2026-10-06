@@ -21,6 +21,9 @@ BitDepth=16
 ; Wait for vblank on present. 0 = off (default, and what the original did
 ; in a window): the engine paces itself to 33 ms per tick in software.
 VSync=0
+; 1 = keep the original 4:3 picture, with black bars on a wider or taller
+; screen (default). 0 = stretch it to fill the window.
+KeepAspect=1
 
 [Assets]
 ; Folder that holds the USA/ and JPN/ data trees. Relative paths are resolved
