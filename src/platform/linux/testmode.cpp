@@ -5,6 +5,7 @@
 #include "Globals.h"
 #include "marni/MarniDX.h"
 #include "platform/platform.h"
+#include "system/AssetPath.h"
 
 #include <SDL2/SDL.h>
 
@@ -12,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <unistd.h>
 
 #include <string>
 #include <vector>
@@ -110,6 +113,8 @@ std::vector<Command> s_cmds;
 size_t               s_nextCmd = 0;
 std::vector<Hold>    s_holds;
 
+const char* s_saveDir = NULL;     // --save-dir
+char        s_tempSaveDir[512] = "";   // per-run empty save folder we own
 const char* s_scriptPath = NULL;
 const char* s_recordPath = NULL;
 bool        s_fast   = false;
@@ -447,6 +452,7 @@ bool test_parse_arg(int argc, char** argv, int* i)
         s_recordLimit = atoi(argv[++*i]);
         return true;
     }
+    if (strcmp(a, "--save-dir") == 0 && *i + 1 < argc) { s_saveDir = argv[++*i]; return true; }
     if (strcmp(a, "--fast") == 0)   { s_fast = true; return true; }
     if (strcmp(a, "--hidden") == 0) { s_hidden = true; return true; }
     if (strcmp(a, "--mute") == 0)   { s_mute = true; return true; }
@@ -473,6 +479,22 @@ bool test_init(void)
         fprintf(s_record, "# recorded by residentevil --record\n");
         if (s_haveSeed) fprintf(s_record, "seed %u\n", s_seed);
     }
+    // Hermetic saves: a save file left by an earlier run changes the title
+    // flow, so every run starts from an empty folder of its own unless one is
+    // named (e.g. a fixture for a load-game scenario).
+    if (s_saveDir == NULL) {
+        const char* tmp = getenv("TMPDIR");
+        snprintf(s_tempSaveDir, sizeof(s_tempSaveDir), "%s/re1-test-save-XXXXXX",
+                 (tmp != NULL && tmp[0] != '\0') ? tmp : "/tmp");
+        if (mkdtemp(s_tempSaveDir) == NULL) {
+            fprintf(stderr, "[TEST] cannot create a temporary save folder\n");
+            return false;
+        }
+        SetSaveRoot(s_tempSaveDir);
+    } else {
+        SetSaveRoot(s_saveDir);
+    }
+
     if (s_haveSeed) re1_srand(s_seed);
     if (s_fast) s_mute = true;   // there is no real time to play sound in
 
@@ -589,6 +611,20 @@ void test_request_stop(void)
 
 void test_shutdown(void)
 {
+    // Remove the per-run save folder (only ever the one mkdtemp made).
+    if (s_tempSaveDir[0] != '\0') {
+        if (DIR* d = opendir(s_tempSaveDir)) {
+            while (struct dirent* e = readdir(d)) {
+                if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0) continue;
+                std::string f = std::string(s_tempSaveDir) + "/" + e->d_name;
+                unlink(f.c_str());
+            }
+            closedir(d);
+        }
+        rmdir(s_tempSaveDir);
+        s_tempSaveDir[0] = '\0';
+    }
+
     // A recording that ended any other way (the game quit from its own menu)
     // has no clean frame boundary to check state at: inputs only.
     if (s_record != NULL) RecordFinish(s_frame + 1, false);

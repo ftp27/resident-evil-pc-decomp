@@ -1,12 +1,12 @@
-# CMakeLists.txt - Linux build (docs/LINUX_PORT.md).
+# CMakeLists.txt - Linux and macOS build (docs/LINUX_PORT.md).
 #
 # Windows still builds through Game.vcxproj / build.bat; this file is the
 # source-of-truth list for the Linux target. The two lists must be kept in
 # sync (a diff check is on the Phase 2 follow-up list).
 #
-# Build (from WSL/Linux, x86-32):
-#   cmake -S . -B build/linux -DCMAKE_BUILD_TYPE=Release
-#   cmake --build build/linux -j
+# Build (native 64-bit by default; see the "Native build" section below):
+#   cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+#   cmake --build build/native -j
 cmake_minimum_required(VERSION 3.16)
 project(residentevil CXX)
 
@@ -146,28 +146,42 @@ add_executable(residentevil ${RE1_SOURCES})
 target_include_directories(residentevil PRIVATE src)
 
 # ---------------------------------------------------------------------------
-# macOS: native 64-bit (arm64 / x86_64). macOS has no 32-bit runtime, so the
-# -m32 section below does not apply. Same Linux platform layer and GL backend;
-# SDL2 and ffmpeg come from Homebrew via pkg-config, and the Khronos
-# glcorearb.h the GL loader needs is vendored under src/third_party (the SDK
-# only ships OpenGL/gl3.h).
+# Native build: macOS (arm64 / x86_64) and 64-bit Linux, the default.
 #
-#   brew install cmake pkg-config sdl2 ffmpeg
-#   cmake -S . -B build/macos -DCMAKE_BUILD_TYPE=Release
-#   cmake --build build/macos -j
+# The game runs pointer-width independent (32-bit slots hold image-relative
+# offsets, src/platform/ptr32.h), so it builds for the host's own ABI. SDL2 and
+# ffmpeg come from pkg-config; the Khronos glcorearb.h the GL loader needs is
+# vendored under src/third_party (macOS only ships OpenGL/gl3.h).
+#
+#   macOS:          brew install cmake pkg-config sdl2 ffmpeg
+#   Debian/Ubuntu:  apt install build-essential cmake pkg-config libsdl2-dev \
+#                       libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
+#   Arch:           pacman -S base-devel cmake pkgconf sdl2 ffmpeg
+#
+#   cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+#   cmake --build build/native -j
+#
+# -DRE1_M32=ON (Linux only) builds the original 32-bit x86 binary instead.
 # ---------------------------------------------------------------------------
-if(APPLE)
+option(RE1_M32 "Linux: build the 32-bit x86 binary (-m32) instead of a native one" OFF)
+
+if(APPLE OR NOT RE1_M32)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(RE1_DEPS REQUIRED IMPORTED_TARGET
         sdl2 libavformat libavcodec libavutil libswresample)
     target_include_directories(residentevil PRIVATE src/third_party)
-    target_compile_options(residentevil PRIVATE -w -ferror-limit=0)
+    target_compile_options(residentevil PRIVATE -w
+        $<$<CXX_COMPILER_ID:Clang,AppleClang>:-ferror-limit=0>)
     target_link_libraries(residentevil PRIVATE PkgConfig::RE1_DEPS m)
+    if(NOT APPLE)
+        # Keep the dynamic symbol table so crash.cpp's backtrace names functions.
+        target_link_options(residentevil PRIVATE -rdynamic)
+    endif()
     return()
 endif()
 
 # ---------------------------------------------------------------------------
-# 32-bit x86: the game's layout and the scheduler assume it.
+# 32-bit x86 (-DRE1_M32=ON): the original binary's pointer width.
 #
 # The 32-bit runtime is not on a 64-bit host's default search path, and where it
 # lives is distro-specific:

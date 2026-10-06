@@ -4,7 +4,7 @@
 #
 #   bash tests/run_scenarios.sh [path/to/residentevil] [scenario.re1 ...]
 #
-# The binary defaults to build/macos/residentevil, then build/linux/residentevil.
+# The binary defaults to build/native, build/macos, then build/linux.
 # It needs game data: config.ini beside the binary must point [Assets] Path at
 # a USA tree. Each scenario runs in its own folder under test-output/<name>/,
 # where its captures, dumps and log land. Exit status: 0 = all passed.
@@ -16,7 +16,8 @@ if [ -n "$BIN" ] && [ "${BIN##*.}" != "re1" ]; then
     shift
 else
     BIN=""
-    for cand in "$ROOT/build/macos/residentevil" "$ROOT/build/linux/residentevil"; do
+    for cand in "$ROOT/build/native/residentevil" "$ROOT/build/macos/residentevil" \
+                "$ROOT/build/linux/residentevil"; do
         if [ -x "$cand" ]; then BIN=$cand; break; fi
     done
 fi
@@ -33,7 +34,7 @@ else
 fi
 
 TIMEOUT=${RE1_TEST_TIMEOUT:-300}
-OUT="$ROOT/test-output"
+OUT=${RE1_TEST_OUT:-"$ROOT/test-output"}
 mkdir -p "$OUT"
 
 pass=0

@@ -51,7 +51,7 @@ done
 # ---------------------------------------------------------------------------
 if [ "$DO_BUILD" -eq 1 ]; then
     echo "==> configuring + building"
-    cmake -S "$REPO" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release >/dev/null
+    cmake -S "$REPO" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DRE1_M32=ON >/dev/null
     cmake --build "$BUILD_DIR" -j"$(nproc)"
 fi
 

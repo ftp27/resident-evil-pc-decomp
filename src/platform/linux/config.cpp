@@ -6,6 +6,7 @@
 //   - plat_single_instance_check: a lock file, replacing the Windows mutex
 //   - CleanupVideoConfigAndSaveAllSettings: the exit hook that writes the file
 #include "../platform.h"
+#include "testmode.h"
 
 #include "../../Globals.h"
 #include "../../system/ConfigFile.h"
@@ -31,6 +32,8 @@ void CleanupVideoConfigAndSaveAllSettings(void)
     if (g_bHasFinalizedSettings) {
         return;
     }
+    // A test run must leave the player's settings exactly as it found them.
+    if (test_active()) return;
     g_bHasFinalizedSettings = TRUE;
     ConfigFile_Save();
 }

@@ -73,12 +73,32 @@ To build from a developer command prompt instead:
 msbuild Game.sln /p:Configuration=Release /p:Platform=Win32 /t:Build
 ```
 
-### Linux
+### Linux and macOS
 
-A native 32-bit binary (`-m32`) built with CMake. The game logic and the Marni
-layer are shared with Windows; the platform layer, the OpenGL backend and the
-ffmpeg FMV decoder are Linux-only files (`src/platform/linux/`,
-`src/marni/MarniDX_GL.cpp`).
+Built with CMake. The game logic and the Marni layer are shared with Windows;
+the platform layer, the OpenGL backend and the ffmpeg FMV decoder are the
+non-Windows files (`src/platform/linux/`, `src/marni/MarniDX_GL.cpp`), used by
+both Linux and macOS.
+
+By default the build is native 64-bit (x86-64 or arm64): pointers that the
+original kept in 32-bit slots are stored as image-relative offsets
+(`src/platform/ptr32.h`), so no 32-bit runtime is needed.
+
+```
+# Debian/Ubuntu
+sudo apt install build-essential cmake pkg-config libsdl2-dev \
+     libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
+# Arch
+sudo pacman -S --needed base-devel cmake pkgconf sdl2 ffmpeg
+# macOS (Homebrew)
+brew install cmake pkg-config sdl2 ffmpeg
+
+cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native -j
+```
+
+The rest of this section describes the original 32-bit x86 Linux build,
+selected with `-DRE1_M32=ON`.
 
 Requirements (64-bit host building 32-bit).
 
@@ -125,7 +145,7 @@ build on the distribution you intend to run on.
 
 Build:
 ```
-cmake -S . -B build/linux -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build/linux -DCMAKE_BUILD_TYPE=Release -DRE1_M32=ON
 cmake --build build/linux -j
 ```
 

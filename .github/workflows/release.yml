@@ -238,7 +238,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake -S . -B build/linux -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build/linux -DCMAKE_BUILD_TYPE=Release -DRE1_M32=ON
           cmake --build build/linux -j"$(nproc)"
 
       - name: Stage release files

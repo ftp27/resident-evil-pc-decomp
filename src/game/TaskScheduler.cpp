@@ -77,12 +77,13 @@
 // culprit's instruction pointer in crash.log, instead of silently corrupting
 // a neighbouring task's saved registers (which killed standalone Release
 // runs at room load as POPAD-restored garbage).
-// One page: mprotect needs page-aligned ranges, and Apple Silicon pages are
-// 16 KB.
-#if defined(__APPLE__) && defined(__aarch64__)
-#define TASK_GUARD_SIZE   16384
-#else
+// mprotect needs page-aligned ranges. Off Windows the page can be 4 KB
+// (x86-64), 16 KB (Apple Silicon, Asahi Linux) or 64 KB (some ARM distros);
+// 64 KB is a multiple of all of them and costs only address space.
+#if defined(_WIN32)
 #define TASK_GUARD_SIZE   4096
+#else
+#define TASK_GUARD_SIZE   65536
 #endif
 static BYTE* g_TaskStackBase = NULL;   // start of slot 0's usable area
 
