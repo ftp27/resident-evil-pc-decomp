@@ -371,7 +371,7 @@ void main_menu(void)
     case 3:
     case 4:
         // Desk mode: get item from room event
-        g_bItemMenuSelectedItemId = *(unsigned char*)(*(int*)((int)g_pRoomActionEntry + 8) + 8);
+        g_bItemMenuSelectedItemId = *(P<unsigned char>(*(int*)((unsigned char*)g_pRoomActionEntry + 8)) + 8);
 LAB_0046381c:
         menu_load_item_model();
     }
@@ -384,15 +384,15 @@ LAB_0046381c:
     // 0x00463880-0x004638e3: Check if map is available
     if ((g_playerEntity.id & 3) == 3) {
         DAT_00ae9f1f = 0;
-        hasFlag = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_HAS_RADIO);
+        hasFlag = Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_HAS_RADIO);
         if ((hasFlag == 0) &&
-            (hasFlag = Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PLANT42_OBJ), hasFlag != 0) &&
-            (hasFlag = Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PROGRESS_22), hasFlag == 0))
+            (hasFlag = Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_PLANT42_OBJ), hasFlag != 0) &&
+            (hasFlag = Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_PROGRESS_22), hasFlag == 0))
         {
             DAT_00ae9f1f = 1;
         }
     } else {
-        DAT_00ae9f1f = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_HAS_RADIO);
+        DAT_00ae9f1f = Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_HAS_RADIO);
     }
 
     // 0x004638e3-0x00463966: Set up camera and lighting for menu
@@ -633,8 +633,8 @@ LAB_00463a53:
             if (DAT_00ae9f1e != 0) {
                 // 0x00463c8d: (weaponId, 0xE, g_animationBuffer, g_animObjectBuffer)
                 LoadEquippedWeaponAnimation(g_playerEntity.equippedWeaponId, 0xE,
-                                            (unsigned int)g_animationBuffer,
-                                            (unsigned int)g_animObjectBuffer);
+                                            O(g_animationBuffer),
+                                            O(g_animObjectBuffer));
             }
 
             if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
@@ -823,9 +823,9 @@ static void menu_draw_inventory(void)
     // 0x00464050: Draw equipped item quantity
     g_invDepthLayer = 9;
     if (g_EquippedItemId != 0) {
-        iVar5 = (int)((unsigned int)g_EquippedItemId * 2 + (unsigned int)(uintptr_t)ITEM_SLOTS);
+        unsigned char* qtySlot = (unsigned char*)ITEM_SLOTS + (unsigned int)g_EquippedItemId * 2;
         g_TextureDesc.texturePage = 0x1c;
-        display_item_qty(*(unsigned char*)(iVar5 - 2), *(unsigned char*)(iVar5 - 1), 9);
+        display_item_qty(*(qtySlot - 2), *(qtySlot - 1), 9);
     }
 
     // 0x00464090: Calculate starting position index for inventory items
@@ -845,9 +845,9 @@ static void menu_draw_inventory(void)
         uVar7 = (unsigned int)bVar6;
         g_TextureDesc.clutY = 0x1e4;
         g_TextureDesc.texU = 88;
-        g_TextureDesc.screenY = *(short*)((int)g_inventorySlotsPos + (unsigned int)(unsigned char)(local_2 - 1) * 2);
+        g_TextureDesc.screenY = *(short*)((unsigned char*)g_inventorySlotsPos + (unsigned int)(unsigned char)(local_2 - 1) * 2);
         local_2 = local_2 - 2;
-        g_TextureDesc.screenX = *(short*)((int)g_inventorySlotsPos + (unsigned int)local_2 * 2);
+        g_TextureDesc.screenX = *(short*)((unsigned char*)g_inventorySlotsPos + (unsigned int)local_2 * 2);
         g_TextureDesc.texV = g_ItemSlotIndices[uVar7] << 5;
         pbVar2 = (unsigned char*)ITEM_SLOTS + uVar7 * 2;
         if (*pbVar2 < 0x6f) {
@@ -877,9 +877,9 @@ static void menu_draw_inventory(void)
     g_TextureDesc.height = 30;
     g_TextureDesc.clutY = 0x1e0;
     for (char cVar4 = g_totalInventorySlots - g_TotalHeldItems; cVar4 != 0; cVar4 = cVar4 - 1) {
-        g_TextureDesc.screenY = *(short*)((int)g_inventorySlotsPos + (unsigned int)(unsigned char)(bVar6 - 1) * 2);
+        g_TextureDesc.screenY = *(short*)((unsigned char*)g_inventorySlotsPos + (unsigned int)(unsigned char)(bVar6 - 1) * 2);
         bVar6 = bVar6 - 2;
-        g_TextureDesc.screenX = *(short*)((int)g_inventorySlotsPos + (unsigned int)bVar6 * 2);
+        g_TextureDesc.screenX = *(short*)((unsigned char*)g_inventorySlotsPos + (unsigned int)bVar6 * 2);
         display_texture(&g_TextureDesc, (unsigned short)g_invDepthLayer, 10, 1);
     }
 
@@ -942,7 +942,7 @@ LAB_004642e7:
                 puVar3 = g_CurrentMenuFramesDataPtr;
                 g_CurrentMenuFramesDataPtr = g_CurrentMenuFramesDataPtr - 1;
                 g_TextureDesc.flags = (*g_CurrentMenuFramesDataPtr & 0xc0) << 0x10 | 0x1000040;
-                bVar6 = *(unsigned char*)((int)puVar3 - 1);
+                bVar6 = *(unsigned char*)((unsigned char*)puVar3 - 1);
                 load_main_menu_frame_part_tex_area();
                 if ((bVar6 & 0x80) == 0) {
                     uVar8 = 0;
@@ -965,7 +965,7 @@ LAB_004642e7:
             if ((DAT_00ae9f19 & 2) == 0) {
                 g_CurrentMenuFramesDataPtr = (unsigned short*)g_MainMenuFrames3Pos;
             }
-            g_CurrentMenuFramesDataPtr = (unsigned short*)((int)g_CurrentMenuFramesDataPtr + 0x7e);
+            g_CurrentMenuFramesDataPtr = (unsigned short*)((unsigned char*)g_CurrentMenuFramesDataPtr + 0x7e);
             local_1 = 9;
             g_invDepthLayer = 0x14;
             do {
@@ -973,7 +973,7 @@ LAB_004642e7:
                 g_CurrentMenuFramesDataPtr = g_CurrentMenuFramesDataPtr - 1;
                 local_1 = local_1 - 1;
                 g_TextureDesc.flags = (*g_CurrentMenuFramesDataPtr & 0xc0) << 0x10 | 0x1000040;
-                bVar6 = *(unsigned char*)((int)puVar3 - 1);
+                bVar6 = *(unsigned char*)((unsigned char*)puVar3 - 1);
                 load_main_menu_frame_part_tex_area();
                 if ((bVar6 & 0x80) == 0) {
                     uVar8 = 0;
@@ -1006,12 +1006,12 @@ LAB_004642e7:
             g_invDepthLayer = 0x1e;
             g_rect.b = 0;
             do {
-                g_rect.h = *(short*)((int)g_CurrentMenuFramesDataPtr - 2);
-                g_rect.w = *(short*)((int)g_CurrentMenuFramesDataPtr - 4);
-                g_rect.y = *(short*)((int)g_CurrentMenuFramesDataPtr - 6);
-                g_rect.x = *(short*)((int)g_CurrentMenuFramesDataPtr - 8);
+                g_rect.h = *(short*)((unsigned char*)g_CurrentMenuFramesDataPtr - 2);
+                g_rect.w = *(short*)((unsigned char*)g_CurrentMenuFramesDataPtr - 4);
+                g_rect.y = *(short*)((unsigned char*)g_CurrentMenuFramesDataPtr - 6);
+                g_rect.x = *(short*)((unsigned char*)g_CurrentMenuFramesDataPtr - 8);
                 draw_rect(&g_rect, (unsigned short)g_invDepthLayer, 1);
-                g_CurrentMenuFramesDataPtr = (unsigned short*)((int)g_CurrentMenuFramesDataPtr - 8);
+                g_CurrentMenuFramesDataPtr = (unsigned short*)((unsigned char*)g_CurrentMenuFramesDataPtr - 8);
             } while ((unsigned short*)DAT_004c2940 < g_CurrentMenuFramesDataPtr);
             return;
         }
@@ -1037,7 +1037,7 @@ static void display_item_qty(unsigned char itemId, unsigned char qty, int depth)
     g_TextureDesc.screenY = g_TextureDesc.screenY + 0x14;
     g_TextureDesc.height = 8;
 
-    int hasInfRLauncher = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_INF_R_LAUNCHER);
+    int hasInfRLauncher = Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_INF_R_LAUNCHER);
     
     // Director's Cut (PS1 SLUS_005.51 0x8005436c): the ADVANCED best-ending
     // unlock (flag 0x7A) makes the Colt Python count as unlimited, so its
@@ -1241,7 +1241,7 @@ static int menu_item_use_always(unsigned char slot) { return 1; }
 // (0x004011a0 / 0x004011e0) - Use item if its flag in g_itemUseFlags is set
 static int menu_item_use_if_flag(unsigned char slot)
 {
-    if (Flg_ck((int)g_itemUseFlags, (unsigned int)(g_bItemMenuSelectedItemId - 0x1b)) != 0) {
+    if (Flg_ck((int)O(g_itemUseFlags), (unsigned int)(g_bItemMenuSelectedItemId - 0x1b)) != 0) {
         DAT_00ae9f13 = DAT_00ae9f13 | 0x80;
         g_usedItemId = g_bItemMenuSelectedItemId;
         return 1;
@@ -1254,7 +1254,7 @@ static int menu_item_use_if_flag(unsigned char slot)
 static int menu_item_use_red_book(unsigned char slot)
 {
     if (g_bItemMenuSelectedItemId == ITEM_RED_BOOK) {
-        if (Flg_ck((int)g_itemUseFlags, 0x23) != 0) {
+        if (Flg_ck((int)O(g_itemUseFlags), 0x23) != 0) {
             DAT_00ae9f13 = DAT_00ae9f13 | 0x80;
             g_usedItemId = g_bItemMenuSelectedItemId;
             return 1;
@@ -1377,7 +1377,7 @@ static void menu_use_qty_merge(unsigned char slotA, unsigned char slotB)
 static void menu_use_set_flag(unsigned char slotA, unsigned char slotB)
 {
     DAT_00ae9f12 = 2;
-    Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_CHEMICAL_COMBINE);
+    Flg_on((int)O(g_ScenarioFlags), SCENARIO_FLAG_CHEMICAL_COMBINE);
 }
 
 // (0x00401d40) - Combine effect 5: set mode
@@ -1439,10 +1439,10 @@ static void menu_item_combine_refresh(unsigned char slot1, unsigned char slot2,
         LoadFile((char*)g_ItemMixPixPath, g_TimImageBuffer__bitmap, 0x20);
     }
     if (refresh1 != 0) {
-        LoadItemImage((int)refresh1 - 1, (int)g_ItemSlotIndices[slot1], (int)g_TimImageBuffer__bitmap);
+        LoadItemImage((int)refresh1 - 1, (int)g_ItemSlotIndices[slot1], (int)O(g_TimImageBuffer__bitmap));
     }
     if (refresh2 != 0) {
-        LoadItemImage((int)refresh2 - 1, (int)g_ItemSlotIndices[slot2], (int)g_TimImageBuffer__bitmap);
+        LoadItemImage((int)refresh2 - 1, (int)g_ItemSlotIndices[slot2], (int)O(g_TimImageBuffer__bitmap));
     }
 }
 
@@ -1771,10 +1771,10 @@ move_skip_name:
         }
         g_TextureDesc.width = 4;
         g_TextureDesc.height = 4;
-        g_TextureDesc.screenX = *(short*)((int)g_inventorySlotsPos + DAT_00ae9f25 * 2) + 0x12;
-        g_TextureDesc.screenY = (*(short*)((int)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) - (unsigned short)DAT_00ae9f2a) + 0xd;
+        g_TextureDesc.screenX = *(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f25 * 2) + 0x12;
+        g_TextureDesc.screenY = (*(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) - (unsigned short)DAT_00ae9f2a) + 0xd;
         if ((DAT_00ae9f19 & 2) == 0) {
-            g_TextureDesc.screenY = (*(short*)((int)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) - (unsigned short)DAT_00ae9f2a) + 0x2b;
+            g_TextureDesc.screenY = (*(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) - (unsigned short)DAT_00ae9f2a) + 0x2b;
         }
         display_texture(&g_TextureDesc, 5, 0, 1);
         g_TextureDesc.texV = g_TextureDesc.texV + 8;
@@ -1782,9 +1782,9 @@ move_skip_name:
         display_texture(&g_TextureDesc, 5, 0, 1);
         g_TextureDesc.screenX = g_TextureDesc.screenX - (unsigned short)DAT_00ae9f29;
         g_TextureDesc.texV = g_TextureDesc.texV + 8;
-        g_TextureDesc.screenY = *(short*)((int)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) + 0xd;
+        g_TextureDesc.screenY = *(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) + 0xd;
         if ((DAT_00ae9f19 & 2) == 0) {
-            g_TextureDesc.screenY = *(short*)((int)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) + 0x2b;
+            g_TextureDesc.screenY = *(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f25 * 2 + 2) + 0x2b;
         }
         display_texture(&g_TextureDesc, 5, 0, 1);
         g_TextureDesc.texV = g_TextureDesc.texV + 8;
@@ -1801,8 +1801,8 @@ static void menu_draw_cursor(void)
     g_TextureDesc.texturePage = 0x1c;
     g_TextureDesc.clutX = 0;
     g_TextureDesc.clutY = 0x1e4;
-    g_TextureDesc.screenX = *(short*)((int)g_inventorySlotsPos + DAT_00ae9f23 * 2);
-    g_TextureDesc.screenY = *(short*)((int)g_inventorySlotsPos + DAT_00ae9f23 * 2 + 2);
+    g_TextureDesc.screenX = *(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f23 * 2);
+    g_TextureDesc.screenY = *(short*)((unsigned char*)g_inventorySlotsPos + DAT_00ae9f23 * 2 + 2);
 
     if ((DAT_00ae9f23 & 0xf8) != 0) {
         // Item slot cursor (40x30)
@@ -1828,7 +1828,7 @@ static void menu_draw_cursor(void)
     g_TextureDesc.texV = 0x50;
     g_TextureDesc.height = 0x10;
     if (g_MainMenuState == 3) {
-        g_TextureDesc.screenX = *(short*)((int)g_inventorySlotsPos + (DAT_00ae9f23 | 2) * 2);
+        g_TextureDesc.screenX = *(short*)((unsigned char*)g_inventorySlotsPos + (DAT_00ae9f23 | 2) * 2);
     }
     display_texture(&g_TextureDesc, 0x19, 0, 1);
     g_TextureDesc.texV = 0x98;
@@ -2109,7 +2109,7 @@ static void menu_handle_input(void)
             if (DAT_00ae9f23 == 4) {
                 // Radio tab pre-check: without the radio item, show it as a model
                 if (DAT_00ae9f1f == 0) goto input_blink;
-                if (Flg_ck((int)g_itemUseFlags, 0x3f) == 0) {
+                if (Flg_ck((int)O(g_itemUseFlags), 0x3f) == 0) {
                     DAT_00ae9f49 = 0;
                     g_bItemMenuSelectedItemId = ITEM_COMM_RADIO;
                     menu_load_item_model();
@@ -2276,7 +2276,7 @@ static void menu_tab_file(void)
 // (0x00421010) - Top tab: Radio
 static void menu_tab_radio(void)
 {
-    if (Flg_ck((int)g_itemUseFlags, 0x3f) != 0) {
+    if (Flg_ck((int)O(g_itemUseFlags), 0x3f) != 0) {
         DAT_00ae9f20 = 1;
         g_usedItemId = 0x4d;
         DAT_00ae9f13 = DAT_00ae9f13 | 0x81;
@@ -2867,7 +2867,7 @@ static int map_area_known(unsigned char area)
     case 9: idx = MAP_INDEX_LABORATORY; break;
     default: return 0;      // area 10 returns 0; >10 is out of the table
     }
-    return Flg_ck((int)g_RoomFlags, idx + ROOM_FLAG_MAP_BASE);
+    return Flg_ck((int)O(g_RoomFlags), idx + ROOM_FLAG_MAP_BASE);
 }
 
 // (0x00487540) - Map tab: draw the base map, markers, dot and floor glyph
@@ -3347,7 +3347,7 @@ static void map_display_load_textures(unsigned char* state)
             // is blanked (its marker is shown by the highlight page).
             unsigned int* pEntry = (unsigned int*)((unsigned char*)g_TimImageBuffer__bitmap + 0x1002e);
             for (unsigned int room = 0; room < roomCount; room++) {
-                if (Flg_ck((int)g_RoomFlags, g_StageRoomFlagOffset[group] + room) == 0) {
+                if (Flg_ck((int)O(g_RoomFlags), g_StageRoomFlagOffset[group] + room) == 0) {
                     if (known == 0) {
                         pEntry[0] = 0; pEntry[1] = 0; pEntry[2] = 0;
                     } else {
@@ -3388,7 +3388,7 @@ static void map_display_load_textures(unsigned char* state)
             }
             unsigned int* pEntry = (unsigned int*)((unsigned char*)g_TimImageBuffer__bitmap + 0x1002e);
             for (unsigned int room = 0; room < roomCount; room++) {
-                if ((Flg_ck((int)g_RoomFlags, g_StageRoomFlagOffset[group] + room) == 0) ||
+                if ((Flg_ck((int)O(g_RoomFlags), g_StageRoomFlagOffset[group] + room) == 0) ||
                     (group != state[5]) || (state[7] != room)) {
                     pEntry[0] = 0; pEntry[1] = 0; pEntry[2] = 0;
                 } else {
@@ -3455,7 +3455,7 @@ static void map_build_area_mask(unsigned char* state)
     // Areas reached through visited rooms (per area group and room range)
     for (unsigned int group = 0; group < 5; group++) {
         for (unsigned int room = 0; room < g_MapRoomCounts[group]; room++) {
-            if (Flg_ck((int)g_RoomFlags, g_StageRoomFlagOffset[group] + room) == 0) continue;
+            if (Flg_ck((int)O(g_RoomFlags), g_StageRoomFlagOffset[group] + room) == 0) continue;
             switch (group) {
             case 0: MAP_AREA_MASK |= 1; break;
             case 1:
@@ -3502,20 +3502,20 @@ static void map_build_area_mask(unsigned char* state)
 static void map_update_objective_highlight(void)
 {
     if ((g_main_state_flags & MSF_CHAR_VARIANT) != 0) {
-        if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PROGRESS_23) != 0) {
-            if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_PROGRESS_49) == 0) { MAP_MODE = 1; return; }
+        if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_PROGRESS_23) != 0) {
+            if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_PROGRESS_49) == 0) { MAP_MODE = 1; return; }
         }
         MAP_MODE = 0;
         return;
     }
-    if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_SERUM_OBJ1_CHRIS) != 0) {
-        if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_PROGRESS_49) == 0) { MAP_MODE = 1; return; }
+    if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_SERUM_OBJ1_CHRIS) != 0) {
+        if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_PROGRESS_49) == 0) { MAP_MODE = 1; return; }
     }
-    if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_SERUM_OBJ2_CHRIS) != 0) {
-        if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_PROGRESS_4A) == 0) {
+    if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_SERUM_OBJ2_CHRIS) != 0) {
+        if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_PROGRESS_4A) == 0) {
             if ((get_stage_id() != STAGE_MANSION_1F) &&
                 (get_stage_id() != STAGE_MANSION_2F)) {
-                if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PLANT42_OBJ) != 0) { MAP_MODE = 1; return; }
+                if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_PLANT42_OBJ) != 0) { MAP_MODE = 1; return; }
                 MAP_MODE = 0;
                 return;
             }
@@ -3523,8 +3523,8 @@ static void map_update_objective_highlight(void)
             return;
         }
     }
-    if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PLANT42_OBJ) != 0) {
-        if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_PROGRESS_48) == 0) { MAP_MODE = 3; return; }
+    if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_PLANT42_OBJ) != 0) {
+        if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_PROGRESS_48) == 0) { MAP_MODE = 3; return; }
     }
     MAP_MODE = 0;
 }
@@ -3536,7 +3536,7 @@ static void map_update_objective_highlight(void)
 // room_set_visited_flag 0x00488570). See BioCard.h.
 static void file_set_collected_flag(int fileIndex)
 {
-    Flg_on((int)g_RoomFlags, fileIndex + ROOM_FLAG_FILE_BASE);
+    Flg_on((int)O(g_RoomFlags), fileIndex + ROOM_FLAG_FILE_BASE);
 }
 
 // (0x00488160) - Initialize map screen with room data (menu open, modes 0/6)
@@ -3947,7 +3947,7 @@ static int pickup_item_seen(unsigned char entry)
 {
     if (entry == 0xff) return 0;
     if (entry == 0xfe) return 0;
-    return Flg_ck((int)g_RoomFlags, entry + ROOM_FLAG_FILE_BASE);
+    return Flg_ck((int)O(g_RoomFlags), entry + ROOM_FLAG_FILE_BASE);
 }
 
 // 0x00482800 - pickup fade ramp: steps the overlay brightness by 0x20 per
@@ -4046,7 +4046,7 @@ static void pickup_mark_seen(unsigned char* state)
 // source. The PAK buffer (0x00aea0d0) is only for the filem_*.pix container.
 static void pickup_load_texture(const char* path, unsigned int texId, int mode)
 {
-    void* loadBuffer = (void*)((int)g_TimImageBuffer__bitmap + 0x10000);
+    void* loadBuffer = (void*)((unsigned char*)g_TimImageBuffer__bitmap + 0x10000);
     if (SUBMENU_STATE_ID != texId) {
         SUBMENU_STATE_ID = (unsigned char)texId;
         // empty_483510(): returns 0 in the original - call dropped
@@ -4080,7 +4080,7 @@ static void pickup_load_texture(const char* path, unsigned int texId, int mode)
 // PUSH 0xd022ac before both calls).
 static void pickup_unpack_list(int index)
 {
-    void* pageBuffer = (void*)((int)g_TimImageBuffer__bitmap + 0x10000);
+    void* pageBuffer = (void*)((unsigned char*)g_TimImageBuffer__bitmap + 0x10000);
     unpack_pakfile_(g_bgPakLoadBuffer + *(int*)(g_bgPakLoadBuffer + index * 4),
                     pageBuffer);
     LoadTexturePage(pageBuffer, 0x15, (short)g_pickupPageOffsets[6],
@@ -4189,7 +4189,7 @@ static int menu_update_status_screen(void)
         if ((state[1] == 0) && (pickup_fade_update(0) != 0)) {
             state[0] = 1;
             state[7] = (g_main_state_flags & MSF_CHAR_VARIANT) != 0;
-            unsigned char itemId = *(unsigned char*)(*(unsigned char**)((int)g_pRoomActionEntry + 8) + 8);
+            unsigned char itemId = *(P<unsigned char>(*(unsigned int*)((unsigned char*)g_pRoomActionEntry + 8)) + 8);
             unsigned char uVar3 = itemId - 0x5f;
             file_set_collected_flag(uVar3);
             pickup_mark_seen(state);
@@ -4219,7 +4219,7 @@ static int menu_update_status_screen(void)
                 g_playerEntity.attackAnim = 0;
                 Joint_move(0, g_playerEntity.animHeader, g_playerEntity.animBase, 0x400);
                 state[3] = 0;
-                g_selectedItemId = *(unsigned char*)(*(unsigned char**)((int)g_pRoomActionEntry + 8) + 8);
+                g_selectedItemId = *(P<unsigned char>(*(unsigned int*)((unsigned char*)g_pRoomActionEntry + 8)) + 8);
                 set_message_display(0xc6, 0);
             }
         }
@@ -4239,7 +4239,7 @@ static int menu_update_status_screen(void)
     if ((state[8] == 1) && ((g_menu_choice_id & 0x80) == 0)) {
         // Pickup complete: consume the entry and clear its flags.
         unsigned char* evt = (unsigned char*)g_pRoomActionEntry;
-        unsigned char* record = *(unsigned char**)(evt + 8);
+        unsigned char* record = P<unsigned char>(*(unsigned int*)(evt + 8));
         ((unsigned char*)g_item_model_table[record[10]])[0] = 0;
         *evt = 0;
         FUN_00473f10((int*)&g_roomItemsFlags, record[0x14]);
@@ -4580,7 +4580,7 @@ static unsigned char DAT_00c2e93d;   // 0x00c2e93d - JPN "texture already loaded
 // FUN_00437dd0(0) is an empty stub in the original and is dropped.
 static void jpn_file_load_texture(const char* path, unsigned int texId, int mode)
 {
-    void* loadBuffer = (void*)((int)g_TimImageBuffer__bitmap + 0x10000);
+    void* loadBuffer = (void*)((unsigned char*)g_TimImageBuffer__bitmap + 0x10000);
     if ((unsigned int)DAT_00c2e93d != texId) {
         DAT_00c2e93d = (unsigned char)texId;
         LoadFile(path, loadBuffer, 0x20);
@@ -5357,7 +5357,7 @@ static void itembox_draw_cursor(void)
 // y = ((slot&~1)<<4) + 0x50 (verified against the disassembly).
 static void itembox_draw_slot_icon(int imgType, int slot)
 {
-    LoadImage((int)g_TimImageBuffer__bitmap + imgType * 0x4b0, 0xc, slot + 0xf, 1,
+    LoadImage((int)O((unsigned char*)g_TimImageBuffer__bitmap + imgType * 0x4b0), 0xc, slot + 0xf, 1,
               (short)((slot & 1) * 0x14), (short)(((slot & 0xfe) << 4) + 0x50),
               0x14, 0x1e, 1);
 }
@@ -5453,7 +5453,7 @@ static int menu_itembox_interaction(void)
                 }
                 if ((boxItem != 0) && (boxItem < 0x6f)) {
                     LoadItemImage((int)g_ItemImageLookupTable[(unsigned int)boxItem * 4] - 1,
-                                  (int)g_ItemSlotIndices[playerIdx], (int)g_TimImageBuffer__bitmap);
+                                  (int)g_ItemSlotIndices[playerIdx], (int)O(g_TimImageBuffer__bitmap));
                 }
                 rearrange_item_slots();
                 itembox_refresh_item();
@@ -5849,7 +5849,7 @@ static void draw_itembox_menu(void)
 // width(ushort), height(ushort), texU(byte), texV(byte), then advances the pointer.
 static void load_main_menu_frame_part_tex_area(void)
 {
-    int base = (int)g_CurrentMenuFramesDataPtr;
+    unsigned char* base = (unsigned char*)g_CurrentMenuFramesDataPtr;
     g_TextureDesc.texV    = *(unsigned char*)(base - 2);
     g_TextureDesc.texU    = *(unsigned char*)(base - 4);
     g_TextureDesc.height  = *(unsigned short*)(base - 6);
@@ -6033,11 +6033,11 @@ static int FUN_0044ef60(short angle, int axisMask)
     unsigned short* pRec = g_CurrentMenuFramesDataPtr;
     unsigned short target = pRec[0];
     if (target == 0) {
-        g_CurrentMenuFramesDataPtr = (unsigned short*)((int)g_CurrentMenuFramesDataPtr + 4);
+        g_CurrentMenuFramesDataPtr = (unsigned short*)((unsigned char*)g_CurrentMenuFramesDataPtr + 4);
         return axisMask;
     }
     unsigned short tol = pRec[1];
-    g_CurrentMenuFramesDataPtr = (unsigned short*)((int)g_CurrentMenuFramesDataPtr + 4);
+    g_CurrentMenuFramesDataPtr = (unsigned short*)((unsigned char*)g_CurrentMenuFramesDataPtr + 4);
     int diff = (int)((short)(angle + (short)target) & 0xfff) - (int)tol & 0xfff;
     if (diff <= target * 2) {
         return axisMask;
@@ -6058,7 +6058,7 @@ static int FUN_0044ed40(void)
         unsigned char exType = g_ItemExamineTypes[flagIndex];
         if ((exType & 0xf0) == 0) {
             g_bItemViewerActionIndex = 2;
-            Flg_on((int)g_itemExaminedFlags, (unsigned int)flagIndex);
+            Flg_on((int)O(g_itemExaminedFlags), (unsigned int)flagIndex);
             set_message_display(g_ItemHealTable[(unsigned int)flagIndex + 0x51], 0);
             return 1;
         }
@@ -6085,7 +6085,7 @@ static int FUN_0044ed40(void)
                 return 1;
             }
             g_bItemViewerActionIndex = 2;
-            Flg_on((int)g_itemExaminedFlags, (unsigned int)flagIndex);
+            Flg_on((int)O(g_itemExaminedFlags), (unsigned int)flagIndex);
             set_message_display(g_ItemHealTable[(unsigned int)flagIndex + 0x51], 0);
             return 1;
         }
@@ -6110,7 +6110,7 @@ static int FUN_0044ed40(void)
         case ITEM_BAZOOKA_EXPLOSIVE:
         case ITEM_BAZOOKA_ACID:
         case ITEM_BAZOOKA_FLAME:
-            if (*(char*)((unsigned int)g_ItemSlotsPointer + 1 + (unsigned int)((DAT_00ae9f23 >> 1) - 4) * 2) != 0) {
+            if (*(char*)((unsigned char*)g_ItemSlotsPointer + 1 + (unsigned int)((DAT_00ae9f23 >> 1) - 4) * 2) != 0) {
                 g_selectedItemId = weapon_ammo_item_id(g_bItemMenuSelectedItemId);
                 g_bItemViewerActionIndex = 2;
                 set_message_display(0xf0, 0);
@@ -6118,8 +6118,8 @@ static int FUN_0044ed40(void)
             }
             break;
         case 0x13:
-            if ((Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_ITEM13_USE_LOCK) != 0) ||
-                (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_STAGE_VARIANT) != 0)) {
+            if ((Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_ITEM13_USE_LOCK) != 0) ||
+                (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_STAGE_VARIANT) != 0)) {
                 g_bItemViewerActionIndex = 2;
                 set_message_display(0xf1, 0);
                 return 1;
@@ -6346,7 +6346,7 @@ static void FUN_0044e8c0(void)
     if ((g_menu_choice_id & 0x80) == 0) {
         if (g_bItemMenuSelectedItemId == ITEM_RED_BOOK) {
             if (DAT_00ae9f5e != 0) {
-                Flg_on((int)g_itemExaminedFlags, 0xd);
+                Flg_on((int)O(g_itemExaminedFlags), 0xd);
             }
         } else if (((ITEM_RED_BOOK < g_bItemMenuSelectedItemId) && (g_bItemMenuSelectedItemId < ITEM_FIRST_AID_SPRAY)) && (DAT_00ae9f5e != 0)) {
             g_bItemViewerActionIndex = 3;
@@ -6389,7 +6389,7 @@ static void FUN_0044e920(void)
     unsigned char slot = (unsigned char)((unsigned char)(DAT_00ae9f23 >> 1) - 4);
     g_bItemMenuSelectedItemId = g_bItemMenuSelectedItemId - 0x3f;     // 0 = wolf, 1 = eagle
     LoadFile((char*)g_MedalPixPath, g_TimImageBuffer__bitmap, 0x20);
-    LoadItemImage((int)g_bItemMenuSelectedItemId, (int)g_ItemSlotIndices[slot], (int)g_TimImageBuffer__bitmap);
+    LoadItemImage((int)g_bItemMenuSelectedItemId, (int)g_ItemSlotIndices[slot], (int)O(g_TimImageBuffer__bitmap));
     g_bItemMenuSelectedItemId = g_bItemMenuSelectedItemId + 0x24;     // ITEM_WOLF_MEDAL / ITEM_EAGLE_MEDAL
     ITEM_SLOTS[(unsigned int)slot * 2] = g_bItemMenuSelectedItemId;
     ITEM_SLOTS[(unsigned int)slot * 2 + 1] = 1;
@@ -6423,12 +6423,12 @@ int FUN_0044e1b0(void)
             return 0;   // the model file failed to load; keep the viewer inert
         }
         DAT_00ae9f49 = 1;
-        ResolveAnimPointers((unsigned char*)(g_itemModelTmdBase + 4));
-        DAT_00ae9f4b = *(unsigned char*)(g_itemModelTmdBase + 8);
+        ResolveAnimPointers(P<unsigned char>(g_itemModelTmdBase) + 4);
+        DAT_00ae9f4b = *(P<unsigned char>(g_itemModelTmdBase) + 8);
         // Sca chain: Sca[2] (root) <- Sca[1] <- Sca[0]
         InitScaMatrix(0, (ScaMatrixData*)&g_viewerScaMatrices[2 * 0x50 / 4]);
-        InitScaMatrix((int)&g_viewerScaMatrices[2 * 0x50 / 4], (ScaMatrixData*)&g_viewerScaMatrices[0x50 / 4]);
-        InitScaMatrix((int)&g_viewerScaMatrices[0x50 / 4], (ScaMatrixData*)&g_viewerScaMatrices[0]);
+        InitScaMatrix((int)O(&g_viewerScaMatrices[2 * 0x50 / 4]), (ScaMatrixData*)&g_viewerScaMatrices[0x50 / 4]);
+        InitScaMatrix((int)O(&g_viewerScaMatrices[0x50 / 4]), (ScaMatrixData*)&g_viewerScaMatrices[0]);
         // Items have 1 or 2 objects; never trust the file. The do-while below
         // walks indices [2 - count, 1], so a count outside 1..2 would run off
         // both the joint array and g_viewerObjRot.
@@ -6442,7 +6442,7 @@ int FUN_0044e1b0(void)
                 int uVar6 = bVar5;
                 bVar5 = bVar5 + 1;
                 *(int*)((BYTE*)g_viewerJoints + uVar6 * 0x14) = 0;
-                *(int**)((BYTE*)g_viewerJoints + 4 + uVar6 * 0x14) = (int*)((BYTE*)g_viewerScaMatrices + bVar4 * 0x50);
+                *(unsigned int*)((BYTE*)g_viewerJoints + 4 + uVar6 * 0x14) = O((BYTE*)g_viewerScaMatrices + bVar4 * 0x50);
                 *(short*)((BYTE*)&DAT_00ae9f54 + uVar6 * 8) = 0;
                 *(short*)((BYTE*)&DAT_00ae9f56 + uVar6 * 8) = 0;
                 *(short*)((BYTE*)&DAT_00ae9f58 + uVar6 * 8) = 0;
@@ -6494,11 +6494,11 @@ int FUN_0044e1b0(void)
                     // shift for exactly this decision).
                     unsigned char pickupQty = dc_item_pickup_quantity(
                         g_bItemMenuSelectedItemId,
-                        *(unsigned char*)(*(int*)((int)g_pRoomActionEntry + 8) + 9));
+                        *(P<unsigned char>(*(int*)((unsigned char*)g_pRoomActionEntry + 8)) + 9));
                     bVar5 = 0;
                     bVar4 = g_totalInventorySlots;
                     do {
-                        unsigned char* pbVar2 = (unsigned char*)((unsigned int)bVar5 * 2 + (unsigned int)g_ItemSlotsPointer);
+                        unsigned char* pbVar2 = (unsigned char*)g_ItemSlotsPointer + (unsigned int)bVar5 * 2;
                         if ((*pbVar2 == g_bItemMenuSelectedItemId) &&
                             ((unsigned short)((unsigned short)pbVar2[1] +
                              (unsigned short)pickupQty) < 251)) {
@@ -6598,14 +6598,14 @@ viewer_state3:
 static void FUN_004841f0(void);
 void FUN_00484420(void* src, void* dst)
 {
-    g_itemModelSrc = (int)src;
+    g_itemModelSrc = (int)O(src);
     unsigned char* p = (unsigned char*)src;
     g_itemModelTmdBase = 0;
     // Validate the .ivm TIM header before trusting its lengths
     if (p != 0 && *(int*)p == 0x10 && (*(int*)(p + 4) & 7) <= 2) {
         int clutLen = *(int*)(p + 8);
         int imgLen = *(int*)(p + 8 + clutLen);
-        g_itemModelTmdBase = (int)(p + 8 + clutLen + imgLen);
+        g_itemModelTmdBase = (int)O(p + 8 + clutLen + imgLen);
     }
     ExecAsync((void*)FUN_004841f0);
 }
@@ -6684,7 +6684,7 @@ void FUN_00483580(int* joint, MATRIX* out)
     int* p = joint;
     while (p != 0 && chainCount < 0x14) {
         chain[chainCount++] = p;
-        p = (int*)p[0x12];   // owner (parent)
+        p = P<int>(p[0x12]);   // owner (parent)
     }
 
     // Compose from the deepest (root) down to the given joint
@@ -6695,7 +6695,7 @@ void FUN_00483580(int* joint, MATRIX* out)
                 j[9 + k] = j[1 + k];
             }
         } else {
-            CompMatrix((MATRIX*)(j[0x12] + 0x24), (MATRIX*)(j + 1), (MATRIX*)(j + 9));
+            CompMatrix((MATRIX*)(P<unsigned char>(j[0x12]) + 0x24), (MATRIX*)(j + 1), (MATRIX*)(j + 9));
         }
     }
     // 0x004835ee - compose against the camera. main_menu (0x004638e3) installs
@@ -6845,7 +6845,7 @@ static void FUN_0044ea50(void)
                       (MATRIX*)((BYTE*)g_viewerScaMatrices + 4 + uVar1 * 0x50));
             *(int*)((BYTE*)g_viewerScaMatrices + uVar1 * 0x50) = 0;
             // Compose the Sca chain from the joint's matrix
-            int* joint = *(int**)((BYTE*)g_viewerJoints + 4 + uVar1 * 0x14);
+            int* joint = P<int>(*(unsigned int*)((BYTE*)g_viewerJoints + 4 + uVar1 * 0x14));
             // The compose already carries the zoom into t[2] via the camera.
             FUN_00483580(joint, &g_viewerMatrixBe0f60);
             // 0x0044eaef - multAndSetLightMatrix(&g_RoomCameraData)
@@ -6927,12 +6927,12 @@ static void ItemStpPage_KnockOutStpTexels(void)
 // texture page (bank 0x15) and the Direct3DTMD slot(s) from the TMD header.
 static void FUN_004841f0(void)
 {
-    int local_10 = *(int*)(g_itemModelTmdBase + 8);   // TMD object count
+    int local_10 = *(int*)(P<unsigned char>(g_itemModelTmdBase) + 8);   // TMD object count
     g_itemModelTmdCount = 0;
     if (g_itemModelTmdBase == 0) return;
     if (local_10 < 1 || local_10 >= 3) return;
 
-    ResolveAnimPointers((unsigned char*)(g_itemModelTmdBase + 4));
+    ResolveAnimPointers(P<unsigned char>(g_itemModelTmdBase) + 4);
 
     BYTE* itemPage = &g_psxTextureArray[0x15 * 0x1b60];
 
@@ -6944,7 +6944,7 @@ static void FUN_004841f0(void)
     VideoDriver_ClearState348(g_itemStpPage, g_pMarniDirect3D);
 
     if (ITEM_PAGE_CREATED(itemPage) == 0) {
-        LoadPSXImage((PSXTexture*)itemPage, (void*)g_itemModelSrc, 1);
+        LoadPSXImage((PSXTexture*)itemPage, P<void>(g_itemModelSrc), 1);
         Direct3DTIM_Create(itemPage, g_pMarniDirect3D);
     }
 
@@ -6958,7 +6958,7 @@ static void FUN_004841f0(void)
             // Own copy of the same TIM (copyData = 1 allocates its own pixel
             // and CLUT buffers, so knocking texels out below cannot touch the
             // item page).
-            LoadPSXImage((PSXTexture*)g_itemStpPage, (void*)g_itemModelSrc, 1);
+            LoadPSXImage((PSXTexture*)g_itemStpPage, P<void>(g_itemModelSrc), 1);
             ItemStpPage_KnockOutStpTexels();
             // 0x0048433c-0x0048435f: the original creates the per-CLUT handles
             // by hand and then sets 0x008f8c50 (= page + 0x348). That is what
@@ -6974,10 +6974,10 @@ static void FUN_004841f0(void)
         // objects, so multi-object items only ever rendered their last object.
         CMarniDirect3DTMD* itemSlot = (CMarniDirect3DTMD*)g_itemTmdSlots[i];
         itemSlot->CleanupObjects(g_pMarniDirect3D);
-        int st = PSXObject_Store(itemSlot, (int*)g_itemModelTmdBase, i, 0xffffffff, 0x100);
+        int st = PSXObject_Store(itemSlot, P<int>(g_itemModelTmdBase), i, 0xffffffff, 0x100);
         int cr = itemSlot->Create(g_pMarniDirect3D, itemPage, (void*)1);
         char dbg[160];
-        sprintf_s(dbg, sizeof(dbg), "[ITEM] store=%d create=%d tmd=%p count=%d obj=%d\n", st, cr, (void*)g_itemModelTmdBase, local_10, i);
+        sprintf_s(dbg, sizeof(dbg), "[ITEM] store=%d create=%d tmd=%p count=%d obj=%d\n", st, cr, P<void>(g_itemModelTmdBase), local_10, i);
         OutputDebugStringA(dbg);
     }
     g_itemModelTmdCount = local_10;
@@ -6990,7 +6990,7 @@ static void FUN_004841f0(void)
     // those are cleaned inside the loop and re-Created right after.)
     ((CMarniDirect3DTMD*)g_itemSharedTmdSlot)->CleanupObjects(g_pMarniDirect3D);
     if (ITEM_PAGE_CREATED(g_itemStpPage) == 1) {
-        PSXObject_Store((CMarniDirect3DTMD*)g_itemSharedTmdSlot, (int*)g_itemModelTmdBase, 0, 0xffffffff, 0x100);
+        PSXObject_Store((CMarniDirect3DTMD*)g_itemSharedTmdSlot, P<int>(g_itemModelTmdBase), 0, 0xffffffff, 0x100);
         ((CMarniDirect3DTMD*)g_itemSharedTmdSlot)->Create(g_pMarniDirect3D, g_itemStpPage, (void*)1);
     }
 }

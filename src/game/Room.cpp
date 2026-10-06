@@ -218,7 +218,7 @@ void Room_LoadCameraSprites(void) // 0x004757c0
     unsigned char totalCount = 0;
 
     RDT_Camera* cameras = (RDT_Camera*)((char*)g_RdtPointer + sizeof(RDT));
-    int* spriteGroupBase = (int*)cameras[g_roomCameraId].mask_pointer;
+    int* spriteGroupBase = P<int>(cameras[g_roomCameraId].mask_pointer);
     int groupCount = spriteGroupBase[0];
     unsigned short* groupHeaders = (unsigned short*)(spriteGroupBase + 1);
     unsigned short* spriteData = groupHeaders + groupCount * 4;
@@ -712,7 +712,7 @@ void RoomSpr_SetInactive(char id) // 0x00476130
 void load_room_masks(int param_1) // 0x00475a90
 {
     RDT_Camera* cameras = (RDT_Camera*)((char*)g_RdtPointer + sizeof(RDT));
-    int* spriteGroupPtr = (int*)cameras[param_1].mask_pointer;
+    int* spriteGroupPtr = P<int>(cameras[param_1].mask_pointer);
 
     // An arrange room's mask art is not in objspr/ - it is EMBEDDED in the RDT,
     // at the camera's tim_mask_pointer, and it is already in memory. That is
@@ -728,7 +728,7 @@ void load_room_masks(int param_1) // 0x00475a90
     // the height from the TIM header, so a short page samples correctly; do
     // not reintroduce a 256x256 assumption anywhere on this path.
     if (*spriteGroupPtr != 0 && room_file_stage() >= STAGE_ARRANGE_FIRST) {
-        void* timMask = (void*)cameras[param_1].tim_mask_pointer;
+        void* timMask = P<void>(cameras[param_1].tim_mask_pointer);
         if (timMask != NULL) {
             TexturePage_SetupFull(timMask, g_TextureBankID, g_TextureCurrentPage,
                                   ROOM_MASK_TEXTURE_SLOT);
@@ -957,7 +957,7 @@ void load_room_bg_masks(void) // 0x004759d0
             *offsetPtr = totalSize;
 
             RDT_Camera* cameras = (RDT_Camera*)((char*)pRdt + sizeof(RDT));
-            int* maskPointer = (int*)cameras[camCounter].mask_pointer;
+            int* maskPointer = P<int>(cameras[camCounter].mask_pointer);
 
             int fileSize;
             // Nothing to preload for an arrange room: there is no objspr file

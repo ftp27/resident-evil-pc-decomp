@@ -17,7 +17,7 @@ static void ScdEventEntry_Init(ScdEventEntry* entry, int scriptIndex)
 {
     entry->active = 1;
     entry->state = 0;
-    entry->scriptPtr = ((unsigned char**)g_RoomEventScripts)[scriptIndex];
+    entry->scriptPtr = P<unsigned char>(((uint32_t*)g_RoomEventScripts)[scriptIndex]);
     entry->stackDepth = 0xFF;
     entry->entity = ENTITY;
 }
@@ -145,7 +145,7 @@ void run_command_functions(unsigned short* scd_opcodes)
             if (g_ScriptContinueFlag == 0) break;
 
             g_CmdOpcodesPointer--;
-            g_ScdOpcodes = (unsigned char*)*g_CmdOpcodesPointer;
+            g_ScdOpcodes = P<unsigned char>(*g_CmdOpcodesPointer);
             g_ScriptContinueFlag--;
         }
 
@@ -384,16 +384,16 @@ static int scd_event_state1_anim(void)
                     short targetIndex = (short)opcodes[2];
                     switch (*(opcodes + 1)) {
                     case 0:
-                        ent->scd_target_ptr = (unsigned int)&g_playerEntity;
+                        ent->scd_target_ptr = O(&g_playerEntity);
                         break;
                     case 1:
-                        ent->scd_target_ptr = (unsigned int)&g_EnemiesList[targetIndex];
+                        ent->scd_target_ptr = O(&g_EnemiesList[targetIndex]);
                         break;
                     case 2:
-                        ent->scd_target_ptr = (unsigned int)g_omodel_table[targetIndex];
+                        ent->scd_target_ptr = O(g_omodel_table[targetIndex]);
                         break;
                     case 3:
-                        ent->scd_target_ptr = (unsigned int)g_item_model_table[targetIndex];
+                        ent->scd_target_ptr = O(g_item_model_table[targetIndex]);
                         break;
                     }
                 } else {
@@ -679,7 +679,7 @@ event_dispatch:
                         *(short*)(g_pScdEventCurrent->scriptPtr + 2);
                     g_pScdEventCurrent->scriptPtr += 4;
                     g_pScdEventCurrent->returnStack[(signed char)g_pScdEventCurrent->stackDepth] =
-                        (unsigned int)g_pScdEventCurrent->scriptPtr;
+                        O(g_pScdEventCurrent->scriptPtr);
                     goto event_dispatch;
 
                 case 0xFB: // Loop end
@@ -689,22 +689,22 @@ event_dispatch:
                         g_pScdEventCurrent->stackDepth--;
                     } else {
                         g_pScdEventCurrent->scriptPtr =
-                            (unsigned char*)g_pScdEventCurrent->returnStack[(signed char)g_pScdEventCurrent->stackDepth];
+                            P<unsigned char>(g_pScdEventCurrent->returnStack[(signed char)g_pScdEventCurrent->stackDepth]);
                     }
                     goto event_dispatch;
 
                 case 0xFC: // Call subroutine
                     g_pScdEventCurrent->stackDepth++;
                     g_pScdEventCurrent->callStack[(signed char)g_pScdEventCurrent->stackDepth] =
-                        (unsigned int)(g_pScdEventCurrent->scriptPtr + 2);
+                        O(g_pScdEventCurrent->scriptPtr + 2);
                     g_pScdEventCurrent->scriptPtr =
                         g_pScdEventCurrent->scriptPtr + g_pScdEventCurrent->scriptPtr[1];
                     g_pScdEventCurrent->returnStack[(signed char)g_pScdEventCurrent->stackDepth] =
-                        (unsigned int)g_pScdEventCurrent->scriptPtr;
+                        O(g_pScdEventCurrent->scriptPtr);
                     goto event_dispatch;
 
                 case 0xFD: // Call SCD command from call stack
-                    g_ScdOpcodes = (unsigned char*)g_pScdEventCurrent->callStack[(signed char)g_pScdEventCurrent->stackDepth];
+                    g_ScdOpcodes = P<unsigned char>(g_pScdEventCurrent->callStack[(signed char)g_pScdEventCurrent->stackDepth]);
                     typedef int (*ScdCmdFunc)(void);
                     result = scd_dispatch("event 0xFD");
                     if (result == 0) {
@@ -712,7 +712,7 @@ event_dispatch:
                         g_pScdEventCurrent->stackDepth--;
                     } else {
                         g_pScdEventCurrent->scriptPtr =
-                            (unsigned char*)g_pScdEventCurrent->returnStack[(signed char)g_pScdEventCurrent->stackDepth];
+                            P<unsigned char>(g_pScdEventCurrent->returnStack[(signed char)g_pScdEventCurrent->stackDepth]);
                     }
                     goto event_dispatch;
 
@@ -889,7 +889,7 @@ void* room_check_actions[ROOM_CHECK_ACTION_COUNT] = {
 void room_event_item_pickup(void)
 {
     unsigned char* evt = (unsigned char*)g_pRoomActionEntry;
-    unsigned char* record = *(unsigned char**)(evt + 8);
+    unsigned char* record = P<unsigned char>(*(uint32_t*)(evt + 8));
 
     *evt = 0;                                     // deactivate the event entry
     ((unsigned char*)g_item_model_table[record[10]])[0] = 0;
@@ -981,9 +981,9 @@ void room_event_item_pickup(void)
 // ============================================================================
 void room_event_take_item(void)
 {
-    unsigned char* record = *(unsigned char**)((char*)g_pRoomActionEntry + 8);
+    unsigned char* record = P<unsigned char>(*(uint32_t*)((char*)g_pRoomActionEntry + 8));
     if ((char)record[8] == ITEM_COMM_RADIO) {
-        Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_HAS_RADIO);
+        Flg_on(O(g_ScenarioFlags), SCENARIO_FLAG_HAS_RADIO);
         return;
     }
     room_event_item_pickup();
@@ -1065,7 +1065,7 @@ extern unsigned int Flg_ck(int baseAddr, unsigned int bitIndex);
 void check_desk_state(void)
 {
     if ((g_stageId == STAGE_GUARDHOUSE) && (g_roomId == ROOM_003) && ((g_playerEntity.id & 3) == 1) &&
-        (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)) {
+        (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)) {
         g_desk_check_state = 0;
     }
 
@@ -1078,7 +1078,7 @@ void check_desk_state(void)
         // global (has_desk_key @ 0x004d6eb4); the call itself is kept for its
         // g_pCurrentItemSlot side effect.
         (void)get_item_slot(ITEM_DESK_KEY);
-        g_selectedItemId = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_HAS_LOCKPICK) ?
+        g_selectedItemId = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_HAS_LOCKPICK) ?
                            lockpick_item_id() : (unsigned char)ITEM_DESK_KEY;
         set_message_display(0xd9, 0xff);
         g_desk_check_state = 3;
@@ -1087,9 +1087,9 @@ void check_desk_state(void)
         if ((g_menu_choice_id & 0x80) == 0) {
             if ((g_menu_choice_id & 1) == 0) {
                 // "Yes": unlock and show the key-turned message.
-                Flg_on((int)g_LocksFlags, *(unsigned short*)((char*)g_pRoomActionEntry + 2));
+                Flg_on(O(g_LocksFlags), *(unsigned short*)((char*)g_pRoomActionEntry + 2));
                 play_sfx(2, 0x26, 0);
-                g_selectedItemId = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_HAS_LOCKPICK) ?
+                g_selectedItemId = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_HAS_LOCKPICK) ?
                                    lockpick_item_id() : (unsigned char)ITEM_DESK_KEY;
                 set_message_display(0xc3, 0xff);
             }
@@ -1137,7 +1137,7 @@ void check_typewriter_state(void)
     case 1:
         g_typewriter_id = *(unsigned short*)((char*)g_pRoomActionEntry + 2);
         if (((g_playerEntity.id == 1) || (g_playerEntity.id == 5)) &&
-            (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)) {
+            (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)) {
             set_message_display(224, 0xff);   // "Will you save your progress?"
         } else {
             set_message_display(223, 0xff);   // "Will you use the INK RIBBON?"
@@ -1161,7 +1161,7 @@ void check_typewriter_state(void)
         break;
     case 3:
         if ((short)g_fading_state < 0) {
-            LoadSaveGameState(0, (int)g_loadDataDestPointer, (int)g_typewriter_id + 1, 2, 0);
+            LoadSaveGameState(0, O(g_loadDataDestPointer), (int)g_typewriter_id + 1, 2, 0);
             g_loadSaveStateFlag = 0;
             cut_set();
             g_main_state_flags = (g_main_state_flags & ~MSF_SCREEN_MODE_MASK) | MSF_SCREEN_REBUILD;

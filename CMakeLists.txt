@@ -34,6 +34,7 @@ set(RE1_SOURCES
     src/system/AudioFile.cpp
     src/system/PngImage.cpp
     src/system/ConfigFile.cpp
+    src/platform/ptr32.cpp
 
     src/marni/MarniBits.cpp
     src/marni/PSXTexture.cpp
@@ -135,6 +136,7 @@ list(APPEND RE1_SOURCES
     src/platform/linux/crash.cpp
     src/platform/linux/stubs.cpp
     src/platform/linux/main.cpp
+    src/platform/linux/testmode.cpp
     src/marni/MarniDX_GL.cpp
     src/marni/MarniGLFuncs.cpp
 )
@@ -142,6 +144,27 @@ list(APPEND RE1_SOURCES
 add_executable(residentevil ${RE1_SOURCES})
 
 target_include_directories(residentevil PRIVATE src)
+
+# ---------------------------------------------------------------------------
+# macOS: native 64-bit (arm64 / x86_64). macOS has no 32-bit runtime, so the
+# -m32 section below does not apply. Same Linux platform layer and GL backend;
+# SDL2 and ffmpeg come from Homebrew via pkg-config, and the Khronos
+# glcorearb.h the GL loader needs is vendored under src/third_party (the SDK
+# only ships OpenGL/gl3.h).
+#
+#   brew install cmake pkg-config sdl2 ffmpeg
+#   cmake -S . -B build/macos -DCMAKE_BUILD_TYPE=Release
+#   cmake --build build/macos -j
+# ---------------------------------------------------------------------------
+if(APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(RE1_DEPS REQUIRED IMPORTED_TARGET
+        sdl2 libavformat libavcodec libavutil libswresample)
+    target_include_directories(residentevil PRIVATE src/third_party)
+    target_compile_options(residentevil PRIVATE -w -ferror-limit=0)
+    target_link_libraries(residentevil PRIVATE PkgConfig::RE1_DEPS m)
+    return()
+endif()
 
 # ---------------------------------------------------------------------------
 # 32-bit x86: the game's layout and the scheduler assume it.

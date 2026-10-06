@@ -120,7 +120,7 @@ void spiderweb_init(void)
 
     // 0x00443745: `MOV AL,[0x00be62e5]` - the player entity's id byte.
     ENTITY->Sca_info =
-        (unsigned int)(uintptr_t)s_spiderWebScaInfo[g_playerEntityPointer.id & 1];
+        O(s_spiderWebScaInfo[g_playerEntityPointer.id & 1]);
     SetEntityScaHitData(ENTITY);
 
     ENTITY->animationId         = 0;
@@ -208,7 +208,7 @@ void spiderweb_destroy(void)
     ENTITY->status_flags |= 0x02;
 
     // The room script polls this flag to open the door.
-    Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+    Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
 
     set_state_word(4);                                  // -> the do-nothing state
 }

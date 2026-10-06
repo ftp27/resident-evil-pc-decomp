@@ -15,7 +15,7 @@
 class DirectSound {
 public:
     // +0x00: vtable pointer
-    void** vtable;
+    Ptr32<void*> vtable;
 
     // Padding / internal state
     BYTE  m_pad1[0x10];  // 0x04-0x13

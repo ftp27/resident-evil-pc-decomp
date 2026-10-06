@@ -302,7 +302,7 @@ void mp_init(void)
     MP_STATE32 = 1;
     ENTITY->health = 1;
 
-    ENTITY->Sca_info = (unsigned int)(void*)s_mpScaInfo;
+    ENTITY->Sca_info = O((void*)s_mpScaInfo);
 
     // Two separate stores in the original, not one masked assignment.
     ENTITY->status_flags = (unsigned char)(ENTITY->status_flags & 0x1F);
@@ -421,7 +421,7 @@ void mp_damaged(void)
 {
     MP_HITS = (short)(MP_HITS + 1);
     if ((unsigned short)MP_HITS > 3) {
-        Flg_on((int)(void*)g_ScenarioFlags, SCENARIO_FLAG_MONSTER_PLANT_PROG);
+        Flg_on(O((void*)g_ScenarioFlags), SCENARIO_FLAG_MONSTER_PLANT_PROG);
     }
 
     MP_STATE32 = MP_STATE_BK;
@@ -495,7 +495,7 @@ void mp_die_case_2(void)
     MP_TICKS = (unsigned short)(MP_TICKS - 1);
     if (MP_TICKS == 0) {
         ENTITY->ignore_player_flag = (unsigned char)(ENTITY->ignore_player_flag + 1);
-        Flg_on((int)(void*)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O((void*)g_EnemiesFlags), ENTITY->death_event_id);
     }
 
     // behavior_flags bit 0 = the withering colour ramp.
@@ -887,9 +887,9 @@ void mp_grab_sound(void)
     Snd_em(3);
     if ((g_playerEntity.id & 3) != 3) {
         Play3DSnd(2, (int)(g_playerEntity.id & 1) + 0x17, 0,
-                  (int)(void*)g_playerEntity.scaMatrixData.localMatrix.t);
+                  O((void*)g_playerEntity.scaMatrixData.localMatrix.t));
     } else {
-        Play3DSnd(3, 0, 0, (int)(void*)g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 0, 0, O((void*)g_playerEntity.scaMatrixData.localMatrix.t));
     }
 }
 
@@ -1269,7 +1269,7 @@ void monster_plant_update(void)
         // Retarget the SCA hit vector at Entity+0x08 onto the vine head, as an
         // offset from the body. Without this the hitbox stays at the base and
         // an extended vine cannot be shot.
-        short* hit = (short*)ENTITY->pSca_hit_data;
+        short* hit = P<short>(ENTITY->pSca_hit_data);
         int*   head = joints[11].world.t;
         hit[0] = (short)((short)head[0] - *(short*)((char*)ENTITY + 0x34));
         hit[1] = (short)((short)head[1] - *(short*)((char*)ENTITY + 0x38));

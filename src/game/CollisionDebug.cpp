@@ -300,7 +300,7 @@ void CollisionDebug_Draw(void)
 
     int radius = 0;
     if (g_playerEntity.Sca_info != 0) {
-        radius = *(short*)(g_playerEntity.Sca_info + 10);
+        radius = *P<short>(g_playerEntity.Sca_info + 10);
     }
     int skin = radius + 0x12;   // what collision_push_rect actually clears
 

@@ -659,7 +659,7 @@ struct ClLogoSlot {
     unsigned char  pad10[4];    // +0x10
     short          counter;     // +0x14
     short          phase;       // +0x16
-    ClLogoSlot*    parent;      // +0x18
+    Ptr32<ClLogoSlot> parent;   // +0x18
     unsigned char  texU;        // +0x1c
     unsigned char  texV;        // +0x1d
     short          width;       // +0x1e
@@ -2552,15 +2552,15 @@ static void cl_cmd_unlock(void)
     // constant 5, which is the MAP INDEX of the lab map (item ITEM_MAP_LABORATORY,
     // 0x53 - ITEM_MAP_FIRST). The lab map has no item model anywhere in the RDTs,
     // so this terminal unlock is the only thing that ever raises its bit.
-    Flg_on((int)g_RoomFlags, ROOM_FLAG_MAP_BASE + MAP_INDEX_LABORATORY);
+    Flg_on(O(g_RoomFlags), ROOM_FLAG_MAP_BASE + MAP_INDEX_LABORATORY);
 
     const int lockBit = 0x26 - (((s_doorSel & 0x7f) == 0) ? 1 : 0);
-    if (Flg_ck((int)g_LocksFlags, lockBit) != 0) {
+    if (Flg_ck(O(g_LocksFlags), lockBit) != 0) {
         // Already released on an earlier visit - skip the celebration.
         ST_TIMER_A = 0x20;
         return;
     }
-    Flg_on((int)g_LocksFlags, lockBit);
+    Flg_on(O(g_LocksFlags), lockBit);
     g_EnemiesList[0].behavior_flags = 0x45;
     g_EnemiesList[1].behavior_flags = 0x45;
 }

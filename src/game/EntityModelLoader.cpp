@@ -290,8 +290,8 @@ extern void ProcessTmdAsync(unsigned int param1);
 // ============================================================================
 void AdjustWeaponAnimationPositions(int param1)
 {
-    unsigned int animBuffer = g_playerEntity.jointMoveData0;
-    unsigned int animEnd = g_playerEntity.jointMoveData1;
+    unsigned char* animBuffer = P<unsigned char>(g_playerEntity.jointMoveData0);
+    unsigned char* animEnd = P<unsigned char>(g_playerEntity.jointMoveData1);
     int local_8 = 5;
 
     do {
@@ -350,10 +350,10 @@ void AdjustWeaponAnimationPositions(int param1)
 // ============================================================================
 void Entity_SetJoints(Entity* em, unsigned int param2)
 {
-    unsigned char jointCount = *(unsigned char*)(em->animHeader + 4);
+    unsigned char jointCount = *(P<unsigned char>(em->animHeader) + 4);
     em->jointCount = jointCount;
     em->jointsStructs = (JointStruct*)g_loadDataDestPointer;
-    g_loadDataDestPointer = (void*)((unsigned int)g_loadDataDestPointer + (param2 & 0xFFFC) * jointCount);
+    g_loadDataDestPointer = (void*)((unsigned char*)g_loadDataDestPointer + (param2 & 0xFFFC) * jointCount);
 }
 
 // ============================================================================
@@ -364,8 +364,8 @@ void InitAnimStructure(void* animHeaderValue)
 {
     AnimDataHeader* header = (AnimDataHeader*)animHeaderValue;
     ResolveAnimPointers(&header->resolved);
-    SetAnimSlot(header->slots, (int)&ENTITY->unk_0c, 0);
-    *(DWORD*)&ENTITY->unk_10 = (DWORD)&ENTITY->scaMatrixData;
+    SetAnimSlot(header->slots, (int)O(&ENTITY->unk_0c), 0);
+    *(DWORD*)&ENTITY->unk_10 = O(&ENTITY->scaMatrixData);
     ENTITY->blend_counter = 0;
 }
 
@@ -378,7 +378,7 @@ unsigned int SetupJointStructures(unsigned int param1)
 {
     unsigned char local_1 = 0;
     JointStruct* joint = ENTITY->jointsStructs;
-    unsigned int uVar2 =     ENTITY->modelLoadBuffer;
+    AnimSlot* uVar2 =     P<AnimSlot>(ENTITY->modelLoadBuffer);
     unsigned char jointCount = ENTITY->jointCount;
 
     if (jointCount == 0) {
@@ -386,7 +386,7 @@ unsigned int SetupJointStructures(unsigned int param1)
     }
 
     do {
-        SetAnimSlot((AnimSlot*)uVar2, (int)&joint->anim_field, local_1);
+        SetAnimSlot(uVar2, (int)O(&joint->anim_field), local_1);
         joint->index = local_1;
         joint->flags = 3;
         joint->data_ptr = &joint->scale_flag;
@@ -395,7 +395,7 @@ unsigned int SetupJointStructures(unsigned int param1)
         joint->anim_object = 0;
         joint->field_02 = 0;
         joint->anim_field = 0;
-        param1 = (unsigned int)CreateAnimObject((int)&joint->anim_field, (unsigned int*)param1);
+        param1 = O(CreateAnimObject((int)O(&joint->anim_field), P<unsigned int>(param1)));
 
         if (ENTITY->id == 0x29) {
             switch (local_1) {
@@ -422,7 +422,7 @@ unsigned int SetupJointStructures(unsigned int param1)
 void ResetJointTransforms(void)
 {
     unsigned char jointCount = ENTITY->jointCount;
-    short* psVar2 = (short*)(ENTITY->animHeader + 8);
+    short* psVar2 = (short*)(P<unsigned char>(ENTITY->animHeader) + 8);
     JointStruct* joint = ENTITY->jointsStructs;
 
     ENTITY->lookAtJointIdx = 1;
@@ -454,7 +454,8 @@ void InitScaMatrix(int param1, ScaMatrixData* scaData)
     scaData->field_00 = 0;
     scaData->owner = (unsigned int)param1;
     if (param1 != 0) {
-        *(unsigned int**)(param1 + 0x4c) = (unsigned int*)scaData;
+        // 4-byte slot in the owner: store the slot value, not a native pointer.
+        *(uint32_t*)(P<unsigned char>((uint32_t)param1) + 0x4c) = O(scaData);
     }
     scaData->field_4c = 0;
 
@@ -503,7 +504,7 @@ void LoadEntityEMD(Entity* em, unsigned char entity_id)
     SetSpriteBufferFlag();
 
     unsigned int fileSize = LoadFile(FILE_PATH, g_loadDataDestPointer, 32);
-    int data_pointer = (int)g_loadDataDestPointer;
+    unsigned char* data_pointer = (unsigned char*)g_loadDataDestPointer;
 
     if ((g_main_state_flags2 & MSF2_COSTUME_VARIANT) != 0 && (unsigned int)g_bCostumeVariant - entity_id == -51) {
         entity_id = g_playerEntity.id & 1;
@@ -540,21 +541,21 @@ void LoadEntityEMD(Entity* em, unsigned char entity_id)
             break;
     }
 
-    ProcessTmdAsync((unsigned int)g_loadDataDestPointer);
+    ProcessTmdAsync(O(g_loadDataDestPointer));
 
     if ((DAT_004c1a2c >> (entityType & 0x1f) & 1) != 0) {
         QueueTextureForProcessing(bVar6, entityType);
     }
 
-    int texDataPtr = (puVar2[3] & 0xFFFFFFFC) + data_pointer;
-    em->modelLoadBuffer = texDataPtr;
+    unsigned char* texDataPtr = (puVar2[3] & 0xFFFFFFFC) + data_pointer;
+    em->modelLoadBuffer = O(texDataPtr);
     ProcessTmdTextures(2, (unsigned int*)texDataPtr, bVar5, bVar6);
-    em->animBase = (puVar2[2] & 0xFFFFFFFC) + data_pointer;
-    em->animHeader = (puVar2[1] & 0xFFFFFFFC) + data_pointer;
+    em->animBase = O((puVar2[2] & 0xFFFFFFFC) + data_pointer);
+    em->animHeader = O((puVar2[1] & 0xFFFFFFFC) + data_pointer);
 
     if (*puVar2 != 0) {
-        g_playerEntity.emdScratchPtr1 = data_pointer;
-        g_playerEntity.emdScratchPtr2 = (*puVar2 & 0xFFFFFFFC) + data_pointer;
+        g_playerEntity.emdScratchPtr1 = O(data_pointer);
+        g_playerEntity.emdScratchPtr2 = O((*puVar2 & 0xFFFFFFFC) + data_pointer);
     }
 }
 
@@ -567,7 +568,7 @@ void LoadEntityModel(void)
 {
     void* data_pointer_bkp = g_loadDataDestPointer;
 
-    g_playerEntity.modelLoadBuffer = (DWORD)&g_entityModelBuffer;
+    g_playerEntity.modelLoadBuffer = O(&g_entityModelBuffer);
     g_loadDataDestPointer = &g_entityModelBuffer;
 
     LoadEntityEMD(ENTITY, g_playerEntity.id & 3);
@@ -576,11 +577,11 @@ void LoadEntityModel(void)
 
     g_loadDataDestPointer = data_pointer_bkp;
 
-    InitAnimStructure((void*)g_playerEntity.modelLoadBuffer);
+    InitAnimStructure(P<void>(g_playerEntity.modelLoadBuffer));
 
     g_playerEntity.jointCount++;
 
-    SetupJointStructures((unsigned int)&g_entityModelBuffer2);
+    SetupJointStructures(O(&g_entityModelBuffer2));
 
     g_playerEntity.jointCount--;
 
@@ -641,11 +642,11 @@ void LoadEquippedWeaponAnimation(unsigned char weapon_id, unsigned char param_2,
                              : g_weaponPathTable[g_playerEntity.id & 3][weapon_id]);
     SetSpriteBufferFlag();
 
-    unsigned int fileSize = LoadFile(FILE_PATH, (void*)anim_buffer, 32);
+    unsigned int fileSize = LoadFile(FILE_PATH, P<void>(anim_buffer), 32);
     g_playerEntity.jointMoveData0 = anim_buffer;
 
-    unsigned int* puVar1 = (unsigned int*)(((fileSize & 0xFFFFFFFC) - 8) + (int)anim_buffer);
-    g_playerEntity.jointMoveData1 = (*puVar1 & 0xFFFFFFFC) + (int)anim_buffer;
+    unsigned int* puVar1 = (unsigned int*)(((fileSize & 0xFFFFFFFC) - 8) + P<unsigned char>(anim_buffer));
+    g_playerEntity.jointMoveData1 = (*puVar1 & 0xFFFFFFFC) + anim_buffer;
 
     if (weapon_id > 0xb) {
         AdjustWeaponAnimationPositions(weapon_id - 0xc);
@@ -653,21 +654,21 @@ void LoadEquippedWeaponAnimation(unsigned char weapon_id, unsigned char param_2,
 
     if (weapon_id == 0) {
         joint->anim_slot_ptr = g_playerEntity.weaponPartAnimSlot;
-        joint->anim_object = (void*)g_playerEntity.weaponPartAnimObject;
+        joint->anim_object = P<void>(g_playerEntity.weaponPartAnimObject);
     } else {
-        joint->anim_slot_ptr = (puVar1[1] & 0xFFFFFFFC) + (int)anim_buffer;
+        joint->anim_slot_ptr = (puVar1[1] & 0xFFFFFFFC) + anim_buffer;
         unsigned char prevPage = g_TextureCurrentPage;
         unsigned char prevBank = g_TextureBankID;
         g_TextureCurrentPage = 7;
         g_TextureBankID = 0x16;
-        ProcessTmdTextures(2, (unsigned int*)joint->anim_slot_ptr, 0x16, 7);
+        ProcessTmdTextures(2, P<unsigned int>(joint->anim_slot_ptr), 0x16, 7);
         g_TextureBankID = prevBank;
         g_TextureCurrentPage = prevPage;
         joint->anim_slot_ptr += 0xc;
-        joint->anim_object = (void*)param_4;
+        joint->anim_object = P<void>(param_4);
     }
 
-    CreateAnimObject((int)&joint->anim_field, (unsigned int*)joint->anim_object);
+    CreateAnimObject((int)O(&joint->anim_field), (unsigned int*)joint->anim_object);
 }
 
 // ============================================================================
@@ -679,7 +680,7 @@ void SetWeaponBodyParts(unsigned char param1)
 {
     JointStruct* joint = &ENTITY->jointsStructs[param1];
     ENTITY->weaponPartAnimSlot = joint->anim_slot_ptr;
-    ENTITY->weaponPartAnimObject = (unsigned int)joint->anim_object;
+    ENTITY->weaponPartAnimObject = (unsigned int)joint->anim_object;   // raw slot value
 }
 
 // ============================================================================
@@ -716,7 +717,7 @@ void SetupCharacterData(void)
         g_playerEntity.equippedWeaponId = g_itemboxSlots[g_EquippedItemId + 47].Id;
     }
     LoadEquippedWeaponAnimation(
-        g_playerEntity.equippedWeaponId, 0xe, (unsigned int)g_animationBuffer, (unsigned int)&g_animObjectBuffer);
+        g_playerEntity.equippedWeaponId, 0xe, O(g_animationBuffer), O(&g_animObjectBuffer));
 
     // The original copies the position into the matrix translation here
     // (0x0049508e: t[0] = position.x, t[2] = position.z, t[1] = 0) — this was
@@ -768,14 +769,14 @@ void SetupJointStructures(void* buf)
     unsigned int* paramBuf = (unsigned int*)buf;
     unsigned char jointIdx = 0;
     JointStruct* joint = ENTITY->jointsStructs;
-    void* modelLoadBuffer = (void*)ENTITY->modelLoadBuffer;
+    void* modelLoadBuffer = P<void>(ENTITY->modelLoadBuffer);
     unsigned char count = ENTITY->jointCount;
 
     if (count == 0) return;
 
     do {
         // Link animation slot data for this joint
-        SetAnimSlot((AnimSlot*)modelLoadBuffer, (int)&joint->anim_field, jointIdx);
+        SetAnimSlot((AnimSlot*)modelLoadBuffer, (int)O(&joint->anim_field), jointIdx);
 
         // Initialize joint fields
         joint->index = jointIdx;
@@ -788,7 +789,7 @@ void SetupJointStructures(void* buf)
         joint->anim_field = 0;
 
         // Create animation object in the buffer
-        paramBuf = CreateAnimObject((int)&joint->anim_field, paramBuf);
+        paramBuf = CreateAnimObject((int)O(&joint->anim_field), paramBuf);
 
         // Special case: entity ID 0x29 disables certain joints
         if (ENTITY->id == 0x29) {

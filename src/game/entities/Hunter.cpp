@@ -109,7 +109,7 @@ extern int g_scaled_down_dist;                                     // 0x00be0de8
 #define H_POS_T         ((int*)            ((char*)ENTITY + 0x34))
 #define H_ROT           ((SVECTOR*)        ((char*)ENTITY + 0x72))
 #define H_LOCAL_MATRIX  ((MATRIX*)         ((char*)ENTITY + 0x20))
-#define H_PARTNER       (*(Entity**)((char*)ENTITY + 0x174))       // +0x174 dword
+#define H_PARTNER       (*(Ptr32<Entity>*)((char*)ENTITY + 0x174))       // +0x174 dword
 #define H_PATH_LATCH    (*(short*) ((char*)ENTITY + 0x170))        // port: angle_turn_delta/move_timer
 #define H_GRAB_WORD     (*(short*) ((char*)ENTITY + 0x172))        // port: is_moving/move_max_steps
 #define H_TARGET_X      (*(short*) ((char*)ENTITY + 0x178))
@@ -132,7 +132,7 @@ extern int g_scaled_down_dist;                                     // 0x00be0de8
 
 // g_deadMoveValue is a DWORD holding an address; +0x14 is the position block
 // every effect spawn seeds from.
-#define H_DMV           ((const char*)g_deadMoveValue)
+#define H_DMV           (P<const char>(g_deadMoveValue))
 
 // ============================================================================
 // hunter_sca_info_a @ 0x004b47e0 / hunter_sca_info_b @ 0x004b47f0
@@ -387,7 +387,7 @@ void hunter_update(void) // 0x004161f0
             ResolveEntityScaCollision((Entity*)&g_playerEntity, ENTITY);
             HandleEnemyPlayerCollisions();
             unsigned char hit = check_room_collision(
-                H_POS, *(short*)(uintptr_t)(ENTITY->Sca_info + 10));
+                H_POS, *P<short>(ENTITY->Sca_info + 10));
             H_ROOM_HIT = (unsigned char)(H_ROOM_HIT | hit);
             H_STEP_WORD = (unsigned short)(uintptr_t)g_tempVar;
         }
@@ -441,12 +441,12 @@ static void hunter_state_init(void) // 0x00416020
 
     H_HEALTH = (short)hunter_health_tbl[rand() & 0xF];
 
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)hunter_sca_info_a;
+    ENTITY->Sca_info = O(hunter_sca_info_a);
     if ((ENTITY->behavior_flags & 0x20) != 0) {
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)hunter_sca_info_b;
+        ENTITY->Sca_info = O(hunter_sca_info_b);
     }
     if (get_stage_id() > 4) {
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)hunter_sca_info_b;
+        ENTITY->Sca_info = O(hunter_sca_info_b);
     }
 
     if ((ENTITY->behavior_flags & 0xF) < 2) {
@@ -590,7 +590,7 @@ static void hunter_death_dispatch(void) // 0x004164c0
             ENTITY->action_behavior = 6;
         }
 
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         hunter_scream_latch = 0;
     }
 
@@ -1179,7 +1179,7 @@ static void hunter_atk_swing(void) // 0x00417480
                 g_playerEntity.isBeingAttackedFlag = 1;
                 *(unsigned int*)&g_playerEntity.animationId = 0x00640002;
                 ENTITY->action_state = 2;
-                if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
+                if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
                     g_playerEntity.health = (short)(g_playerEntity.health - 13);
                     return;
                 }
@@ -1427,7 +1427,7 @@ static void hunter_dodge_swipe(void) // 0x00417ba0
                                                        rec->joint_idx * 0x7C),
                                         0x30, 0x80820, (void*)0x606060);
                     Snd_em(3);
-                    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
+                    if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
                         g_playerEntity.health = (short)(g_playerEntity.health - 0x14);
                         return;
                     }
@@ -1627,7 +1627,7 @@ static void hunter_behavior_ledgejump(void) // 0x00418220
             H_GRAB_WORD = 0;
             ENTITY->status_flags &= 0xFB;
             if ((ENTITY->behavior_flags & 0x40) != 0) {
-                Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+                Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
                 H_BEH_WORD = 0;
             }
         }
@@ -1662,7 +1662,7 @@ static void hunter_behavior_scream(void) // 0x00418400
 
     if ((char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x200) != 0) {
         if ((ENTITY->behavior_flags & 0x40) != 0) {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         }
         H_BEH_WORD = 0;
     }
@@ -1826,7 +1826,7 @@ static void hunter_act_swipe(void) // 0x004187b0
             ENTITY->action_behavior = 1;
             ENTITY->action_state = 0;
         } else {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
             ENTITY->action_behavior = 0;
             ENTITY->action_state = 0;
         }
@@ -1974,7 +1974,7 @@ static void hunter_act_leapattack(void) // 0x00418a50
                 H_LEAP_FLAG &= 0xFE;
             }
         } else {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
             ENTITY->action_behavior = 0;
             ENTITY->action_state = 0;
         }
@@ -2050,7 +2050,7 @@ static void hunter_act_pounce(void) // 0x00418ef0
         ENTITY->behavior_flags = 2;
     }
     if ((ENTITY->behavior_flags & 0x40) != 0) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         H_BEH_WORD = 0;
     }
 }
@@ -2079,7 +2079,7 @@ static void hunter_act_flurry(void) // 0x00419100
     if ((char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x200) != 0) {
         H_BEH_WORD = 0x604;
         if ((ENTITY->behavior_flags & 0x40) != 0) {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
             H_BEH_WORD = 0;
         }
         ENTITY->animation_frame_id = 0;
@@ -2278,7 +2278,7 @@ static void hunter_death_fall_driver(void) // 0x00419310
     case 2:
         BillboardSetColor((short*)((char*)ENTITY + 0xE4), 1, 2, 0x00FFFF50);
         BillboardAdjSize((short*)((char*)ENTITY + 0xE4), -100, -100);
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         ENTITY->action_state = 3;
         ENTITY->status_flags |= 0x0A;
         H_SPEED_W = 0;
@@ -2294,7 +2294,7 @@ static void hunter_death_fall_driver(void) // 0x00419310
 
     case 4:
         if ((ENTITY->behavior_flags & 0x40) != 0) {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         }
         break;
     }
@@ -2484,7 +2484,7 @@ static void hunter_scd_walk(void) // 0x0048f4d0
         return;
     }
     case 2:
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         if ((ENTITY->collisionFlags & 0x80) != 0) {
             ENTITY->action_state = 1;
             return;
@@ -2529,7 +2529,7 @@ static void hunter_scd_run(void) // 0x0048f680
         return;
     }
     case 2:
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         if ((ENTITY->collisionFlags & 0x80) != 0) {
             ENTITY->action_state = 1;
             return;
@@ -2630,7 +2630,7 @@ static void hunter_scd_dodge_run(void) // 0x0048f820
 static void hunter_scd_anim_release(void) // 0x0048f840
 {
     if ((char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400) != 0) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         H_BEH_WORD = 0;
     }
 }
@@ -2665,7 +2665,7 @@ static void hunter_scd_pounce_run(void) // 0x0048f8a0
 // ============================================================================
 static void hunter_scd_flag_release(void) // 0x0048f930
 {
-    Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+    Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
     H_BEH_WORD = 0;
 }
 
@@ -2688,7 +2688,7 @@ static void hunter_scd_tint_release(void) // 0x0048f980
 {
     JointApplyColorTint((JointStruct*)((char*)H_JOINTS + 0x45C), 0x30, 0x80820,
                         (void*)0x606060);
-    Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+    Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
     H_BEH_WORD = 0;
 }
 
@@ -2774,7 +2774,7 @@ static void hunter_scd_bite_driver(void) // 0x0048fae0
 static void hunter_scd_bite_end(void) // 0x0048fc10
 {
     if ((char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x200) != 0) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         H_BEH_WORD = 7;
     }
     hunter_scd_target->jointsStructs[1].flags &= (unsigned char)~0x01;
@@ -2814,7 +2814,7 @@ static void hunter_scd_stalk_player(void) // 0x0048fef0
         ENTITY->angle = (short)(ENTITY->angle + (short)g_animFrameIdSave);
         return;
     }
-    Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+    Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
     H_BEH_WORD = 0;
     ENTITY->player_pos_x = (short)PLAYER_T_INT[0];
     ENTITY->player_pos_z = (short)PLAYER_T_INT[2];

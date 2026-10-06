@@ -407,7 +407,7 @@ void* const neptune_boss_death_actions[5] = {// 0x004bca50
 // ---------------------------------------------------------------------------
 static void neptune_seed_from_dead_move(void)
 {
-    const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch.x   = seed[0];
     g_playerPosScratch.y   = seed[1];
     g_playerPosScratch.z   = seed[2];
@@ -416,7 +416,7 @@ static void neptune_seed_from_dead_move(void)
 
 // The bubble trail: one plume at the tail, two at the flanks. `joints` is the
 // entity's joint array base, as the original passes it.
-static void neptune_spawn_bubbles(int joints)
+static void neptune_spawn_bubbles(unsigned char* joints)
 {
     neptune_seed_from_dead_move();
     g_playerPosScratch.y = -100;
@@ -515,10 +515,10 @@ static void neptune_state_init(void)
         // The small variant: half-size shadow, half-size boxes, pitched down.
         FUN_004565f0(&g_svecScratch, (SVECTOR*)&ENTITY->pushVelocity, 1000, 150);
         NE_PITCH = 0x0800;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)neptune_sca_info_small;
+        ENTITY->Sca_info = O(neptune_sca_info_small);
     } else {
         FUN_004565f0(&g_svecScratch, (SVECTOR*)&ENTITY->pushVelocity, 2000, 300);
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)neptune_sca_info_big;
+        ENTITY->Sca_info = O(neptune_sca_info_big);
     }
 
     // FOUR rand() calls and the FIRST is DISCARDED (0x0043db1a) - the same
@@ -670,7 +670,7 @@ static void neptune_behavior_swim(void)
     ENTITY->move_timer--;
     if (ENTITY->move_timer != 0) return;
 
-    int joints = (int)ENTITY->jointsStructs;
+    unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
     g_playerPosScratch.x = 500;
     g_playerPosScratch.y = 0;
     g_playerPosScratch.z = 0;
@@ -702,7 +702,7 @@ static void neptune_swim_begin(void)
     ENTITY->timing_control = 0;
     ENTITY->blend_counter = 0x3F;
     ENTITY->action_state++;
-    ENTITY->move_speed_current = (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) ? 0x78 : 100;
+    ENTITY->move_speed_current = (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) ? 0x78 : 100;
     NE_SWIM_CUE = 3;
 }
 
@@ -914,7 +914,7 @@ static void neptune_devour_carry(void)
     g_playerPosScratch.x = 200;
 
     if (ENTITY->animation_frame_id == 0xF) {
-        if (FUN_0048ae00((MATRIX*)((int)ENTITY->jointsStructs + 0xC0),
+        if (FUN_0048ae00((MATRIX*)((unsigned char*)ENTITY->jointsStructs + 0xC0),
                          &g_playerPosScratch, 1000, (int*)PLAYER_T) == 0) {
             // The grab missed. Hand the player back and skip to the spit.
             g_playerEntityPointer.animation_frame_id = 0;
@@ -944,7 +944,7 @@ static void neptune_devour_carry(void)
     }
 
     if (ENTITY->animation_frame_id > 3 && ENTITY->animation_frame_id < 5) {
-        int joints = (int)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         neptune_seed_from_dead_move();
         g_playerPosScratch.y = 500;
         Effect_CreateBillboard(0x17, 13, 0, (void*)(joints + 0x614), &g_playerPosScratch, 0);
@@ -963,7 +963,7 @@ static void neptune_devour_bite(void)
     if (ENTITY->animation_frame_id != 0x13) return;
 
     ENTITY->action_state++;
-    neptune_capture_setup((const MATRIX*)((int)ENTITY->jointsStructs + 0xC0),
+    neptune_capture_setup((const MATRIX*)((unsigned char*)ENTITY->jointsStructs + 0xC0),
                           PLAYER_MATRIX, &neptune_capture_matrix);
 
     JointStruct* pj = g_playerEntityPointer.jointsStructs;
@@ -1009,7 +1009,7 @@ static void neptune_devour_swallow(void)
     }
 
     unsigned char frame = ENTITY->animation_frame_id;
-    int joints = (int)ENTITY->jointsStructs;
+    unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
 
     if (frame < 0x38) {
         if (frame > 2 && frame < 5) {
@@ -1073,7 +1073,7 @@ static void neptune_devour_spit(void)
     }
 
     if (ENTITY->animation_frame_id > 4 && (ENTITY->animation_frame_id & 3) == 0) {
-        int joints = (int)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         neptune_seed_from_dead_move();
         g_playerPosScratch.y = 200;
         Effect_CreateBillboard(0x17, 8, 0, (void*)(joints + 0x44), &g_playerPosScratch, 0);
@@ -1082,7 +1082,7 @@ static void neptune_devour_spit(void)
     }
 
     if ((ENTITY->animation_frame_id & 7) == 0) {
-        int joints = (int)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         neptune_spawn_bubbles(joints);
         g_playerPosScratch.x = 0;
         g_playerPosScratch.y = -1500;
@@ -1106,7 +1106,7 @@ static void neptune_devour_recover(void)
 
     ENTITY->move_timer--;
     if (ENTITY->move_timer == 0) {
-        neptune_spawn_bubbles((int)ENTITY->jointsStructs);
+        neptune_spawn_bubbles((unsigned char*)ENTITY->jointsStructs);
         ENTITY->move_timer = 0xB;
     }
 }
@@ -1152,7 +1152,7 @@ static void neptune_bite_close(void)
     // Wake spray on even frames; which pair depends on how far in we are.
     unsigned char frame = ENTITY->animation_frame_id;
     if ((frame & 1) == 0) {
-        int joints = (int)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         if (frame < 0x1E) {
             g_playerPosScratch.x = 500;
             g_playerPosScratch.y = 200;
@@ -1176,7 +1176,7 @@ static void neptune_bite_close(void)
 
     neptune_seed_from_dead_move();
     g_playerPosScratch.x = 200;
-    if (FUN_0048ae00((MATRIX*)((int)ENTITY->jointsStructs + 0xC0),
+    if (FUN_0048ae00((MATRIX*)((unsigned char*)ENTITY->jointsStructs + 0xC0),
                      &g_playerPosScratch, 300, (int*)PLAYER_T) != 0) {
         ENTITY->action_state++;
         ENTITY->animationId = 8;
@@ -1234,14 +1234,14 @@ static void neptune_bite_shake(void)
     NE_STRUGGLE = (short)(NE_STRUGGLE - ((GetPlayerInputMasked() != 0) ? 8 : 1));
 
     if (Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x80) != 0) {
-        if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 7);
         } else {
             g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 0x1E);
         }
 
         if ((ENTITY->animation_frame_id & 3) == 0) {
-            int joints = (int)ENTITY->jointsStructs;
+            unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
             neptune_seed_from_dead_move();
             g_playerPosScratch.y = -100;
             Effect_CreateBillboard(0x17, 10, 0, (void*)(joints + 0x614),
@@ -1260,7 +1260,7 @@ static void neptune_bite_shake(void)
     }
 
     if ((ENTITY->animation_frame_id & 0xF) == 0) {
-        int joints = (int)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         neptune_seed_from_dead_move();
         g_playerPosScratch.y = -100;
         Effect_CreateBillboard(0x17, 13, 0, (void*)(joints + 0x614),
@@ -1327,7 +1327,7 @@ static void neptune_bite_release(void)
     }
 
     if ((ENTITY->animation_frame_id & 7) == 0) {
-        neptune_spawn_bubbles((int)ENTITY->jointsStructs);
+        neptune_spawn_bubbles((unsigned char*)ENTITY->jointsStructs);
         g_playerPosScratch.x = 0;
         g_playerPosScratch.y = -1500;
         g_playerPosScratch.z = 0;
@@ -1352,7 +1352,7 @@ static void neptune_bite_recover(void)
 
     ENTITY->move_timer--;
     if (ENTITY->move_timer == 0) {
-        neptune_spawn_bubbles((int)ENTITY->jointsStructs);
+        neptune_spawn_bubbles((unsigned char*)ENTITY->jointsStructs);
         ENTITY->move_timer = 0xF;
     }
 }
@@ -1385,7 +1385,7 @@ static void neptune_death_normal(void)
     ENTITY->move_timer--;
     if (ENTITY->move_timer == 0) {
         ENTITY->move_timer = 7;
-        neptune_spawn_bubbles((int)ENTITY->jointsStructs);
+        neptune_spawn_bubbles((unsigned char*)ENTITY->jointsStructs);
     }
 }
 
@@ -1412,7 +1412,7 @@ static void neptune_death_turn(void)
     ENTITY->move_timer = 7;
 
     // The death burst: a heavier spray, with lightFactor 0x1E rather than 0.
-    int joints = (int)ENTITY->jointsStructs;
+    unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
     neptune_seed_from_dead_move();
     g_playerPosScratch.y = -100;
     Effect_CreateBillboard(0x17, 13, 0, (void*)(joints + 0x614), &g_playerPosScratch, 0x1E);
@@ -1475,8 +1475,8 @@ static void neptune_death_boss(void)
 // dead, spawn the big one-shot effect, and fall straight into the first charge.
 static void neptune_boss_death_begin(void)
 {
-    Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
-    int joints = (int)ENTITY->jointsStructs;
+    Flg_on((int)O(g_EnemiesFlags), ENTITY->death_event_id);
+    unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
 
     ENTITY->action_behavior++;
     ENTITY->move_speed_current = 0x96;
@@ -1626,7 +1626,7 @@ void neptune_update(void)
 
         // Probe 800 units along the shark's own facing.
         VECTOR probe;
-        const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+        const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
         probe.y   = seed[1];
         probe.z   = seed[2];
         probe.pad = seed[3];

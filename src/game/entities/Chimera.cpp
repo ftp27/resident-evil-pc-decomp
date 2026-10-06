@@ -110,7 +110,7 @@ extern int g_scaled_down_dist;                                     // 0x00be0de8
 
 // g_deadMoveValue is a DWORD holding an address; +0x14 is the position block
 // every effect spawn seeds from.
-#define CH_DMV          ((const char*)(uintptr_t)g_deadMoveValue)
+#define CH_DMV          (P<const char>(g_deadMoveValue))
 
 // ============================================================================
 // chimera_sca_info_a @ 0x004bb410
@@ -219,7 +219,7 @@ extern void (*const chimera_idle_variant_table[3])(void);
 // g_playerPosScratch, the same seeding idiom Neptune/Cerberus use.
 static void chimera_seed_from_dead_move(void)
 {
-    g_playerPosScratch = *(VECTOR*)((uintptr_t)g_deadMoveValue + 0x14);
+    g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
 }
 
 // ============================================================================
@@ -241,7 +241,7 @@ void chimera_update(void) // 0x00438a70
         HandleEnemyPlayerCollisions();
         ENTITY->collisionFlags = (unsigned char)(ENTITY->collisionFlags & 0xf7);
         C_WALL_HIT = (short)check_room_collision(
-            (VECTOR*)C_POS_T, *(short*)(uintptr_t)(ENTITY->Sca_info + 10));
+            (VECTOR*)C_POS_T, *P<short>(ENTITY->Sca_info + 10));
     }
 
     ENTITY->has_enter_switch_zone =
@@ -329,7 +329,7 @@ static void chimera_state_init(void) // 0x00438880
     ENTITY->pad_ca[0] = 0;
     ENTITY->pad_ca[1] = 0;
     ENTITY->status_flags = (unsigned char)(ENTITY->status_flags & 0x1f);
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)chimera_sca_info_a;
+    ENTITY->Sca_info = O(chimera_sca_info_a);
 
     C_REPAUSE = 0;
     C_FADE_FREEZE = 0;
@@ -962,14 +962,14 @@ static void chimera_behavior_swipe(void) // 0x00439ad0
         Effect_CreateBillboard(0, 0, 0x200,
                                &g_playerEntityPointer.scaMatrixData.localMatrix,
                                &g_playerPosScratch, 0);
-        Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);   // result discarded on this path
+        Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);   // result discarded on this path
         g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 0x14);
 
         unsigned int facing = is_facing_toward_entity(&g_playerEntityPointer);
         g_scaled_down_dist = facing & 0xff;
         g_playerEntityPointer.isBeingAttackedFlag = (unsigned char)(facing + 1);
         g_playerEntityPointer.action_behavior = (unsigned char)(facing + 0x66);
-        Play3DSnd(3, g_playerEntityPointer.isBeingAttackedFlag, 0, (int)CH_PLAYER_T);
+        Play3DSnd(3, g_playerEntityPointer.isBeingAttackedFlag, 0, O(CH_PLAYER_T));
         Snd_em(5);
 
         chimera_seed_from_dead_move();
@@ -1059,13 +1059,13 @@ static void chimera_behavior_grabhold(void) // 0x00439df0
         Effect_CreateBillboard(0, 0, 0x200,
                                &g_playerEntityPointer.scaMatrixData.localMatrix,
                                &g_playerPosScratch, 0);
-        Play3DSnd(3, 1, 0, (int)CH_PLAYER_T);
+        Play3DSnd(3, 1, 0, O(CH_PLAYER_T));
         Snd_em(6);
         JointStruct* joints = ENTITY->jointsStructs;
         chimera_seed_from_dead_move();
         Effect_CreateBillboard(0, 0, 0, (char*)joints + 0x32c, &g_playerPosScratch, 0);
         JointApplyColorTint((JointStruct*)((char*)joints + 0x2e8), 0xa0, 0x50, (void*)0x10);
-        if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 10);
         } else {
             g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 0x1e);
@@ -1316,7 +1316,7 @@ static void chimera_behavior_spit(void) // 0x0043a7e0
             Effect_CreateBillboard(0, 0, 0x200,
                                    &g_playerEntityPointer.scaMatrixData.localMatrix,
                                    &g_playerPosScratch, 0);
-            if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+            if (Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                 g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 15);
             } else {
                 g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 20);
@@ -1325,7 +1325,7 @@ static void chimera_behavior_spit(void) // 0x0043a7e0
             g_scaled_down_dist = facing & 0xff;
             g_playerEntityPointer.isBeingAttackedFlag = (unsigned char)(facing + 1);
             g_playerEntityPointer.action_behavior = (unsigned char)(facing + 0x66);
-            Play3DSnd(3, 1, 0, (int)CH_PLAYER_T);
+            Play3DSnd(3, 1, 0, O(CH_PLAYER_T));
             Snd_em(6);
             chimera_seed_from_dead_move();
             Effect_CreateBillboard(0, 0, 0, (char*)joints + 0x32c, &g_playerPosScratch, 0);
@@ -1490,7 +1490,7 @@ static void chimera_behavior_claw(void) // 0x0043ad00
     if (C_HARD_MODE != 0 && C_TOUCH_LATCH != 0 &&
         ENTITY->animation_frame_id == 10 &&
         g_playerEntityPointer.isBeingAttackedFlag == 0) {
-        if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 5);
         } else {
             g_playerEntityPointer.health = (short)(g_playerEntityPointer.health - 10);
@@ -1499,7 +1499,7 @@ static void chimera_behavior_claw(void) // 0x0043ad00
         g_scaled_down_dist = facing & 0xff;
         g_playerEntityPointer.isBeingAttackedFlag = (unsigned char)(facing + 1);
         g_playerEntityPointer.action_behavior = (unsigned char)(facing + 0x66);
-        Play3DSnd(3, 0, 0, (int)CH_PLAYER_T);
+        Play3DSnd(3, 0, 0, O(CH_PLAYER_T));
     }
 
     if (Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400) != 0) {
@@ -1558,7 +1558,7 @@ static void chimera_hit_stagger(void) // 0x0043aff0
         g_playerPosScratch.z = 0;
         Effect_CreateBillboard(0, 0, 0, (char*)joints + 0x1b8, &g_playerPosScratch, 0);
 
-        int hard = Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+        int hard = Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
         int wounded;
         if (hard == 0) {
             if (0x1d < C_HEALTH) {
@@ -1651,7 +1651,7 @@ static void chimera_hit_knockdown(void) // 0x0043b1f0
         g_playerPosScratch.z = 0;
         Effect_CreateBillboard(0, 0, 0, (char*)joints + 0x1b8, &g_playerPosScratch, 0);
         {
-            int hard = Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+            int hard = Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
             if (hard == 0) {
                 if (C_HEALTH < 0x1e) {
                     if ((ENTITY->hit_state & 1) == 0) {
@@ -1767,7 +1767,7 @@ static void chimera_death_dissolve(void) // 0x0043b520
         C_TICKS = (short)(C_TICKS - 1);
         if (prev == 0) {
             ENTITY->action_state = 4;
-            Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+            Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         }
         break;
     }
@@ -1835,7 +1835,7 @@ static void chimera_death_drop_dissolve(void) // 0x0043b710
         C_TICKS = (short)(C_TICKS - 1);
         if (prev == 0) {
             ENTITY->action_state = 5;
-            Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+            Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
             return;
         }
         break;

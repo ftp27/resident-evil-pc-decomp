@@ -136,7 +136,7 @@ static inline void crow_set_state(unsigned char state, unsigned char airborne,
 // ---------------------------------------------------------------------------
 static void crow_seed_effect_pos(void)
 {
-    const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch.x   = seed[0];
     g_playerPosScratch.y   = seed[1];
     g_playerPosScratch.z   = seed[2];
@@ -366,7 +366,7 @@ static void crow_anim_grab(void)
         // reads; the crow pecks for 4 instead of 3 when it is set.
         g_playerEntity.health =
             (short)(g_playerEntity.health -
-                    ((Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) ? 3 : 4));
+                    ((Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) ? 3 : 4));
         Snd_em(3);
     }
 }
@@ -740,7 +740,7 @@ static void crow_beh_peck(void)
                 if (g_playerEntity.isBeingAttackedFlag == 0) {
                     g_playerEntity.health =
                         (short)(g_playerEntity.health -
-                                ((Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) ? 6 : 16));
+                                ((Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) ? 6 : 16));
                     g_playerEntity.isBeingAttackedFlag = 1;
                     g_playerEntity.animationId     = 6;
                     g_playerEntity.animFrameId     = 5;
@@ -749,7 +749,7 @@ static void crow_beh_peck(void)
                     // `PUSH 0xbe6318` - the player's TRANSLATION VECTOR
                     // (player + 0x34), not the entity base at 0xbe62e4.
                     Play3DSnd(3, 0, 0,
-                              (int)(intptr_t)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+                              O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
 
                     crow_seed_effect_pos();
                     g_playerPosScratch.y = -0x9d8;
@@ -882,7 +882,7 @@ static void crow_behavior_dispatch(void)
         CR_PATH_W = (unsigned short)(CR_PATH_W | ((unsigned short)g_animFrameIdSave & 1));
     }
 
-    g_tempVar    = (void*)(int)(short)turn_toward_target(CROW_PLAYER_T, 0x100);
+    g_tempVar    = (void*)(intptr_t)(short)turn_toward_target(CROW_PLAYER_T, 0x100);   // an integer kept in a void* global
     g_entity_bkp = (unsigned int)(int)(short)turn_toward_target(CROW_PLAYER_T, 0x200);
 
     // The original is a bare `JMP [ECX*4 + 0x4badf8]` with NO range check - the
@@ -974,7 +974,7 @@ static void crow_state_init(void)
     }
 
     // 0x004badcc holds a pointer to the record, so this loads 0x004badc0.
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)crow_sca_info;
+    ENTITY->Sca_info = O(crow_sca_info);
     *(unsigned short*)((char*)ENTITY + 0xCA) = 0x14cc;
 }
 
@@ -1178,7 +1178,7 @@ static void crow_state_death(void)
 
     switch (ENTITY->action_behavior) {
     case 0:
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         ENTITY->animationId = 6;
         // hit_state bit 0 means the killing blow already knocked it sideways;
         // in that case it just tumbles instead of flapping.
@@ -1224,7 +1224,7 @@ static void crow_state_death(void)
         // living in the g_animFrameIdSave scratch rather than a register.
         g_animFrameIdSave = (unsigned int)ENTITY->jointCount;
         while (g_animFrameIdSave-- != 0) {
-            joint_setup_attack_effect((int)(intptr_t)&joints[g_animFrameIdSave],
+            joint_setup_attack_effect(O(&joints[g_animFrameIdSave]),
                                       0x1e, 0x1e, 3);
         }
         Snd_em(0);
@@ -1343,7 +1343,7 @@ void crow_update(void)
         HandleEnemyPlayerCollisions();
         CR_COLL = (unsigned short)check_room_collision(
             (VECTOR*)&ENTITY->scaMatrixData.localMatrix.t[0],
-            *(short*)((char*)(uintptr_t)ENTITY->Sca_info + 10));
+            *(short*)(P<char>(ENTITY->Sca_info) + 10));
         // check_room_collision reports the floor/step height it crossed through
         // g_animFrameIdSave; the crow keeps it as its ground reference.
         CR_FLOOR_STEP = (short)g_animFrameIdSave;

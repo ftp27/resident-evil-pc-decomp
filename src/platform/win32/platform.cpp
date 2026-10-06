@@ -99,6 +99,12 @@ DWORD plat_time_ms(void)
     return timeGetTime();
 }
 
+// Scripted input runs are a non-Windows feature for now (docs/TESTING.md).
+DWORD plat_test_filter_pad(DWORD word)
+{
+    return word;
+}
+
 // ---------------------------------------------------------------------------
 // Filesystem
 // ---------------------------------------------------------------------------

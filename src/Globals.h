@@ -875,8 +875,8 @@ extern void*         g_RoomActionTail;              // 0x00d91bc0
 extern void*         g_pRoomActionEntry;               // 0x00d226a4
 
 // Room model record tables (populated by room_set from the RDT VB region)
-extern void*         g_omodel_table[8];      // 0x00d226b0 - room-object (omodel) records
-extern void*         g_item_model_table[8]; // 0x00d21360 - item model records (room pick-up 3D models)
+extern Ptr32<void>   g_omodel_table[8];      // 0x00d226b0 - room-object (omodel) records
+extern Ptr32<void>   g_item_model_table[8]; // 0x00d21360 - item model records (room pick-up 3D models)
 
 // Enemy model loading state (used by room_set and cmd_omodel_set)
 extern int           g_omodelCount;                    // 0x00ae9ef4 - object model count (cmd_omodel_set)

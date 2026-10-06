@@ -1,0 +1,32 @@
+# New game as Chris: title -> NEW GAME -> character select -> prologue movie
+# -> main hall cutscene -> door animation -> the dining room, where the
+# player first gets control. Then walk back, turn and run.
+#
+# This path found two 64-bit bugs (an unsigned negative step in Joint_move's
+# reverse animation, and a truncated owner pointer in the door animation).
+
+700   press ACTION          # PRESS ANY BUTTON
+760   press ACTION          # NEW GAME
+860   press ACTION          # Chris
+960   press ACTION          # confirm
+
+9600  capture main_hall.png
+9600  expect room == 6
+
+10200 capture dining_room.png
+10200 expect room == 5
+10200 expect health == 140
+10200 expect x == 30900
+10200 expect z == 8300
+
+10200 hold DOWN 60          # step back
+10300 hold LEFT 20          # turn
+10320 hold UP+RUN 45        # run
+10400 capture dining_room_moved.png
+10400 dump dining_room_moved.json
+10400 expect room == 5
+10400 expect x == 31547
+10400 expect z == 6440
+10400 expect angle == 128
+10400 expect health == 140
+10401 quit

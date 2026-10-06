@@ -40,6 +40,15 @@ void plat_key_flush(void);
 DWORD plat_time_ms(void);
 
 // ---------------------------------------------------------------------------
+// Test input (docs/TESTING.md)
+//
+// ReadPadBoth passes every pad word it computes through here. A scripted run
+// replaces it with the script's buttons for the current frame; a recording run
+// logs it. Outside a test run it returns `word` unchanged.
+// ---------------------------------------------------------------------------
+DWORD plat_test_filter_pad(DWORD word);
+
+// ---------------------------------------------------------------------------
 // Filesystem
 // ---------------------------------------------------------------------------
 

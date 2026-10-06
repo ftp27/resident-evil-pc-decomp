@@ -288,7 +288,7 @@ void room_action_table_reset(void) {
 // Uses g_StageRoomFlagOffset[stageId % 5] + roomId as the bit index.
 // ============================================================================
 void room_set_visited_flag(unsigned char stageId, unsigned char roomId) {
-    Flg_on((int)g_RoomFlags, (unsigned int)g_StageRoomFlagOffset[stageId % 5] + roomId);
+    Flg_on(O(g_RoomFlags), (unsigned int)g_StageRoomFlagOffset[stageId % 5] + roomId);
 }
 
 // ============================================================================
@@ -479,8 +479,8 @@ void room_set(void)
             // one of the three choices, so this store is the only thing that
             // tells them apart.
             if ((g_main_state_flags2 & MSF2_DC_ADVANCED) != 0 &&
-                Flg_ck((int)g_ScenarioFlags, DC_SCENARIO_FLAG_OUTFIT_A) == 0 &&
-                Flg_ck((int)g_ScenarioFlags, DC_SCENARIO_FLAG_OUTFIT_B) == 0) {
+                Flg_ck(O(g_ScenarioFlags), DC_SCENARIO_FLAG_OUTFIT_A) == 0 &&
+                Flg_ck(O(g_ScenarioFlags), DC_SCENARIO_FLAG_OUTFIT_B) == 0) {
                 g_main_state_flags2 &= ~MSF2_COSTUME_VARIANT;
             } else {
                 g_main_state_flags2 |= MSF2_COSTUME_VARIANT;
@@ -520,9 +520,9 @@ void room_set(void)
     // tests the raw room id with no stage guard; the Tyrant-room (main lab)
     // is the only one with a camera 4.
     if ((g_roomCameraId == 4) && (g_roomId == ROOM_MAIN_LAB)) {
-        Flg_on((int)&g_EnemiesFlags, 0x52);
-        Flg_on((int)&g_EnemiesFlags, 0x53);
-        Flg_on((int)&g_EnemiesFlags, 0x54);
+        Flg_on(O(&g_EnemiesFlags), 0x52);
+        Flg_on(O(&g_EnemiesFlags), 0x53);
+        Flg_on(O(&g_EnemiesFlags), 0x54);
     }
 
     printf("after of Room load\n");
@@ -628,8 +628,8 @@ void room_set(void)
                     LoadEntityEMD(ENTITY, ENTITY->id + 4);
                 }
                 Entity_SetJoints(ENTITY, 0x7c);
-                InitAnimStructure((void*)ENTITY->modelLoadBuffer);
-                g_loadDataDestPointer = (void*)SetupJointStructures((unsigned int)g_loadDataDestPointer);
+                InitAnimStructure(P<void>(ENTITY->modelLoadBuffer));
+                g_loadDataDestPointer = P<void>(SetupJointStructures(O(g_loadDataDestPointer)));
                 pPrevEntity = ENTITY;
                 if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
                     SetupEntityJointAnimation();
@@ -753,8 +753,8 @@ void LoadRoomRdt(void)
     // that need to be converted to absolute addresses.
     int cameraCount = g_RdtPointer->cameras_count;
     for (int i = 0; i < cameraCount; i++) {
-        *(int*)(cameras) += (int)g_RdtPointer;
-        *(int*)(cameras + 4) += (int)g_RdtPointer;
+        *(int*)(cameras) += O(g_RdtPointer);
+        *(int*)(cameras + 4) += O(g_RdtPointer);
         cameras += 0x2C; // sizeof(RDT_Camera)
     }
 
@@ -763,7 +763,7 @@ void LoadRoomRdt(void)
     int* ptrField = (int*)((unsigned char*)g_RdtPointer + 0x48);
     int* ptrEnd = (int*)((unsigned char*)g_RdtPointer + 0x94);
     while (ptrField < ptrEnd) {
-        *ptrField += (int)g_RdtPointer;
+        *ptrField += O(g_RdtPointer);
         ptrField++;
     }
 
@@ -773,9 +773,9 @@ void LoadRoomRdt(void)
     int omodelCount = g_RdtPointer->omodel_slot_count;
     for (int i = omodelCount; i > 0; i--) {
         // Zero out table entry (reverse order: table[count-1] down to table[0])
-        ((int*)g_omodel_table)[i - 1] = 0;
-        if (omodelPtr[0] != 0) omodelPtr[0] += (int)g_RdtPointer;
-        if (omodelPtr[1] != 0) omodelPtr[1] += (int)g_RdtPointer;
+        g_omodel_table[i - 1] = 0;
+        if (omodelPtr[0] != 0) omodelPtr[0] += O(g_RdtPointer);
+        if (omodelPtr[1] != 0) omodelPtr[1] += O(g_RdtPointer);
         omodelPtr += 2;
     }
 
@@ -784,9 +784,9 @@ void LoadRoomRdt(void)
     int* itemPtr = (int*)g_RdtPointer->item_models;
     int itemCount = g_RdtPointer->item_count;
     for (int i = itemCount; i > 0; i--) {
-        ((int*)g_item_model_table)[i - 1] = 0;
-        if (itemPtr[0] != 0) itemPtr[0] += (int)g_RdtPointer;
-        if (itemPtr[1] != 0) itemPtr[1] += (int)g_RdtPointer;
+        g_item_model_table[i - 1] = 0;
+        if (itemPtr[0] != 0) itemPtr[0] += O(g_RdtPointer);
+        if (itemPtr[1] != 0) itemPtr[1] += O(g_RdtPointer);
         itemPtr += 2;
     }
 
@@ -798,7 +798,7 @@ void LoadRoomRdt(void)
     // 0x00477f2d-0x00477f3f: Resolve EVT script relative offsets
     int* evtPtr = (int*)g_RoomEventScripts;
     while (*evtPtr != 0) {
-        *evtPtr += (int)g_RoomEventScripts;
+        *evtPtr += O(g_RoomEventScripts);
         evtPtr++;
     }
 

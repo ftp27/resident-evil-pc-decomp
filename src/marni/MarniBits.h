@@ -8,11 +8,11 @@
 class CMarniBits {
 public:
     // --- VTable pointer (offset 0x00) ---
-    void** vtable;                    // 0x00
+    Ptr32<void*> vtable;              // 0x00
 
     // --- Pixel data (offset 0x04 - 0x0B) ---
-    void*  m_pPixelData;              // 0x04
-    void*  m_pPalette;                // 0x08
+    Ptr32<void> m_pPixelData;         // 0x04
+    Ptr32<void> m_pPalette;           // 0x08
 
     // --- Lock state (offset 0x0C) ---
     DWORD  m_locked;                  // 0x0C

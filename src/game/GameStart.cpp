@@ -210,7 +210,7 @@ void LoadHeldItemsImages(void) // 0x00451640
         g_ItemSlotIndices[index] = totalItems;
         unsigned char itemId = ((unsigned char*)savedSlotPointer)[index * 2];
         unsigned char imageType = g_ItemImageLookupTable[itemId * 4];
-        LoadItemImage(imageType - 1, (int)index, (int)g_ItemsImageBuffer);
+        LoadItemImage(imageType - 1, (int)index, O(g_ItemsImageBuffer));
         savedSlotPointer = g_ItemSlotsPointer;
     }
     g_ItemSlotsPointer = savedSlotPointer;
@@ -480,7 +480,7 @@ void InitializeGame(void)
         g_CharacterModelId = g_SelectedCharactedId;
 
         /*  check alternative outfit flag */
-        has_alternate_outfit = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_ALTERNATE_OUTFIT);
+        has_alternate_outfit = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_ALTERNATE_OUTFIT);
         if (has_alternate_outfit != 0) {
             g_CharacterModelId = g_CharacterModelId + 8;
         }
@@ -511,7 +511,7 @@ void InitializeGame(void)
     // harder). Not set for attract demos - those replay recorded input against
     // the mode bits dc_apply_mode_flags() pins to STANDARD.
     if (g_bDcMode && (g_main_state_flags2 & MSF2_ATTRACT_DEMO) == 0) {
-        Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+        Flg_on(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
     }
 
     // Director's Cut item tables (lookup + combine); no-op for DcMode=0.
@@ -520,9 +520,9 @@ void InitializeGame(void)
     // Director's Cut zombie dispatch entry (behaviour 11); no-op for DcMode=0.
     dc_apply_zombie_tables();
 
-    g_deadMoveValue = (DWORD)&g_identityMatrixData;
-    g_RoomCameraDataCopy = (DWORD)&g_RoomCameraData;
-    g_lightMatrixPtr = (DWORD)&g_lightMatrix;
+    g_deadMoveValue = O(&g_identityMatrixData);
+    g_RoomCameraDataCopy = O(&g_RoomCameraData);
+    g_lightMatrixPtr = O(&g_lightMatrix);
 
     // 0x004809c5: g_ItemSlotsPointer = g_ItemsSlots
     g_ItemSlotsPointer = g_ItemsSlots;
@@ -539,7 +539,7 @@ void InitializeGame(void)
     // present in the original.
     g_RoomActionTail = g_RoomActionTable;
 
-    g_playerEntity.pSca_hit_data = (DWORD)g_entityDataBlock;
+    g_playerEntity.pSca_hit_data = O(g_entityDataBlock);
 
     g_playerEntity.maxHealth = (unsigned char)((g_playerEntity.id & 1) * -44 + 140);
 
@@ -562,8 +562,8 @@ void InitializeGame(void)
     // character's own record. Same value as the original's initial store.
     g_playerEntity.Sca_info = g_scaDataTable[0];
 
-    g_scaPoolPtr = (DWORD)g_entityDataBlock + 6;
-    g_scaPoolBase = (DWORD)g_entityDataBlock + 6;
+    g_scaPoolPtr = O(g_entityDataBlock) + 6;
+    g_scaPoolBase = O(g_entityDataBlock) + 6;
 
     Task_sleep(1);
 
@@ -591,10 +591,10 @@ void InitializeGame(void)
     if ((g_playerEntity.id & 3) == CHAR_JILL) {
         // Second playthrough marker (0x7B, set by EndingScreen after clearing).
         // On a FIRST Jill playthrough, arm the first-run-only room item flag
-        int is_second_playthrough = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+        int is_second_playthrough = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
         if (is_second_playthrough == 0) {
-            Flg_on((int)g_roomItemsFlags, 0x34); // disable ink-ribbon from main hall
-            Flg_on((int)g_ScenarioFlags2, SCENARIO2_FLAG_JILL_FIRST_RUN);
+            Flg_on(O(g_roomItemsFlags), 0x34); // disable ink-ribbon from main hall
+            Flg_on(O(g_ScenarioFlags2), SCENARIO2_FLAG_JILL_FIRST_RUN);
         }
     }
 

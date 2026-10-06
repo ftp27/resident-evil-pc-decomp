@@ -14,6 +14,8 @@
 // new type, add it to the non-Windows branch below.
 #pragma once
 
+#include "ptr32.h"
+
 #ifdef _WIN32
 
 // ---------------------------------------------------------------------------

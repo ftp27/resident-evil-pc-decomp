@@ -192,7 +192,7 @@ void zombie_update(void)
     SVECTOR bodyEndFront = { 600, 0, 0, 0 };
     SVECTOR bodyEndBack  = { -600, 0, 0, 0 };
 
-    int joint = (int)ENTITY->jointsStructs;
+    unsigned char* joint = (unsigned char*)ENTITY->jointsStructs;
 
     // 0x00433906-0x00433914: Only update if message system allows (g_message_flags & 0x04)
     if ((g_message_flags & 0x0004) != 0) {
@@ -255,18 +255,18 @@ void zombie_update(void)
                 // 0x004339dc-0x00433a0f: Not laying down - standard collision
                 unsigned char collisionResult = check_room_collision(
                     (VECTOR*)&ENTITY->scaMatrixData.localMatrix.t,
-                    *(short*)(ENTITY->Sca_info + 10));
+                    *(short*)(P<unsigned char>(ENTITY->Sca_info) + 10));
                 ENTITY->dir_control_flags |= collisionResult;
                 // WORD store at 0x17a (MOV word [EDI+0x17a],DX), not a byte.
-                *(unsigned short*)((char*)ENTITY + 0x17a) = (unsigned short)(unsigned int)g_tempVar;
+                *(unsigned short*)((char*)ENTITY + 0x17a) = (unsigned short)(uintptr_t)g_tempVar;
             } else {
                 // 0x0043398d-0x004339da: Laying down - also check floor
                 unsigned char collisionResult = check_room_collision(
                     (VECTOR*)&ENTITY->scaMatrixData.localMatrix.t,
-                    *(short*)(ENTITY->Sca_info + 10));
+                    *(short*)(P<unsigned char>(ENTITY->Sca_info) + 10));
                 ENTITY->dir_control_flags |= collisionResult;
                 // WORD store at 0x17a (MOV word [EDI+0x17a],DX), not a byte.
-                *(unsigned short*)((char*)ENTITY + 0x17a) = (unsigned short)(unsigned int)g_tempVar;
+                *(unsigned short*)((char*)ENTITY + 0x17a) = (unsigned short)(uintptr_t)g_tempVar;
 
                 // Argument order is the original's: the -600 end goes first.
                 unsigned char floorResult = check_room_collision_two_point(&bodyEndBack, &bodyEndFront);
@@ -277,7 +277,7 @@ void zombie_update(void)
         // 0x00433a14: CMP word ptr [EAX+0x174],0x0 - a WORD test, so bob_speed
         // at 0x175 counts too, not just splatter_flag.
         if (*(unsigned short*)&ENTITY->splatter_flag != 0) {
-            blood_splatter_physics(joint + 0xf8, 6);
+            blood_splatter_physics(O(joint + 0xf8), 6);
         }
     }
 
@@ -296,7 +296,7 @@ void zombie_update(void)
     }
 
     // 0x00433a77-0x00433aca: Joint-based secondary collision (weapon/hand joint)
-    joint = (int)ENTITY->jointsStructs;
+    joint = (unsigned char*)ENTITY->jointsStructs;
     if (((*(unsigned char*)(joint + 0x1f0) & 4) != 0) &&
         (*(int*)(joint + 0x24c) == -100))
     {
@@ -308,7 +308,7 @@ void zombie_update(void)
                 (VECTOR*)(joint + 0x248),
                 // MOV EDX,[ECX+0x15c] - the stored pointer's VALUE, not its
                 // address (the call above does take an address, at +0xe4).
-                (short*)ENTITY->sca_data_ptr,
+                P<short>(ENTITY->sca_data_ptr),
                 0,
                 *(unsigned short*)(joint + 0x1f6));
         }
@@ -364,14 +364,14 @@ void zombie_init(void)
     // `*(void **)(_ENTITY + 4) = g_pZombieBehaviorTbl[0]` - the DEREFERENCED
     // entry, i.e. 0x004bb260. Storing 0x004bb280 (the table itself) made
     // check_room_collision read Sca_info+10 out of the health table.
-    ENTITY->Sca_info = (unsigned int)g_pZombieScaInfo[0];
+    ENTITY->Sca_info = O(g_pZombieScaInfo[0]);
 
     // 0x004335c2-0x004335f0: Initialize SCA hit/joint data
     g_svecScratch.x = 0;
     g_svecScratch.y = 0;
     g_svecScratch.z = 0;
 
-    ENTITY->sca_data_ptr = (unsigned int)g_loadDataDestPointer;
+    ENTITY->sca_data_ptr = O(g_loadDataDestPointer);
     set_next_entity_data_buffer(2);
 
     // The shadow tint goes in the scratch at 0x00be0dfc (g_animFrameIdSave),
@@ -385,7 +385,7 @@ void zombie_init(void)
     // instead - which is why a corpse's ground shadow ramped from a wrong dark
     // tint into the bright 0xffff50 the death path sets.
     g_animFrameIdSave = 0x00ffff50;
-    FUN_004565f0(&g_svecScratch, *(SVECTOR**)&ENTITY->sca_data_ptr, 400, 400);
+    FUN_004565f0(&g_svecScratch, P<SVECTOR>(ENTITY->sca_data_ptr), 400, 400);
     ResetJointTransforms();
 
     g_animFrameIdSave = 0x00808080;
@@ -420,12 +420,12 @@ void zombie_init(void)
     // a naked zombie with behaviour 11 ends up on the naked record.
     if (g_bDcMode && (ENTITY->behavior_flags & 0x0F) == ZOMBIE_BEH_DC_STANDUP) {
         ENTITY->status_flags |= 0x04;
-        ENTITY->Sca_info = (unsigned int)g_pZombieScaInfo[2];
+        ENTITY->Sca_info = O(g_pZombieScaInfo[2]);
     }
 
     // 0x004336a3-0x004336b0: naked zombie swaps in the narrower record (r=322)
     if (ENTITY->id == ENEMY_ID_NAKED_ZOMBIE) {
-        ENTITY->Sca_info = (unsigned int)g_pZombieScaInfo[1];
+        ENTITY->Sca_info = O(g_pZombieScaInfo[1]);
     }
 
     // 0x004336b0-0x00433700: Clear movement and splatter flags
@@ -449,7 +449,7 @@ void zombie_init(void)
             // (0x80107000-20) always index the hard table with `seed & 0x1f`;
             // there is no scenario-flag branch and no first-playthrough row.
             behVal = local_40[g_RandSeed & 0x1F];
-        } else if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        } else if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             behVal = local_40[(g_RandSeed & 0x1F) + 32];
         } else {
             behVal = local_40[g_RandSeed & 0x1F];
@@ -528,7 +528,7 @@ void zombie_init(void)
     // 0x0043387f-0x004338b0: Lying-on-floor zombie (behavior == 10)
     // Full-byte compare in the original (CMP AL,0xa), not (flags & 0xF).
     if (ENTITY->behavior_flags == ZOMBIE_BEH_10) {
-        int jointPtr = (int)ENTITY->jointsStructs;
+        unsigned char* jointPtr = (unsigned char*)ENTITY->jointsStructs;
         ENTITY->status_flags |= 0x04;
         // Disable joints (set bit 0 to 0 at specific offsets)
         *(unsigned char*)(jointPtr + 0x45c) &= 0xFE;
@@ -728,14 +728,14 @@ static void explode_leg_and_drop(void)
         ENTITY->animationId = 8;
         ENTITY->move_speed_current = 0x14;
 
-        int joint = (int)ENTITY->jointsStructs;
-        joint_setup_attack_effect(joint + 0x4D8, 0x14, 5, 3);
-        joint_setup_attack_effect(joint + 0x554, 0x14, 5, 3);
+        unsigned char* joint = (unsigned char*)ENTITY->jointsStructs;
+        joint_setup_attack_effect(O(joint + 0x4D8), 0x14, 5, 3);
+        joint_setup_attack_effect(O(joint + 0x554), 0x14, 5, 3);
 
         // g_deadMoveValue (0x00d1fdd0) HOLDS a pointer; the original copies the
         // 4 dwords at *(g_deadMoveValue + 0x14). The old `&g_deadMoveValue`
         // read the dword's own .bss storage instead.
-        const int* spawn = (const int*)((char*)g_deadMoveValue + 0x14);
+        const int* spawn = (const int*)(P<char>(g_deadMoveValue) + 0x14);
         g_playerPosScratch.x   = spawn[0];
         g_playerPosScratch.y   = spawn[1];
         g_playerPosScratch.z   = spawn[2];
@@ -806,7 +806,7 @@ static void explode_leg_and_drop(void)
         ENTITY->health = -1;
         BillboardSetColor(&ENTITY->pushVelocity, 1, 2, 0x00ffff50);
         BillboardAdjSize(&ENTITY->pushVelocity, -100, -100);
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         ENTITY->action_state = 3;
         ENTITY->status_flags |= 0x0E;
         ENTITY->move_speed_current = 0;
@@ -1160,7 +1160,7 @@ void zombie_damaged(void)
                         // is unconditional - always the hard table (see the
                         // note on zombie_init's threshold store).
                         ENTITY->hit_threshold = zombie_hit_threshold_hard_tbl[g_RandSeed & 0x1F];
-                    } else if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+                    } else if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
                         ENTITY->hit_threshold = zombie_hit_threshold_normal_tbl[g_RandSeed & 0x1F];
                     else
                         ENTITY->hit_threshold = zombie_hit_threshold_hard_tbl[g_RandSeed & 0x1F];
@@ -1238,7 +1238,7 @@ void zombie_die(void)
 
         // 0x0043419b: Magnum/explosive death if headshot joint flag set
         if (ENTITY->action_behavior == 1
-            && (*(unsigned char*)((int)ENTITY->jointsStructs + 0xF8) & 0x40)
+            && (*(unsigned char*)((unsigned char*)ENTITY->jointsStructs + 0xF8) & 0x40)
             && (g_RandSeed & 1))
         {
             ENTITY->action_behavior = 3;
@@ -1249,7 +1249,7 @@ void zombie_die(void)
         // g_roomItemsFlags (0x00be989c). Raising the death bit in the item bank
         // meant a killed zombie never fired its room event and scribbled on
         // item state instead.
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);  // 0x163
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);  // 0x163
     }
 
     // 0x004341f0: Death behavior dispatch
@@ -1318,7 +1318,7 @@ void zombie_dead_animation(void)
     SVECTOR bodyEndFront = { 800, 0, 0, 0 };
     SVECTOR bodyEndBack  = { -800, 0, 0, 0 };
 
-    int joint = (int)ENTITY->jointsStructs;
+    unsigned char* joint = (unsigned char*)ENTITY->jointsStructs;
 
     switch (ENTITY->action_state) {
     case 0:
@@ -1370,7 +1370,7 @@ void zombie_dead_animation(void)
         // g_stageId and g_roomId - low byte stage 1, high byte room 2.
         if ((ENTITY->behavior_flags & 0x40) == 0
             && ENTITY->behavior_flags != 0x04
-            && (*(unsigned char*)((int)ENTITY->jointsStructs + 0xF8) & 0xCC) == 0
+            && (*(unsigned char*)((unsigned char*)ENTITY->jointsStructs + 0xF8) & 0xCC) == 0
             && *(unsigned short*)&g_stageId != (STAGE_MANSION_2F | (ROOM_DINING_ROOM_2F << 8))
             && ENTITY->animationId == 8
             && g_playerDisplacement == 0
@@ -1394,7 +1394,7 @@ void zombie_dead_animation(void)
         ENTITY->health = -1;
         BillboardSetColor(&ENTITY->pushVelocity, 1, 2, 0x00ffff50);
         BillboardAdjSize(&ENTITY->pushVelocity, -100, -100);
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         ENTITY->action_state = 3;
         ENTITY->status_flags |= 0x0E;
         // fall through
@@ -1413,7 +1413,7 @@ void zombie_dead_animation(void)
         ENTITY->move_speed_current = 0;
         if ((ENTITY->behavior_flags & 0x40) != 0) {
             // SCD-spawned corpse: tell the script it is done.
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
             // MOV word [ECX+0x86],SI - clears action_behavior AND action_state.
             ENTITY->action_behavior = 0;
             ENTITY->action_state = 0;
@@ -1474,11 +1474,11 @@ static const unsigned char zombie_damage_hard_tbl[16] = {
 // ---------------------------------------------------------------------------
 static void player_death_anim_tint(void* joints, int jointOffA, int jointOffB)
 {
-    g_entity_bkp = (unsigned int)ENTITY;
+    g_entity_bkp = O(ENTITY);
     ENTITY = (Entity*)&g_playerEntityPointer;
     JointApplyColorTint((JointStruct*)((char*)joints + jointOffA), 0x30, 0x80820, &DAT_00606060);
     JointApplyColorTint((JointStruct*)((char*)joints + jointOffB), 0x30, 0x80820, &DAT_00606060);
-    ENTITY = (Entity*)g_entity_bkp;
+    ENTITY = P<Entity>(g_entity_bkp);
 }
 
 static void player_death_anim_0(void* joints) { player_death_anim_tint(joints, 0x5D0, 0x7C); }  // 0x00435ae0
@@ -1523,16 +1523,16 @@ static void zombie_attack_head_bite(void)
         == ENTITY->animation_frame_id)
     {
         ENTITY->action_state = 10;
-        int jointPtr = (int)ENTITY->jointsStructs;
+        unsigned char* jointPtr = (unsigned char*)ENTITY->jointsStructs;
 
-        joint_setup_attack_effect(jointPtr + 0xF8, 0x1E, 0, 3);
+        joint_setup_attack_effect(O(jointPtr + 0xF8), 0x1E, 0, 3);
 
         // 0x004354f9: the spawn offset is the 4-dword block at
         // *(g_deadMoveValue + 0x14), staged through g_playerPosScratch exactly
         // like explode_leg_and_drop - NOT a zeroed local. With (0,0,0) the
         // billboards were placed at the joint's own origin.
         {
-            const int* spawn = (const int*)((char*)g_deadMoveValue + 0x14);
+            const int* spawn = (const int*)(P<char>(g_deadMoveValue) + 0x14);
             g_playerPosScratch.x   = spawn[0];
             g_playerPosScratch.y   = spawn[1];
             g_playerPosScratch.z   = spawn[2];
@@ -1568,7 +1568,7 @@ static void zombie_attack_vomit(void)
     }
 
     {
-        int jointPtr = (int)ENTITY->jointsStructs;
+        unsigned char* jointPtr = (unsigned char*)ENTITY->jointsStructs;
         if (zombie_attack_keyframe_tbl[ENTITY->attacking_direction * 3]
             == ENTITY->animation_frame_id)
         {
@@ -1583,7 +1583,7 @@ static void zombie_attack_vomit(void)
             // Same g_deadMoveValue spawn block as the head-bite path
             // (0x004356f2); the old zeroed local put the spray at the joint
             // origin.
-            const int* spawn = (const int*)((char*)g_deadMoveValue + 0x14);
+            const int* spawn = (const int*)(P<char>(g_deadMoveValue) + 0x14);
             g_playerPosScratch.x   = spawn[0];
             g_playerPosScratch.y   = spawn[1];
             g_playerPosScratch.z   = spawn[2];
@@ -1607,7 +1607,7 @@ static void zombie_attack_vomit(void)
 static void zombie_attack_headless_death(void)
 {
     BillboardSetColor(&ENTITY->pushVelocity, 1, 2, 0x00ffff50);
-    Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+    Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
     ENTITY->death_timer = 0x46;
     ENTITY->state              = ZOMBIE_STATE_DIE;
     ENTITY->ignore_player_flag = 1;
@@ -1698,7 +1698,7 @@ void zombie_attack(void)
             ENTITY->action_ticks_counter = (unsigned short)(tick + 1);
             if (tick % 19 == 0) {
                 unsigned char damage;
-                if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+                if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
                     damage = zombie_damage_normal_tbl[ENTITY->behavior_flags & 0x0F];
                 else
                     damage = zombie_damage_hard_tbl[ENTITY->behavior_flags & 0x0F];
@@ -1707,8 +1707,8 @@ void zombie_attack(void)
 
                 Effect_CreateBillboard(0, 0,
                     g_playerEntity.directionAngle + 2048,
-                    (void*)g_deadMoveValue,
-                    (void*)((int)ENTITY->jointsStructs + 0x150), 0);
+                    P<void>(g_deadMoveValue),
+                    (void*)((unsigned char*)ENTITY->jointsStructs + 0x150), 0);
 
                 if (g_playerEntity.health < 0
                     && (ENTITY->attacking_direction & 2) != 0) {
@@ -1746,14 +1746,14 @@ void zombie_attack(void)
             // the grab pose with no wound tint. (The 4-dword spawn block is
             // copied out of *(g_deadMoveValue + 0x14) like explode_leg_and_drop.)
             {
-                const int* spawn = (const int*)((char*)g_deadMoveValue + 0x14);
+                const int* spawn = (const int*)(P<char>(g_deadMoveValue) + 0x14);
                 g_playerPosScratch.x   = spawn[0];
                 g_playerPosScratch.y   = spawn[1];
                 g_playerPosScratch.z   = spawn[2];
                 g_playerPosScratch.pad = spawn[3];
             }
             Effect_CreateBillboard(0, 0, 0x200,
-                (void*)((int)ENTITY->jointsStructs + 0x13C),
+                (void*)((unsigned char*)ENTITY->jointsStructs + 0x13C),
                 &g_playerPosScratch, 0);
             ((void(*)(void*))player_death_animations_tbl[ENTITY->attacking_direction])(
                 g_playerEntityPointer.jointsStructs);
@@ -1884,7 +1884,7 @@ static void zombie_aggresive_roar(void)
         break;
 
     case 3:
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         if ((ENTITY->collisionFlags & 0x80) == 0) {
             // MOV word [_ENTITY+0x86],0 - action_behavior and action_state.
             ENTITY->action_behavior = 0;
@@ -1906,13 +1906,13 @@ static void zombie_headshot(void)
     ENTITY->move_speed_current = 0x14;
 
     if (ENTITY->action_state == 0) {
-        int joint = (int)ENTITY->jointsStructs;
+        unsigned char* joint = (unsigned char*)ENTITY->jointsStructs;
         short away = (short)(g_playerEntity.directionAngle - ENTITY->angle);
 
         g_playerPosScratch.x = 100;
         g_playerPosScratch.y = -0xA3C;
         g_playerPosScratch.z = 0;
-        joint_setup_attack_effect(joint + 0xF8, 30, 2, 3);
+        joint_setup_attack_effect(O(joint + 0xF8), 30, 2, 3);
         Effect_CreateBillboard(3, 0, (short)(away + 0x800),
                                &ENTITY->scaMatrixData.localMatrix, &g_playerPosScratch, 0);
 
@@ -1962,7 +1962,7 @@ static void zombie_scd_vomiting_common(unsigned char animId)
     ENTITY->animationId = animId;
     short_push_back();
     if ((ENTITY->action_state & 2) != 0) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         // MOV word [_ENTITY+0x86],0
         ENTITY->action_behavior = 0;
         ENTITY->action_state = 0;
@@ -2052,7 +2052,7 @@ static void dc_standup_lunge(void)
         ENTITY->ignore_player_flag = 1;
         ENTITY->action_behavior = 3;
         ENTITY->action_state = 0;
-        ENTITY->Sca_info = (unsigned int)g_pZombieScaInfo[0];
+        ENTITY->Sca_info = O(g_pZombieScaInfo[0]);
         ENTITY->status_flags &= 0xFB;         // collision back on
     }
 }
@@ -2371,7 +2371,7 @@ static void zombie_slow_walk(void)
         // waypoint off in a nonsense direction, which is the wander target
         // zombie_walk2 feeds to entity_pathfind_update. Same form as
         // CharacterNpc.cpp and Yawn.cpp, which already deref correctly.
-        memcpy(&g_matrixScratch, (const void*)g_deadMoveValue, 32);
+        memcpy(&g_matrixScratch, P<const void>(g_deadMoveValue), 32);
         g_svecScratch.x = 5000;
         g_svecScratch.z = 0;
         g_svecScratch.y = 0;
@@ -2439,7 +2439,7 @@ static void zombie_walk2(void)
     // behaviour in a LOCAL, so the three `g_tempVar != 2` gates below compared
     // the wrong thing entirely.
     g_animFrameIdSave = 6;
-    g_tempVar = (void*)(unsigned int)ENTITY->action_behavior;
+    g_tempVar = (void*)(uintptr_t)ENTITY->action_behavior;
 
     if (*(unsigned short*)&ENTITY->is_moving == 0) {
         unsigned int result = entity_pathfind_update();
@@ -3194,7 +3194,7 @@ void short_push_back(void)
                                    &g_playerPosScratch, 0);
         }
 
-        int jointPtr = (int)ENTITY->jointsStructs;
+        unsigned char* jointPtr = (unsigned char*)ENTITY->jointsStructs;
         if ((ENTITY->hit_state & 7) == 3) {
             unsigned char* jointFlag = (unsigned char*)(jointPtr + 0x1F0);
             if ((*jointFlag & 4) == 0) {
@@ -3394,7 +3394,7 @@ void zombie_pushback_stagger(void)
         Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
         zombie_body_part_physics(1);
 
-        int jointPtr = (int)ENTITY->jointsStructs;
+        unsigned char* jointPtr = (unsigned char*)ENTITY->jointsStructs;
         if ((*(unsigned char*)(jointPtr + 0x1F0) & 4) != 0
             && ENTITY->animation_frame_id > 0x11) {
             return;
@@ -3457,16 +3457,16 @@ void zombie_check_special_weapon(void)
 // ============================================================================
 void zombie_body_part_physics(unsigned char param)
 {
-    int jointPtr = (int)ENTITY->jointsStructs;
+    unsigned char* jointPtr = (unsigned char*)ENTITY->jointsStructs;
 
     RotMatrix((SVECTOR*)((char*)ENTITY + 0x72), (MATRIX*)((char*)ENTITY + 0x20));
     ApplyLVAndMul0Matrix((void*)((char*)ENTITY + 0x20), (void*)(jointPtr + 0x24), &g_matrixScratch);
     ApplyLVAndMulMatrix(&g_matrixScratch, (MATRIX*)(jointPtr + 0xA0));
 
     unsigned char count = 3;
-    int base = jointPtr + (unsigned int)param * 0x174 + 0x26C;
+    unsigned char* base = jointPtr + (unsigned int)param * 0x174 + 0x26C;
     do {
-        ApplyLVAndMulMatrix(&g_matrixScratch, (MATRIX*)((unsigned int)count * -0x7C + base + 0xA0));
+        ApplyLVAndMulMatrix(&g_matrixScratch, (MATRIX*)(base + 0xA0 - (int)count * 0x7C));
         count--;
     } while (count != 0);
 

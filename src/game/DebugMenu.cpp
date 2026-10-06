@@ -407,7 +407,7 @@ static void DebugRoomChange_Trigger(void)
     // for the transition and restore it once the destination room is loaded
     // so the menu can reach the exact stage it displays.
     s_dbgRestoreVariant = 0;
-    if (stage < 2 && Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_STAGE_VARIANT) != 0) {
+    if (stage < 2 && Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_STAGE_VARIANT) != 0) {
         FUN_00473f10((int*)g_ScenarioFlags, SCENARIO_FLAG_STAGE_VARIANT);
         s_dbgRestoreVariant = 1;
     }
@@ -421,7 +421,7 @@ static void DebugRoomChange_Trigger(void)
     dbg_printf("[debugmenu] room change: stage %d room %d (display ROOM %X)\n",
                stage, s_dbgRoom, (stage + 1) * 0x100 + s_dbgRoom);
 
-    g_pendingDoorRecord = (int)s_dbgDoorRecord;
+    g_pendingDoorRecord = O(s_dbgDoorRecord);
     g_main_state_flags |= MSF_GAMEPLAY_ACTIVE;
     g_message_flags = 0;
 
@@ -531,7 +531,7 @@ static void DebugRoom_DecodeDest(unsigned char dest, unsigned char curStage,
         *outRoom  = dest;
     } else {
         unsigned char stage = (unsigned char)((dest >> 5) - 1);
-        if (stage < 2 && Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_STAGE_VARIANT) != 0) {
+        if (stage < 2 && Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_STAGE_VARIANT) != 0) {
             stage = (unsigned char)(stage + 5);
         }
         *outStage = stage;
@@ -548,7 +548,7 @@ void DebugRoomChange_ApplyPendingPlacement(void)
 
     // Restore the stage-variant bit cleared by DebugRoomChange_Trigger.
     if (s_dbgRestoreVariant != 0) {
-        Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_STAGE_VARIANT);
+        Flg_on(O(g_ScenarioFlags), SCENARIO_FLAG_STAGE_VARIANT);
         s_dbgRestoreVariant = 0;
     }
 
@@ -563,7 +563,7 @@ void DebugRoomChange_ApplyPendingPlacement(void)
         if (entry[0] != 1) {            // room_check_actions[1] = door
             continue;
         }
-        unsigned char* rec = *(unsigned char**)(entry + 8);
+        unsigned char* rec = *(Ptr32<unsigned char>*)(entry + 8);
         if (rec == NULL) {
             continue;
         }

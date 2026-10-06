@@ -228,7 +228,7 @@ void* const* const cerberus_behavior_view = &cerberus_states_table[5];
 // ---------------------------------------------------------------------------
 static unsigned char cerberus_probe_ahead(void)
 {
-    const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     VECTOR step;
     step.y   = seed[1];
     step.z   = seed[2];
@@ -370,23 +370,23 @@ static int cerberus_rotate_spine(short rx, short ry, short rz)
 {
     int joints = (int)ENTITY->jointsStructs;
 
-    SVECTOR* r1 = (SVECTOR*)(joints + 0x80);
+    SVECTOR* r1 = P<SVECTOR>(joints + 0x80);
     r1->x = (short)(r1->x + rx);
     r1->y = (short)(r1->y + ry);
     r1->z = (short)(r1->z + rz);
-    RotMatrix(r1, (MATRIX*)(joints + 0xA0));
+    RotMatrix(r1, P<MATRIX>(joints + 0xA0));
 
-    SVECTOR* r3 = (SVECTOR*)(joints + 0xFC);
+    SVECTOR* r3 = P<SVECTOR>(joints + 0xFC);
     r3->x = (short)(r3->x + (rx >> 2) + rx);
     r3->y = (short)(r3->y + (ry >> 2) + ry);
     r3->z = (short)(r3->z + (rz >> 2) + rz);
-    RotMatrix(r3, (MATRIX*)(joints + 0x11C));
+    RotMatrix(r3, P<MATRIX>(joints + 0x11C));
 
-    SVECTOR* r5 = (SVECTOR*)(joints + 0x178);
+    SVECTOR* r5 = P<SVECTOR>(joints + 0x178);
     r5->x = (short)(r5->x + (rx >> 1) + rx);
     r5->y = (short)(r5->y + (ry >> 1) + ry);
     r5->z = (short)(r5->z + (rz >> 1) + rz);
-    RotMatrix(r5, (MATRIX*)(joints + 0x198));
+    RotMatrix(r5, P<MATRIX>(joints + 0x198));
 
     return joints + 0x174;
 }
@@ -409,8 +409,8 @@ static unsigned char cerberus_head_track(void)
     int   savedX     = ENTITY->scaMatrixData.localMatrix.t[0];
     int   savedZ     = ENTITY->scaMatrixData.localMatrix.t[2];
 
-    ENTITY->scaMatrixData.localMatrix.t[0] = *(int*)(head + 0x58) + *(int*)(head + 0x38);
-    ENTITY->scaMatrixData.localMatrix.t[2] = *(int*)(head + 0x60) + *(int*)(head + 0x40);
+    ENTITY->scaMatrixData.localMatrix.t[0] = *P<int>(head + 0x58) + *P<int>(head + 0x38);
+    ENTITY->scaMatrixData.localMatrix.t[2] = *P<int>(head + 0x60) + *P<int>(head + 0x40);
     ENTITY->angle = (short)(ENTITY->angle + (CB_SWERVE >> 1) + CB_SWERVE);
 
     CB_SWERVE = (short)(CB_SWERVE + (short)turn_toward_target(
@@ -446,7 +446,7 @@ static void cerberus_spawn_blood(void* owner, unsigned char jointIdx,
     if (CB_BLOOD <= 0) {
         return;
     }
-    const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch.x   = seed[0];
     g_playerPosScratch.y   = seed[1];
     g_playerPosScratch.z   = seed[2];
@@ -454,8 +454,8 @@ static void cerberus_spawn_blood(void* owner, unsigned char jointIdx,
 
     int joints = *(int*)((char*)owner + 0x98);
     Effect_CreateBillboard(0, depthGroup, 0,
-                           (void*)g_deadMoveValue,
-                           (void*)(joints + 0x58 + (unsigned int)jointIdx * 0x7C),
+                           P<void>(g_deadMoveValue),
+                           P<void>(joints + 0x58 + (unsigned int)jointIdx * 0x7C),
                            0);
     CB_BLOOD--;
 }
@@ -486,7 +486,7 @@ void cerberus_init(void)
     CB_BEHFLAGS = 1;                 // word store: run flag set, [0x187] cleared
     CB_AIFLAGS  = CB_AI_ACTIVE;      // word store: 0x0080
 
-    ENTITY->Sca_info = (unsigned int)cerberus_sca_info;
+    ENTITY->Sca_info = O(cerberus_sca_info);
     ENTITY->status_flags &= 0x1F;
 
     ENTITY->animationId = 0;
@@ -508,7 +508,7 @@ void cerberus_init(void)
     // original steers this through g_playerPosScratch (0x00be11b0), not a
     // local, and the clobber is observable.
     {
-        const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+        const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
         g_playerPosScratch.y   = seed[1];
         g_playerPosScratch.z   = seed[2];
         g_playerPosScratch.pad = seed[3];
@@ -922,7 +922,7 @@ void cerberus_consider_attack(void)
     if ((short)turn_toward_target(
             (VECTOR*)g_playerEntity.scaMatrixData.localMatrix.t, 0x100) == 0) {
         unsigned char poisoned = g_playerEntity.healthStatusFlags & 8;
-        int easy = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+        int easy = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
         // `(-(poisoned == 0) & 0x1a) + 100` - 126 when healthy, 100 when poisoned.
         short chance = (short)((poisoned == 0 ? 0x1A : 0) + 100);
         short threshold = easy == 0 ? (short)0x0D : (short)0x11;
@@ -1156,7 +1156,7 @@ unsigned char cerberus_bite_player(void)
 {
     ENTITY->hit_state = 0;
 
-    int  easy = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+    int  easy = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
     short threshold = easy == 0 ? (short)0x0D : (short)0x11;
 
     if (g_playerEntity.health < threshold
@@ -1238,14 +1238,14 @@ void cerberus_leap_airborne(void)
     short gravity  = (short)ENTITY->reaction_timer;
     short launchVy = CB_LAUNCH_VY;
 
-    const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch.x   = seed[0];
     g_playerPosScratch.y   = seed[1];
     g_playerPosScratch.z   = seed[2];
     g_playerPosScratch.pad = seed[3];
 
     short reach;
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+    if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
         reach = g_playerEntity.health > 0x0C ? (short)1000 : (short)800;
     } else {
         reach = g_playerEntity.health > 0x10 ? (short)1000 : (short)800;
@@ -1256,7 +1256,7 @@ void cerberus_leap_airborne(void)
 
     if (CB_AGGRO == 0) {
         CB_AGGRO = (short)(unsigned short)FUN_0048ae00(
-            (MATRIX*)(joints + 0x234), &g_playerPosScratch, reach,
+            P<MATRIX>(joints + 0x234), &g_playerPosScratch, reach,
             g_playerEntity.scaMatrixData.localMatrix.t);
 
         if (CB_AGGRO != 0
@@ -1606,9 +1606,9 @@ void cerberus_beh_maul(void)
         JointApplyColorTint(pj + 1,   0x30, 0x80820, (void*)0x00606060);
         JointApplyColorTint(pj + 9,   0x30, 0x80820, (void*)0x00606060);
         JointApplyColorTint(pj + 0xC, 0x30, 0x80820, (void*)0x00606060);
-        JointApplyColorTint((JointStruct*)((int)ENTITY->jointsStructs + 0x1F0),
+        JointApplyColorTint((JointStruct*)((unsigned char*)ENTITY->jointsStructs + 0x1F0),
                             0x30, 0x80820, (void*)0x00606060);
-        Play3DSnd(3, 3, 0, (int)g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 3, 0, O(g_playerEntity.scaMatrixData.localMatrix.t));
     }
 
     cerberus_spawn_blood(&g_playerEntity, 1, 3);
@@ -2069,7 +2069,7 @@ void cerberus_die(void)
 {
     switch (ENTITY->ignore_player_flag) {
     case 0: {
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         ENTITY->animation_frame_id = 0;
         ENTITY->timing_control = 0;
         ENTITY->blend_counter = 7;

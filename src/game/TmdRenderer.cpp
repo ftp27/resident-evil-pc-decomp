@@ -91,10 +91,10 @@ float TmdViewZToNdc(float vz)
 }
 
 struct TmdDrawEntry {
-    BYTE* slot;        // owning CMarniDirect3DTMD slot in g_tmdObjectBuffer,
+    Ptr32<BYTE> slot;  // owning CMarniDirect3DTMD slot in g_tmdObjectBuffer,
                        // NULL for the complex-object pool (see FUN_00486df0)
-    BYTE* objData;     // the queued 0x84-byte object entry (matrix at +0x08)
-    BYTE* elem;        // geometry element (CMarniViewport2 / CDirect3DObject).
+    Ptr32<BYTE> objData; // the queued 0x84-byte object entry (matrix at +0x08)
+    Ptr32<BYTE> elem;  // geometry element (CMarniViewport2 / CDirect3DObject).
                        // Held explicitly because the complex-object pool keeps
                        // its elements in a SEPARATE 0x38-stride array rather
                        // than embedded in the owning slot at stride 0x4C.
@@ -906,7 +906,7 @@ void update_entity_lighting(VECTOR* entityPos)
 // The menu-side twin is options_render_entity (0x004775b0).
 void render_entity(Entity* ent)
 {
-    int param_1 = (int)ent;
+    unsigned char* param_1 = (unsigned char*)ent;
     unsigned char* entBytes = (unsigned char*)ENTITY;
 
     if (((entBytes[1] == 0x0D) || (entBytes[1] == 0x12)) && (entBytes[2] == 1)) {
@@ -916,7 +916,7 @@ void render_entity(Entity* ent)
     g_animFrameIdSave = (unsigned int)((*(unsigned char*)(param_1 + 3) & 0x7f) == 0);
 
     unsigned char jointIdx = *(char*)(param_1 + 0x8d) - 1;
-    MATRIX* pJoint = (MATRIX*)((unsigned int)jointIdx * 0x7c + *(int*)(param_1 + 0x98));
+    MATRIX* pJoint = (MATRIX*)((unsigned int)jointIdx * 0x7c + P<unsigned char>(*(int*)(param_1 + 0x98)));
 
     update_entity_lighting((VECTOR*)(param_1 + 0x34));
 
@@ -993,7 +993,7 @@ void FUN_00483250(int p0, int p1, int p2, int p3, int p4, int p5, void* p6)
 {
     // Assembly: MOV EAX,[ESP+0x18]; MOV ECX,[ESP+0x10]; PUSH EAX; PUSH ECX; CALL FUN_00483080
     // (also covers 0x00483230)
-    FUN_00483080((void*)p3, p5);
+    FUN_00483080(P<void>(p3), p5);
 }
 
 // (0x0048cc50) - Build view matrix from eye/target positions
@@ -1219,7 +1219,7 @@ void FUN_00483080(void* spriteData, int depthShift)
         return;
     }
 
-    unsigned int tmdObj = AsyncCreateTmdObject(data[1], data[0], (unsigned int)spriteData);
+    unsigned int tmdObj = AsyncCreateTmdObject(data[1], data[0], O(spriteData));
     data[8] = tmdObj;
     if (tmdObj == 0) {
         return;
@@ -1257,7 +1257,7 @@ void FUN_00483080(void* spriteData, int depthShift)
     // (ECX = [spriteData+0x20] = the TMD object handle; depth is the OT depth,
     // NOT the matrix — an earlier revision passed the matrix as arg 2, which
     // left every object with a garbage depth and no stored transform).
-    CMarniDirect3DTMD* tmd = (CMarniDirect3DTMD*)(void*)tmdObj;
+    CMarniDirect3DTMD* tmd = P<CMarniDirect3DTMD>(tmdObj);
     tmd->Transform(g_pMarniDirect3D, (void*)(size_t)depth, transformMatrix, 0);
 }
 
@@ -1294,7 +1294,7 @@ static void FUN_00483270(unsigned char* objPtr, int depthShift)
 {
     // spriteData = *(record + 0x18): the animation object CreateAnimObject
     // built when the SCD command bound the TMD (FUN_00473ea0).
-    int* spriteData = *(int**)(objPtr + 0xc);
+    int* spriteData = P<int>(*(uint32_t*)(objPtr + 0xc));
 
     if (spriteData == NULL) return;
 
@@ -1321,7 +1321,7 @@ static void FUN_00483270(unsigned char* objPtr, int depthShift)
         return;
     }
 
-    unsigned int tmdObj = AsyncCreateTmdObject(spriteData[1], spriteData[0], (unsigned int)spriteData);
+    unsigned int tmdObj = AsyncCreateTmdObject(spriteData[1], spriteData[0], O(spriteData));
     spriteData[8] = (int)tmdObj;
     if (tmdObj == 0) return;
 
@@ -1344,7 +1344,7 @@ static void FUN_00483270(unsigned char* objPtr, int depthShift)
 
     FUN_00486190(m);
 
-    CMarniDirect3DTMD* tmd = (CMarniDirect3DTMD*)(void*)tmdObj;
+    CMarniDirect3DTMD* tmd = P<CMarniDirect3DTMD>(tmdObj);
     tmd->Transform(g_pMarniDirect3D, (void*)(size_t)depth, m, 0);
 
     // 0x004834d2: copy the anim object's live blend weight (spriteData[5] ==
@@ -1357,8 +1357,8 @@ static void FUN_00483270(unsigned char* objPtr, int depthShift)
     // solid. The loop runs i = 0x84..0xFF8 (ESI += 0x84, ESI < 0x1080), which
     // lands on record k's +0x68/+0x78 for k = 0..30 of m_objectData.
     for (int rec = 0; rec < 31; rec++) {
-        *(int*)((unsigned char*)tmdObj + 0x4D0 + rec * 0x84 + 0x68) = spriteData[5];
-        *(int*)((unsigned char*)tmdObj + 0x4D0 + rec * 0x84 + 0x78) = spriteData[5];
+        *(int*)(P<unsigned char>(tmdObj) + 0x4D0 + rec * 0x84 + 0x68) = spriteData[5];
+        *(int*)(P<unsigned char>(tmdObj) + 0x4D0 + rec * 0x84 + 0x78) = spriteData[5];
     }
 }
 
@@ -1408,7 +1408,7 @@ static void RoomObjectRender(unsigned char* obj)
 
     // 0x0047460e: compose the ScaMatrixData chain (rooted at record +0x10)
     // into localMatrix, then fold in the camera.
-    FUN_00483580(*(int**)(obj + 0x10), &localMatrix);
+    FUN_00483580(P<int>(*(uint32_t*)(obj + 0x10)), &localMatrix);
 
     // 0x00474624: object light matrix = g_lightMatrix * obj rotation matrix
     MulMatrix0(&g_lightMatrix, (MATRIX*)(obj + 0x20), &g_matrixScratch);

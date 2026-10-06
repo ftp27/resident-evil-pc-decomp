@@ -14,4 +14,5 @@ dist/
 # Runtime state (P8): config.ini is created by the game and rewritten on exit,
 # so it is no longer tracked; re1.lock is the single-instance guard.
 config.ini
-re1.lock
+re1.lock# Scenario runner output (tests/run_scenarios.sh).
+test-output/

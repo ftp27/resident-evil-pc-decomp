@@ -166,7 +166,7 @@ static void LoadCharacterWeaponTmd(void)
     void* tmdBase = g_loadDataDestPointer;
     g_dwJointAnimCopyBase = tmdBase;
     g_loadDataDestPointer = (void*)((char*)g_loadDataDestPointer + (fileSize & 0xFFFFFFFC));
-    *(void**)(weaponSlot + 0x14) = tmdBase;
+    *(Ptr32<void>*)(weaponSlot + 0x14) = tmdBase;
 
     // 0x004625a0: the character's own texture bank/depth is swapped in for the
     // texture pass and restored afterwards.
@@ -174,14 +174,14 @@ static void LoadCharacterWeaponTmd(void)
     unsigned char savedBank  = g_TextureBankID;
     g_TextureCurrentPage = ENTITY->attacking_direction;   // +0x16c
     g_TextureBankID    = ENTITY->texBank;               // +0x16e
-    ProcessTmdTextures(2, *(unsigned int**)(weaponSlot + 0x14),
+    ProcessTmdTextures(2, *(Ptr32<unsigned int>*)(weaponSlot + 0x14),
                        g_TextureBankID, g_TextureCurrentPage);
     g_TextureBankID    = savedBank;
     g_TextureCurrentPage = savedPage;
 
-    *(char**)(weaponSlot + 0x14) = *(char**)(weaponSlot + 0x14) + 0xc;
-    *(void**)(weaponSlot + 0x18) = g_loadDataDestPointer;
-    g_loadDataDestPointer = CreateAnimObject((int)(weaponSlot + 0xc),
+    *(Ptr32<char>*)(weaponSlot + 0x14) = *(Ptr32<char>*)(weaponSlot + 0x14) + 0xc;
+    *(Ptr32<void>*)(weaponSlot + 0x18) = g_loadDataDestPointer;
+    g_loadDataDestPointer = CreateAnimObject(O(weaponSlot + 0xc),
                                             (unsigned int*)g_loadDataDestPointer);
 }
 
@@ -207,7 +207,7 @@ static void char_init_common(unsigned int tint,
     FUN_004565f0(&g_svecScratch, (SVECTOR*)&ENTITY->pushVelocity, shadowW, shadowH);
     ENTITY->blend_counter = 0;
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
-    ENTITY->Sca_info = (unsigned int)scaInfo;
+    ENTITY->Sca_info = O(scaInfo);
 }
 
 // 0x0046adf0 - id 32, Chris
@@ -243,7 +243,7 @@ static void char_init_rebecca(void)
     FUN_004565f0(&g_svecScratch, (SVECTOR*)&ENTITY->pushVelocity, 0x200, 0x280);
     ENTITY->blend_counter = 0;
 
-    if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PARTNER_ALIVE) != 0) {
+    if (Flg_ck(O(g_ScenarioFlags2), SCENARIO2_FLAG_PARTNER_ALIVE) != 0) {
         JointStruct* joints = ENTITY->jointsStructs;
         ENTITY->timing_control     = 0;
         ENTITY->animationId        = 0x33;
@@ -257,7 +257,7 @@ static void char_init_rebecca(void)
     }
 
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
-    ENTITY->Sca_info = (unsigned int)&g_charScaInfo[3];
+    ENTITY->Sca_info = O(&g_charScaInfo[3]);
     LoadCharacterWeaponTmd();
 }
 
@@ -273,7 +273,7 @@ static void char_init_wesker(void)
     FUN_004565f0(&g_svecScratch, (SVECTOR*)&ENTITY->pushVelocity, 0x200, 0x280);
     ENTITY->blend_counter = 0;
 
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_WESKER_VARIANT) != 0) {
+    if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_WESKER_VARIANT) != 0) {
         ENTITY->animationId        = 0x30;
         ENTITY->animation_frame_id = 0x6d;
         BillboardSetColor(&ENTITY->pushVelocity, 1, 2, 0x00ffff70);
@@ -288,7 +288,7 @@ static void char_init_wesker(void)
     *(short*)(joints + 0xf4) = 0;
     *(short*)(joints + 0xf6) = 0x10;
 
-    ENTITY->Sca_info = (unsigned int)&g_charScaInfo[4];
+    ENTITY->Sca_info = O(&g_charScaInfo[4]);
 
     // 0x0046b21c: compares the packed stage/room word (stageId | roomId << 8), not g_stageId alone
     if (*(unsigned short*)&g_stageId == (STAGE_LABORATORY | (ROOM_POWER_ROOM << 8))) {
@@ -311,7 +311,7 @@ static void char_init_37(void)
     ENTITY->timing_control     = 0;
     ENTITY->blend_counter      = 0;
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
-    ENTITY->Sca_info = (unsigned int)&g_charScaInfo[5];
+    ENTITY->Sca_info = O(&g_charScaInfo[5]);
 }
 
 // 0x0046b2e0 - id 38 (Forest's corpse)
@@ -327,7 +327,7 @@ static void char_init_38(void)
     ENTITY->timing_control     = 0;
     ENTITY->blend_counter      = 0;
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
-    ENTITY->Sca_info = (unsigned int)&g_charScaInfo[6];
+    ENTITY->Sca_info = O(&g_charScaInfo[6]);
 }
 
 // 0x0046b390 - id 39, Richard
@@ -355,7 +355,7 @@ static void char_init_41(void)
     ENTITY->timing_control     = 0;
     ENTITY->blend_counter      = 0;
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
-    ENTITY->Sca_info = (unsigned int)&g_charScaInfo[9];
+    ENTITY->Sca_info = O(&g_charScaInfo[9]);
 }
 
 // ============================================================================
@@ -440,7 +440,7 @@ static void npc_idle_walk_01(void)
         int saved0 = t[0], saved1 = t[1], saved2 = t[2];
         int saved3 = *(int*)((char*)ENTITY + 0x40);
         unsigned char hit = check_room_collision(
-            (VECTOR*)t, *(short*)((char*)ENTITY->Sca_info + 10));
+            (VECTOR*)t, *(short*)(P<char>(ENTITY->Sca_info) + 10));
         g_playerDisplacement = (int)(unsigned int)hit;
         t[0] = saved0; t[1] = saved1; t[2] = saved2;
         *(int*)((char*)ENTITY + 0x40) = saved3;
@@ -460,7 +460,7 @@ static void npc_idle_walk_01(void)
         ENTITY->timing_control     = 0;
         ENTITY->animationId        = 0x36;
         ENTITY->blend_counter      = 3;
-        Play3DSnd(2, 0x1C, 0, (unsigned int)ENTITY->scaMatrixData.localMatrix.t);
+        Play3DSnd(2, 0x1C, 0, O(ENTITY->scaMatrixData.localMatrix.t));
         // fall through
     case 3: {
         char done = (char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
@@ -489,7 +489,7 @@ static void npc_idle_walk_01(void)
 // ============================================================================
 static void npc_idle_walk_02(void)
 {
-    const int* deadPos = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* deadPos = (const int*)(P<char>(g_deadMoveValue) + 0x14);
 
     switch (ENTITY->action_state) {
     case 0: {
@@ -511,7 +511,7 @@ static void npc_idle_walk_02(void)
         // NOTE: the original passes the dead-move matrix as the sprite space and
         // joints+0xD4 as the POSITION - the two arguments are swapped relative to
         // the call above. Faithful; joints+0xD4 is read as a VECTOR.
-        Effect_CreateBillboard(0, 3, 0, (void*)g_deadMoveValue,
+        Effect_CreateBillboard(0, 3, 0, P<void>(g_deadMoveValue),
                                (void*)(joints + 0xD4), 0);
         // fall through
     }
@@ -532,7 +532,7 @@ static void npc_idle_walk_02(void)
             JointApplyColorTint((JointStruct*)(joints + 0x5D0), 0x30, 0x80820, (void*)0x606060);
         }
         if ((char)ENTITY->animation_frame_id == 0x2A) {
-            Play3DSnd(2, 0x2F, 0, (unsigned int)ENTITY->scaMatrixData.localMatrix.t);
+            Play3DSnd(2, 0x2F, 0, O(ENTITY->scaMatrixData.localMatrix.t));
         }
         char done = (char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
         ENTITY->action_state = (unsigned char)(ENTITY->action_state + done);
@@ -545,7 +545,7 @@ static void npc_idle_walk_02(void)
         g_svecScratch.z = 0;
         g_svecScratch.x = -900;
         // copy the dead-move matrix (8 dwords) into the scratch matrix
-        memcpy(&g_matrixScratch, (void*)g_deadMoveValue, 0x20);
+        memcpy(&g_matrixScratch, P<void>(g_deadMoveValue), 0x20);
         RotMatrixY((int)ENTITY->angle, &g_matrixScratch);
         ApplyMatrixSV(&g_matrixScratch, &g_svecScratch, &g_svecScratch);
 
@@ -587,7 +587,7 @@ static void npc_idle_walk_02(void)
 // ============================================================================
 static void npc_idle_walk_03(void)
 {
-    const int* deadPos = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* deadPos = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     unsigned char st = ENTITY->action_state;
 
     if (st == 0) {
@@ -745,7 +745,7 @@ static void npc_scd_01(void)
         if (st != 2) {
             return;
         }
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         ENTITY->scd_timer = 0;
         if ((ENTITY->scd_entity_flags & 0x10) == 0) {
             return;
@@ -828,7 +828,7 @@ static void npc_scd_02(void)
             int dz = ENTITY->scaMatrixData.localMatrix.t[2] - (int)ENTITY->unk_c8;
             int dx = ENTITY->scaMatrixData.localMatrix.t[0] - (int)ENTITY->unk_c6;
             if ((unsigned int)SquareRoot0(dz * dz + dx * dx) < 0x96) {
-                Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+                Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
                 if ((ENTITY->collisionFlags & 0x80) == 0) {
                     ENTITY->action_behavior = 0;
                     ENTITY->action_state    = 0;
@@ -869,7 +869,7 @@ static void npc_walk_backward_step(void)
     int dz = ENTITY->scaMatrixData.localMatrix.t[2] - (int)ENTITY->unk_c8;
     int dx = ENTITY->scaMatrixData.localMatrix.t[0] - (int)ENTITY->unk_c6;
     if ((unsigned int)SquareRoot0(dz * dz + dx * dx) < 100) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         if ((ENTITY->collisionFlags & 0x80) == 0) {
             ENTITY->action_behavior = 0;
             ENTITY->action_state    = 0;
@@ -942,7 +942,7 @@ static void npc_scd_03(void)
             ENTITY->action_state = 4;
             if ((ENTITY->collisionFlags & 0x80) != 0) {
                 ENTITY->action_state = 3;
-                Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+                Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
                 return;
             }
         }
@@ -973,7 +973,7 @@ static void npc_scd_03(void)
     case 6:
         ENTITY->action_behavior = 0;
         ENTITY->action_state    = 0;
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         return;
 
     default:
@@ -1065,7 +1065,7 @@ static void npc_scd_06(void)
         // 0x0047b10?: MOV word ptr [.. + 0x86],0 - clears behaviour and sub-state
         ENTITY->action_behavior = 0;
         ENTITY->action_state    = 0;
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         return;
     }
 
@@ -1110,7 +1110,7 @@ static void npc_scd_07(void)
     } else if (st != 1) {
         if (st == 2) {
             // The completion signal the event script's bit_test is waiting on.
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         }
         goto tail;
     }
@@ -1286,7 +1286,7 @@ static void npc_scd_08(void)
 
     case 2:
         // The completion signal the event script is waiting on.
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         return;
 
     case 3:
@@ -1316,8 +1316,8 @@ static void npc_scd_08(void)
         ENTITY->action_ticks_counter = (unsigned short)(ticks - 1);
         if (ticks == 0) {
             ENTITY->action_ticks_counter = 0x0F;
-            Play3DSnd(2, 0x1E, 0, (unsigned int)ENTITY->scaMatrixData.localMatrix.t);
-            Play3DSnd(2, 0x1F, 0, (unsigned int)ENTITY->scaMatrixData.localMatrix.t);
+            Play3DSnd(2, 0x1E, 0, O(ENTITY->scaMatrixData.localMatrix.t));
+            Play3DSnd(2, 0x1F, 0, O(ENTITY->scaMatrixData.localMatrix.t));
         }
         Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x400);
         ENTITY->angle = (short)(ENTITY->angle + (short)ENTITY->scd_timer);
@@ -1355,7 +1355,7 @@ static void npc_scd_09(void)
         // One 16-bit store at +0x86 clears action_behavior and action_state.
         ENTITY->action_behavior = 0;
         ENTITY->action_state    = 0;
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         return;
     }
 
@@ -1390,7 +1390,7 @@ static void npc_scd_10(void)
         if (st != 2) {
             return;
         }
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         if ((ENTITY->scd_entity_flags & 0x10) == 0) {
             return;
         }
@@ -2111,7 +2111,7 @@ static void npc_state9_pathfind(void)
     ResolveEntityScaCollision((Entity*)&g_playerEntity, ENTITY);
     HandleEnemyPlayerCollisions();
     check_room_collision((VECTOR*)ENTITY->scaMatrixData.localMatrix.t,
-                         *(short*)((char*)ENTITY->Sca_info + 10));
+                         *(short*)(P<char>(ENTITY->Sca_info) + 10));
 }
 
 // ============================================================================

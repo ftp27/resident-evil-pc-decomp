@@ -192,13 +192,13 @@ void FUN_004850d0(void)
     if (animObj == NULL) {
         return;
     }
-    unsigned int* slotData = (unsigned int*)animObj[0];    // the AnimSlot
+    unsigned int* slotData = P<unsigned int>(animObj[0]);    // the AnimSlot
     if (slotData == NULL) {
         return;
     }
 
     int vertBase = slotData[0];                 // AnimSlot[0] = data0 (frame verts)
-    unsigned int* prims = (unsigned int*)slotData[4];  // AnimSlot[4] = data2 (TMD prims)
+    unsigned int* prims = P<unsigned int>(slotData[4]);  // AnimSlot[4] = data2 (TMD prims)
     int count = slotData[5];                    // AnimSlot[5] = entryCount
 
     // Texture page from the primitive data's page bits, remapped by the bank
@@ -270,7 +270,7 @@ void FUN_004850d0(void)
 
                 for (int v = 0; v < 3; v++) {
                     unsigned int vtxOff = pkt[4 + v] >> 0x10;
-                    const short* src = (const short*)(vertBase + vtxOff * 8);
+                    const short* src = P<const short>(vertBase + vtxOff * 8);
                     float vert[11];
                     vert[0] = (float)(short)src[0];
                     vert[1] = -(float)(short)src[1];
@@ -387,7 +387,7 @@ void FUN_004850d0(void)
 void FUN_0048a210(void* jointPtr)
 {
     unsigned char* j = (unsigned char*)jointPtr;
-    int* path = *(int**)(j + 0x14);
+    int* path = *(Ptr32<int>*)(j + 0x14);
 
     MATRIX m;
     MATRIX* src = &g_identityMatrixData;
@@ -415,8 +415,8 @@ void FUN_0048a210(void* jointPtr)
     if (is_entity_in_switch_zone((VECTOR*)(j + 0x58), g_CurrentRdtDataTypePtr) != 0 &&
         (int)j[2] + 1 <= (int)j[3]) {
 
-        char* seg = (char*)path[4] + player_distance_z * 0x1C - 0x1C;
-        short* wpt = (short*)((unsigned int)*(unsigned short*)(seg + 0x12) * 8 + path[0]);
+        char* seg = P<char>(path[4]) + player_distance_z * 0x1C - 0x1C;
+        short* wpt = P<short>((unsigned int)*(unsigned short*)(seg + 0x12) * 8 + path[0]);
         m.t[0] = (*wpt >> 4) * g_scaled_down_dist + (*wpt >> 1) * g_playerDisplacement;
         m.t[1] = (wpt[1] >> 4) * g_scaled_down_dist + (wpt[1] >> 1) * g_playerDisplacement;
         m.t[2] = (wpt[2] >> 4) * g_scaled_down_dist + (wpt[2] >> 1) * g_playerDisplacement;
@@ -425,7 +425,7 @@ void FUN_0048a210(void* jointPtr)
 
         while (player_distance_z != 0) {
             player_distance_z--;
-            wpt = (short*)((unsigned int)*(unsigned short*)(seg + 0x12) * 8 + path[0]);
+            wpt = P<short>((unsigned int)*(unsigned short*)(seg + 0x12) * 8 + path[0]);
             if (player_distance_z % g_collPushDepthZHi == 0) {
                 m.t[0] = (*wpt >> 4) * g_scaled_down_dist + (*wpt >> 1) * g_playerDisplacement;
                 m.t[1] = (wpt[1] >> 4) * g_scaled_down_dist + (wpt[1] >> 1) * g_playerDisplacement;
@@ -436,18 +436,18 @@ void FUN_0048a210(void* jointPtr)
                 bright = 0xff0;
             }
             seg -= 0x1C;
-            FUN_00485820(*(void**)(j + 0x18), player_distance_z);
+            FUN_00485820(*(Ptr32<void>*)(j + 0x18), player_distance_z);
         }
 
         ApplyLVAndMul0Matrix(&g_RoomCameraData, j + 0x44, &g_matrixScratch);
         SetRotAndTransMatrix(&g_matrixScratch);
-        FUN_00485a00(*(void**)(j + 0x18), (int)bright);
+        FUN_00485a00(*(Ptr32<void>*)(j + 0x18), (int)bright);
     }
 
     unsigned char prevStep = j[2];
     j[2] = prevStep + 1;
     if (j[3] < prevStep) {
-        FUN_00485aa0(*(void**)(j + 0x18));
+        FUN_00485aa0(*(Ptr32<void>*)(j + 0x18));
         *j &= 0xDE;                     // clear bits 0x01 | 0x20
         j[2] = 0x80;
     }

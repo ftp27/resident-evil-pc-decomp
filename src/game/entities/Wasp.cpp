@@ -288,7 +288,7 @@ void wasp_state_init(void)
     WA_SND_LATCH = 0;
 
     ResetJointTransforms();
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)wasp_sca_info_table[0];
+    ENTITY->Sca_info = O(wasp_sca_info_table[0]);
     WA_TILT = 0;
 
     // A wasp placed with no altitude cruises at 4000 units up (Y is negative).
@@ -675,7 +675,7 @@ void wasp_behavior_sting(void)
         g_playerEntity.isBeingAttackedFlag = 1;
         g_playerEntity.action_behavior     = 100;
 
-        short dmg = (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+        short dmg = (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
                     ? (short)((-1 - (unsigned short)WA_BIG) * 4)
                     : (short)((-1 - (unsigned short)WA_BIG) * 10);
         g_playerEntity.health = (short)(g_playerEntity.health + dmg);
@@ -814,7 +814,7 @@ void wasp_behavior_grab(void)
             g_playerEntity.pad_174 = 0x96;                               // 150-frame timer
         }
 
-        if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             g_playerEntity.health = (short)(g_playerEntity.health - 8);
         } else {
             g_playerEntity.health = (short)(g_playerEntity.health - 15);
@@ -834,7 +834,7 @@ void wasp_behavior_grab(void)
     ENTITY->death_timer  = (unsigned char)(ENTITY->death_timer + 1);
 
     if (ENTITY->animation_frame_id == 4) {
-        Play3DSnd(3, 0, 0, (int)g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 0, 0, O(g_playerEntity.scaMatrixData.localMatrix.t));
     }
     if ((unsigned char)((g_playerEntity.id & 1) * 2 + 0x22) == ENTITY->animation_frame_id) {
         ENTITY->action_state = 2;
@@ -911,7 +911,7 @@ void wasp_state_damaged(void)
             // global, and it runs 3 down to 0 inclusive.
             g_animFrameIdSave = 3;
             for (;;) {
-                joint_setup_attack_effect((int)(intptr_t)&joints[g_animFrameIdSave + 1],
+                joint_setup_attack_effect(O(&joints[g_animFrameIdSave + 1]),
                                           0x1E, 10, 3);
                 unsigned int i = g_animFrameIdSave;
                 g_animFrameIdSave = g_animFrameIdSave - 1;
@@ -1003,7 +1003,7 @@ void wasp_state_death(void)
         WA_TIMER = (short)(t - 1);
         if (t == 0) {
             ENTITY->action_state = 4;
-            Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+            Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         }
         return;
     }
@@ -1061,7 +1061,7 @@ void wasp_state_death(void)
     if (WA_BIG != 0 || (int)(ENTITY->hit_state & 0xF8) > 0x30) {
         g_animFrameIdSave = 9;
         for (;;) {
-            joint_setup_attack_effect((int)(intptr_t)&joints[g_animFrameIdSave],
+            joint_setup_attack_effect(O(&joints[g_animFrameIdSave]),
                                       0x1E, 10, 3);
             unsigned int i = g_animFrameIdSave;
             g_animFrameIdSave = g_animFrameIdSave - 1;
@@ -1093,7 +1093,7 @@ void wasp_state_death(void)
     }
 
     ENTITY->action_state = 4;
-    Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+    Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
 }
 
 }  // namespace
@@ -1122,7 +1122,7 @@ void wasp_update(void)
             HandleEnemyPlayerCollisions();
             WA_COLL = (unsigned short)(unsigned char)check_room_collision(
                 (VECTOR*)&ENTITY->scaMatrixData.localMatrix.t[0],
-                *(short*)((char*)(uintptr_t)ENTITY->Sca_info + 10));
+                *(short*)(P<char>(ENTITY->Sca_info) + 10));
         }
     }
 

@@ -305,10 +305,10 @@ _fade_done:
 
     // 0x004297e0: Sprite animation intensity
     if ((g_main_state_flags & MSF_INTENSITY_RAMP) != 0) {
-        if ((unsigned __int8)g_spriteAnimIntensity < 0xF0) {
+        if ((unsigned char)g_spriteAnimIntensity < 0xF0) {
             g_spriteAnimIntensity += 16;
         }
-    } else if ((unsigned __int8)g_spriteAnimIntensity > 0x0F) {
+    } else if ((unsigned char)g_spriteAnimIntensity > 0x0F) {
         g_spriteAnimIntensity -= 16;
     }
 

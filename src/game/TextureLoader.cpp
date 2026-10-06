@@ -420,8 +420,10 @@ int create_texture_page(void* psxTexData, int flags)
             size_t need = pitch * (size_t)src->m_height;
             if (need > 0) {
                 if (need > s_pagePixelCopyCap) {
-                    free(s_pagePixelCopy);
-                    s_pagePixelCopy = (BYTE*)malloc(need);
+                    // operator_new: the copy goes into a 32-bit CMarniBits
+                    // slot (platform/ptr32.h).
+                    operator_delete(s_pagePixelCopy);
+                    s_pagePixelCopy = (BYTE*)operator_new(need);
                     s_pagePixelCopyCap = (s_pagePixelCopy != NULL) ? need : 0;
                 }
                 if (s_pagePixelCopy != NULL) {
@@ -433,8 +435,8 @@ int create_texture_page(void* psxTexData, int flags)
         if (src->m_pPalette != NULL && (src->m_bitDepth == 4 || src->m_bitDepth == 8)) {
             size_t need = ((src->m_bitDepth == 4) ? 16 : 256) * sizeof(WORD);
             if (need > s_pagePaletteCopyCap) {
-                free(s_pagePaletteCopy);
-                s_pagePaletteCopy = (WORD*)malloc(need);
+                operator_delete(s_pagePaletteCopy);
+                s_pagePaletteCopy = (WORD*)operator_new(need);
                 s_pagePaletteCopyCap = (s_pagePaletteCopy != NULL) ? need : 0;
             }
             if (s_pagePaletteCopy != NULL) {
@@ -1436,7 +1438,7 @@ void LoadImage(int srcData, int srcSlot, int dstSlot, short format,
         // width*2 bytes per row = width*2 pixels per row.
         TextureCLUTCache* clut = &g_CLUTCache[15];
         if (clut->clutData != NULL && clut->bpp == 8 && clut->clutEntries >= 256) {
-            BYTE* src8 = (BYTE*)srcData;
+            BYTE* src8 = P<BYTE>(srcData);
             int pixW = (int)width * 2;
             int pixH = (int)height;
             // Use CLUT from clutY: 0x1E4 → X=4, 0x1E0 → X=0.
@@ -1465,7 +1467,7 @@ void LoadImage(int srcData, int srcSlot, int dstSlot, short format,
                 }
             }
         } else {
-            WORD* pixels = (WORD*)srcData;
+            WORD* pixels = P<WORD>(srcData);
             int w = (int)width;
             int h = (int)height;
 
@@ -1553,7 +1555,7 @@ void LoadImage(int srcData, int srcSlot, int dstSlot, short format,
     BYTE* destPixels = (BYTE*)lockedPixels;
     int rowStride = (int)srcBits->m_width / bpp;  // row stride in 16-bit words
     int dstOffset = rowStride * (int)y + (int)x;  // starting offset in words
-    BYTE* srcPtr = (BYTE*)srcData;
+    BYTE* srcPtr = P<BYTE>(srcData);
 
     for (int row = 0; row < (int)height; row++) {
         if ((int)width > 0) {
@@ -1665,8 +1667,8 @@ void SetupTextureBankData(short param_1)
 
     // 0x00473a3e: Calculate bank count and pointers
     DAT_00ae9f06 = (DWORD)(param_1 - 10);
-    DAT_00ae9f00 = (DWORD)g_loadDataDestPointer;
-    DAT_00ae9efc = (DWORD)DAT_00ae9f06 * 0x200 + (DWORD)g_loadDataDestPointer;
+    DAT_00ae9f00 = O(g_loadDataDestPointer);
+    DAT_00ae9efc = (DWORD)DAT_00ae9f06 * 0x200 + O(g_loadDataDestPointer);
 
     // 0x00473a6d: Advance load pointer
     g_loadDataDestPointer = (char*)g_loadDataDestPointer + (DWORD)DAT_00ae9f06 * 0x400;
@@ -1680,7 +1682,7 @@ void SetupTextureBankData(short param_1)
         do {
             unsigned int i = (unsigned int)idx;
             idx = idx + 1;
-            *(DWORD*)(DAT_00ae9efc + i * 4) = *(DWORD*)(DAT_00ae9f00 + i * 4);
+            *P<DWORD>(DAT_00ae9efc + i * 4) = *P<DWORD>(DAT_00ae9f00 + i * 4);
         } while ((unsigned int)idx < (DWORD)DAT_00ae9f06 * 0x80);
     }
 }

@@ -50,6 +50,14 @@
 #pragma optimize("y", on)
 #endif
 
+// macOS only declares the (deprecated) ucontext routines under _XOPEN_SOURCE;
+// _DARWIN_C_SOURCE keeps the rest of the SDK visible. Must precede every
+// system header in this TU.
+#if defined(__APPLE__)
+#define _XOPEN_SOURCE 600
+#define _DARWIN_C_SOURCE
+#endif
+
 #include "../Globals.h"
 #include "../platform/platform.h"
 
@@ -69,7 +77,13 @@
 // culprit's instruction pointer in crash.log, instead of silently corrupting
 // a neighbouring task's saved registers (which killed standalone Release
 // runs at room load as POPAD-restored garbage).
+// One page: mprotect needs page-aligned ranges, and Apple Silicon pages are
+// 16 KB.
+#if defined(__APPLE__) && defined(__aarch64__)
+#define TASK_GUARD_SIZE   16384
+#else
 #define TASK_GUARD_SIZE   4096
+#endif
 static BYTE* g_TaskStackBase = NULL;   // start of slot 0's usable area
 
 // Base of a task slot's usable stack. The layout is

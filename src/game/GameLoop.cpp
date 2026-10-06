@@ -73,7 +73,7 @@ int game_loop(void)
         g_fade_type_id = 2;
         g_main_state_flags = (g_main_state_flags & ~MSF_SCREEN_MODE_MASK) | MSF_SCREEN_REBUILD;
 
-        int hasFlag = Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_MENU_FADE_LATCH);
+        int hasFlag = Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_MENU_FADE_LATCH);
         g_fading_counter = 0xFF5D;
         if (hasFlag == 0) {
             g_fading_counter = 0xE800;

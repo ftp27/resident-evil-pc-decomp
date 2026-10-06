@@ -1,0 +1,14 @@
+# Boot with no input: Capcom logo, opening movie, title screen, then the
+# attract demo (Capcom's own recorded input reel, seeded with srand(0)).
+# Covers FMV playback, the title screen and the first 3D room load.
+#
+# Frames are main-loop frames of the virtual 30 fps clock (docs/TESTING.md).
+
+200   capture capcom_logo.png
+600   capture title.png
+600   expect room == 0
+3000  capture demo_room.png
+3000  dump demo_room.json
+3000  expect stage == 0
+3000  expect room == 7
+3001  quit

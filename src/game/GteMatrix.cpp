@@ -299,7 +299,7 @@ int RotAverage4(SVECTOR* v0, SVECTOR* v1, SVECTOR* v2, SVECTOR* v3,
 // ============================================================================
 void GteSpriteHeaderInit(SVECTOR* header)
 {
-    *(unsigned char*)((int)&header->pad + 1) = 44;
+    *(unsigned char*)((unsigned char*)&header->pad + 1) = 44;
     unsigned int packed = (unsigned short)header->x | ((unsigned short)header->y << 16);
     packed = (packed & 0xFFFFFF) | 0x09000000;
     header->x = (short)(packed & 0xFFFF);
@@ -905,7 +905,7 @@ void EntityComputeJointWorldMatrices(int ca)
         JointStruct* joints = ent->jointsStructs;
 
         // Parse animation header to get joint hierarchy
-        unsigned short* animPtr = (unsigned short*)ent->animHeader;
+        unsigned short* animPtr = P<unsigned short>(ent->animHeader);
         unsigned short baseOffset = *animPtr;
         unsigned char* animBase = (unsigned char*)animPtr + (baseOffset & 0xFFFFFFFC);
         unsigned short rootChildOffset = *(unsigned short*)(animBase + 2);

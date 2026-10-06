@@ -7,11 +7,11 @@
 // ============================================================================
 #pragma pack(push, 1)
 struct AnimSlot {
-    void* data0;            // +0x00: pointer to animation data block 0
+    Ptr32<void> data0;      // +0x00: pointer to animation data block 0
     int   pad_04;           // +0x04
-    void* data1;            // +0x08: pointer to animation data block 1
+    Ptr32<void> data1;      // +0x08: pointer to animation data block 1
     int   pad_0c;           // +0x0C
-    void* data2;            // +0x10: pointer to animation data block 2 (TMD/texture data)
+    Ptr32<void> data2;      // +0x10: pointer to animation data block 2 (TMD/texture data)
     int   entryCount;       // +0x14: number of entries in data2
     int   pad_18;           // +0x18
 };
@@ -89,7 +89,7 @@ struct PlayerEntity {
     // ---- Model/animation pointers (0x90 - 0xA3) ----
     unsigned int   animHeader;          // 0x90
     unsigned int   animBase;            // 0x94
-    JointStruct*   jointsStructs;       // 0x98
+    Ptr32<JointStruct> jointsStructs;   // 0x98
     unsigned int   weaponPartAnimSlot;  // 0x9C
     unsigned int   weaponPartAnimObject;// 0xA0
 
@@ -219,7 +219,7 @@ struct Entity {
     // ---- Model/animation pointers (0x90 - 0xA3) ----
     unsigned int   animHeader;          // 0x90
     unsigned int   animBase;            // 0x94
-    JointStruct*   jointsStructs;       // 0x98
+    Ptr32<JointStruct> jointsStructs;   // 0x98
     unsigned int   weaponPartAnimSlot;  // 0x9C
     unsigned int   weaponPartAnimObject;// 0xA0
 
