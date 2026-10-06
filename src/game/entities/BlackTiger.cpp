@@ -266,7 +266,7 @@ void bt_state0(void)
     rand();                               // discarded
     ew(ENTITY, 0x88) = 0xCC;              // health = 204
 
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_idle;
+    ENTITY->Sca_info = O(bt_sca_info_idle);
     BT_TILT = 0x1B33;
 
     BT_DELAY  = 0;
@@ -475,7 +475,7 @@ void bt_behaviour_walk(void)
         if ((eub(ENTITY, 0x86) & 0xFE) == 0) {
             BT_DWELL = (short)(BT_DWELL + 0x50);
         }
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_walk[0];
+        ENTITY->Sca_info = O(bt_sca_info_walk[0]);
     } else if (BT_SUBSTATE != 1) {
         return;
     }
@@ -500,7 +500,7 @@ void bt_behaviour_walk(void)
     if (d == 0) {
         BT_IGNORE = 0;
         BT_SET_BEHAVIOR(0);           // word: behavior=0, action_state=0
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_idle;
+        ENTITY->Sca_info = O(bt_sca_info_idle);
     }
 }
 
@@ -522,7 +522,7 @@ void bt_behaviour_strafe(void)
         if ((eub(ENTITY, 0xC4) & 1) != 0) {
             BT_TURN = (short)0xFFE8;
         }
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_walk[0];
+        ENTITY->Sca_info = O(bt_sca_info_walk[0]);
     } else if (BT_SUBSTATE != 1) {
         return;
     }
@@ -545,7 +545,7 @@ void bt_behaviour_strafe(void)
     if (d == 0) {
         BT_IGNORE = 0;
         BT_SET_BEHAVIOR(0);           // word
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_idle;
+        ENTITY->Sca_info = O(bt_sca_info_idle);
     }
 }
 
@@ -564,13 +564,13 @@ void bt_behaviour_approach(void)
         BT_HITSTATE = 0;
         BT_SUBSTATE = 1;
         BT_DWELL = (short)((rand() & 0x1F) + 0x50);
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_walk[0];
+        ENTITY->Sca_info = O(bt_sca_info_walk[0]);
     } else if (sub != 1) {
         if (sub != 2) return;
         BT_HITSTATE = 0;
         BT_IGNORE = 0;
         BT_SET_BEHAVIOR(0);           // word: behavior=0, action_state=0
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_idle;
+        ENTITY->Sca_info = O(bt_sca_info_idle);
         BT_WAY_X = (short)g_playerEntityPointer.scaMatrixData.localMatrix.t[0];
         BT_WAY_Z = (short)g_playerEntityPointer.scaMatrixData.localMatrix.t[2];
         return;
@@ -677,12 +677,12 @@ void bt_behaviour_bite(void)
         if (eub(ENTITY, 0xBE) == 0xC && g_playerEntity.isBeingAttackedFlag == 0) {
             // Stage the g_deadMoveValue + 0x14 block into g_playerPosScratch, then
             // test the two fang joints against the player's position (0xbe6318).
-            const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+            const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
             g_playerPosScratch.x = seed[0];
             g_playerPosScratch.y = seed[1];
             g_playerPosScratch.z = seed[2];
             g_playerPosScratch.pad = seed[3];
-            int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+            unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
             unsigned char b1 = FUN_0048ae00((MATRIX*)(joints + 0xC0), &g_playerPosScratch,
                                             0x514, (int*)PLAYER_T);
             player_distance_z = (unsigned int)b1;
@@ -762,7 +762,7 @@ void bt_behaviour_spit(void)
 // ============================================================================
 void bt_leg_reach(unsigned char part, int scale)
 {
-    int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+    unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
 
     RotMatrix(BT_ROT, BT_MATRIX);
     CompMatrix(BT_MATRIX, (MATRIX*)(joints + 0x24), &g_matrixScratch);
@@ -833,11 +833,11 @@ void bt_web_build(void)
             } while (i != 0);
 
             if (g_entity_bkp == 0) {
-                int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+                unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
                 bt_web_joints_used[BT_WEBIDX & 7] = chosen;
-                joint_setup_attack_effect(joints + (unsigned int)chosen * 0x7C, 0x1E, 0x14, 3);
-                joint_setup_attack_effect(joints +
-                    (unsigned int)(unsigned char)bt_web_joints[pick] * 0x7C + 0x7C, 0x1E, 0x14, 3);
+                joint_setup_attack_effect((int)O(joints + (unsigned int)chosen * 0x7C), 0x1E, 0x14, 3);
+                joint_setup_attack_effect((int)O(joints +
+                    (unsigned int)(unsigned char)bt_web_joints[pick] * 0x7C + 0x7C), 0x1E, 0x14, 3);
                 g_playerPosScratch.x = 0;
                 g_playerPosScratch.y = 0;
                 g_playerPosScratch.z = 0;
@@ -885,10 +885,10 @@ void bt_web_shoot_a(void)
         BT_ANIM_FRAME = 0;
         BT_TIMING = 0;
         BT_BLEND = 0;
-        int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         BillboardSetSize(&ENTITY->pushVelocity, 0, 0);
-        joint_setup_attack_effect(joints, 0x1E, 0x14, 3);
-        joint_setup_attack_effect(joints + 0x934, 0x1E, 0x14, 3);
+        joint_setup_attack_effect((int)O(joints), 0x1E, 0x14, 3);
+        joint_setup_attack_effect((int)O(joints + 0x934), 0x1E, 0x14, 3);
         g_playerPosScratch.x = 0;
         g_playerPosScratch.y = 0;
         g_playerPosScratch.z = 0;
@@ -918,20 +918,20 @@ void bt_web_shoot_a(void)
         eub(ENTITY, 0x00) |= 0xA;         // status_flags
         euw(ENTITY, 0xC2) = 0;
         euw(ENTITY, 0xC4) = 0x5A;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_shoot;
-        Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+        ENTITY->Sca_info = O(bt_sca_info_shoot);
+        Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
         // fall through
     case 3:
         BillboardAdjSize(&ENTITY->pushVelocity, 9, 9);
         BT_DWELL = (short)(BT_DWELL - 1);
         if (BT_DWELL == 0) {
-            Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+            Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
             BT_SUBSTATE = 4;
             ws_clone_entity(0x33, 0xF2, ENTITY->jointCount, (unsigned int*)&ENTITY->scd_target_ptr);
         }
         return;
     case 4:
-        Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+        Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
         ws_update_webs(0x33);
         return;
     }
@@ -947,10 +947,10 @@ void bt_web_shoot_b(void)
     unsigned char sub = BT_SUBSTATE;
     if (sub == 1 || sub == 3) {
         if ((BT_HITSTATE & 2) != 0) {
-            int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+            unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
             BillboardSetSize(&ENTITY->pushVelocity, 0, 0);
-            joint_setup_attack_effect(joints, 0x1E, 0x1E, 3);
-            joint_setup_attack_effect(joints + 0x934, 0x1E, 0x1E, 3);
+            joint_setup_attack_effect((int)O(joints), 0x1E, 0x1E, 3);
+            joint_setup_attack_effect((int)O(joints + 0x934), 0x1E, 0x1E, 3);
             g_playerPosScratch.x = 0;
             g_playerPosScratch.y = 0;
             g_playerPosScratch.z = 0;
@@ -1002,7 +1002,7 @@ void bt_web_shoot_b(void)
         BT_TIMING = 0;
         BT_HITSTATE = 0;
         BT_DWELL = 0xB4;
-        Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+        Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
         // fall through
     case 3: {
         ENTITY->status_flags = (unsigned char)(ENTITY->status_flags & 0x1F);
@@ -1028,7 +1028,7 @@ void bt_web_shoot_b(void)
         euw(ENTITY, 0xC4) = 100;
         euw(ENTITY, 0xC2) = 0;
         eub(ENTITY, 0x00) |= 0xA;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_shoot;
+        ENTITY->Sca_info = O(bt_sca_info_shoot);
         // fall through
     case 5:
         BillboardAdjSize(&ENTITY->pushVelocity, 4, 4);
@@ -1040,7 +1040,7 @@ void bt_web_shoot_b(void)
                         ENTITY->jointCount, (unsigned int*)&ENTITY->scd_target_ptr);
         return;
     case 6:
-        Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+        Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
         ws_update_webs((char)((BT_HITSTATE >> 3) * 5 + 1));
         return;
     }
@@ -1057,10 +1057,10 @@ void bt_web_shoot_c(void)
     unsigned char sub = BT_SUBSTATE;
     if (sub == 1 || sub == 3) {
         if ((BT_HITSTATE & 2) != 0) {
-            int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+            unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
             BillboardSetSize(&ENTITY->pushVelocity, 0, 0);
-            joint_setup_attack_effect(joints, 0x1E, 0x1E, 3);
-            joint_setup_attack_effect(joints + 0x934, 0x1E, 0x1E, 3);
+            joint_setup_attack_effect((int)O(joints), 0x1E, 0x1E, 3);
+            joint_setup_attack_effect((int)O(joints + 0x934), 0x1E, 0x1E, 3);
             g_playerPosScratch.x = 0;
             g_playerPosScratch.y = 0;
             g_playerPosScratch.z = 0;
@@ -1095,10 +1095,10 @@ void bt_web_shoot_c(void)
         BT_BLEND = 3;
         BT_HITSTATE = 0;
         BT_ANIM_ID = 1;
-        int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+        unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
         BillboardSetSize(&ENTITY->pushVelocity, 0x5DC, 0x5DC);
         if (BT_WEBIDX < 6) {
-            joint_setup_attack_effect(joints + 0x934, 0x1E, 0x1E, 3);
+            joint_setup_attack_effect((int)O(joints + 0x934), 0x1E, 0x1E, 3);
         }
         g_playerPosScratch.x = 0;
         g_playerPosScratch.y = 0;
@@ -1122,7 +1122,7 @@ void bt_web_shoot_c(void)
         BT_DWELL = 0xD2;
         eub(ENTITY, 0x00) |= 0xA;         // status_flags
         BT_HITSTATE = 0;
-        Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+        Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
         BT_SUBSTATE = 3;
         // fall through
     case 3: {
@@ -1137,7 +1137,7 @@ void bt_web_shoot_c(void)
             g_playerPosScratch.x = 0;
             g_playerPosScratch.y = 0;
             g_playerPosScratch.z = 0;
-            int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+            unsigned char* joints = (unsigned char*)ENTITY->jointsStructs;
             Effect_CreateBillboard(0, 0xB, 0, (void*)(joints + 0xC0), &g_playerPosScratch, 0);
             Effect_CreateBillboard(0, 0xB, 0, (void*)(joints + 0x13C), &g_playerPosScratch, 0);
         }
@@ -1158,7 +1158,7 @@ void bt_web_shoot_c(void)
         BT_DWELL = 100;
         euw(ENTITY, 0xC2) = 0x78;
         eub(ENTITY, 0x00) |= 0xA;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)bt_sca_info_shoot;
+        ENTITY->Sca_info = O(bt_sca_info_shoot);
         ws_clone_entity((unsigned char)((BT_HITSTATE >> 3) * 5 + 1), 0xF2,
                         ENTITY->jointCount, (unsigned int*)&ENTITY->scd_target_ptr);
         // fall through
@@ -1193,7 +1193,7 @@ void bt_web_shoot_c(void)
         }
         break;
     case 8:
-        Flg_on((int)g_EnemiesFlags, BT_DEATH_EV);
+        Flg_on((int)O(g_EnemiesFlags), BT_DEATH_EV);
         ws_update_webs((char)((BT_HITSTATE >> 3) * 5 + 1));
         return;
     }
@@ -1220,7 +1220,7 @@ void black_tiger_update(void)
         euw(ENTITY, 0x170) = (unsigned short)ResolveEntityScaCollision((Entity*)&g_playerEntity, ENTITY);
         HandleEnemyPlayerCollisions();
         euw(ENTITY, 0x176) = (unsigned short)check_room_collision(
-            (VECTOR*)((char*)ENTITY + 0x34), *(short*)(*(int*)((char*)ENTITY + 4) + 10));
+            (VECTOR*)((char*)ENTITY + 0x34), *(short*)(P<char>(*(uint32_t*)((char*)ENTITY + 4)) + 10));
     }
 
     eub(ENTITY, 0x03) = (unsigned char)is_entity_in_switch_zone(

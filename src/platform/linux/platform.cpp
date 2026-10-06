@@ -8,6 +8,7 @@
 // key. The second bit is why the OptionsMenu rebinding scan works, so it is
 // tracked per virtual key here rather than derived from SDL's own edge state.
 #include "../platform.h"
+#include "testmode.h"
 
 #include <SDL2/SDL.h>
 
@@ -20,6 +21,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
+#include <sys/sysctl.h>
+#endif
 
 #include <string>
 #include <unordered_map>
@@ -93,6 +101,9 @@ void plat_key_flush(void)
 
 DWORD plat_time_ms(void)
 {
+    // A test run reads a virtual clock that advances one frame per frame
+    // (testmode.h), so timing cannot make two runs diverge.
+    if (test_active()) return test_clock_ms();
     return (DWORD)SDL_GetTicks();
 }
 
@@ -176,9 +187,16 @@ BOOL plat_exe_dir(char* out, size_t size)
     out[0] = '\0';
 
     char exe[PATH_MAX];
+#if defined(__APPLE__)
+    char raw[PATH_MAX];
+    uint32_t rawSize = sizeof(raw);
+    if (_NSGetExecutablePath(raw, &rawSize) != 0) return FALSE;
+    if (realpath(raw, exe) == NULL) return FALSE;
+#else
     ssize_t n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
     if (n <= 0) return FALSE;
     exe[n] = '\0';
+#endif
 
     char* slash = strrchr(exe, '/');
     if (slash == NULL) return FALSE;
@@ -246,6 +264,20 @@ void* plat_file_read_all(const char* path, size_t* outSize)
 
 size_t plat_readable_bytes(const void* p)
 {
+#if defined(__APPLE__)
+    // No /proc on macOS: ask the VM for the region at or above p.
+    mach_vm_address_t addr = (mach_vm_address_t)(uintptr_t)p;
+    mach_vm_size_t size = 0;
+    vm_region_basic_info_data_64_t info;
+    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+    mach_port_t object = MACH_PORT_NULL;
+    if (mach_vm_region(mach_task_self(), &addr, &size, VM_REGION_BASIC_INFO_64,
+                       (vm_region_info_t)&info, &count, &object) != KERN_SUCCESS)
+        return 0;
+    if (addr > (mach_vm_address_t)(uintptr_t)p) return 0;   // p is in a hole
+    if ((info.protection & VM_PROT_READ) == 0) return 0;
+    return (size_t)(addr + size - (mach_vm_address_t)(uintptr_t)p);
+#else
     // Walk /proc/self/maps for the mapping that contains p and report how much
     // of it is readable.
     FILE* f = fopen("/proc/self/maps", "r");
@@ -265,6 +297,7 @@ size_t plat_readable_bytes(const void* p)
     }
     fclose(f);
     return avail;
+#endif
 }
 
 // ---------------------------------------------------------------------------
@@ -279,6 +312,14 @@ void plat_debug_output(const char* s)
 
 BOOL plat_is_debugger_present(void)
 {
+#if defined(__APPLE__)
+    struct kinfo_proc info;
+    size_t size = sizeof(info);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    memset(&info, 0, sizeof(info));
+    if (sysctl(mib, 4, &info, &size, NULL, 0) != 0) return FALSE;
+    return (info.kp_proc.p_flag & P_TRACED) ? TRUE : FALSE;
+#else
     // A debugger attached under ptrace shows up as a non-zero TracerPid.
     FILE* f = fopen("/proc/self/status", "r");
     if (f == NULL) return FALSE;
@@ -293,6 +334,7 @@ BOOL plat_is_debugger_present(void)
     }
     fclose(f);
     return traced;
+#endif
 }
 
 DWORD plat_env_get(const char* name, char* buffer, DWORD size)

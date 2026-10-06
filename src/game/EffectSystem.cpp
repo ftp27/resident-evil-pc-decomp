@@ -583,7 +583,7 @@ static void effect_behavior_next_phase(void)
     unsigned char lightFactor = eff->lightFactor;
     short yaw = eff->yaw;
 
-    unsigned int* src = (unsigned int*)eff->animDataFrame;
+    unsigned int* src = P<unsigned int>(eff->animDataFrame);
     unsigned char* dst = (unsigned char*)&eff->animId;
     for (int i = 6; i != 0; i--) {
         unsigned int v = *src++;
@@ -608,8 +608,8 @@ static void effect_behavior_set_frame(void)
     Effect* eff = &g_effectPool[g_activeEffectIndex];
 
     eff->vramInfoBackup = eff->vramInfo + (unsigned int)eff->animHeader[0] * 4;
-    eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
-    eff->uvDataBackup = (unsigned int)*(unsigned char*)eff->vramInfoBackup * 4 + eff->uvData;
+    eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
+    eff->uvDataBackup = (unsigned int)*(unsigned char*)P<unsigned char>(eff->vramInfoBackup) * 4 + eff->uvData;
 }
 
 // ============================================================================
@@ -641,7 +641,7 @@ static unsigned short effect_probe_ground(SVECTOR* pos, SVECTOR* offset, unsigne
     unsigned int last = *group;
 
     while (rec < last) {
-        unsigned short r = boundary_classify_flags(offset, (RDT_Boundary*)rec, radius);
+        unsigned short r = boundary_classify_flags(offset, P<RDT_Boundary>(rec), radius);
         if ((short)r != -1) {
             if ((unsigned char)((r & 0x0300) >> 8) == 0x03) return 1;
             flags = (unsigned short)(flags | (r & 0x0300));
@@ -663,8 +663,8 @@ static void effect_ground_splat(void)
     Effect* eff = &g_effectPool[g_activeEffectIndex];
 
     eff->vramInfoBackup = eff->vramInfo + 0x14;
-    eff->frameIndex = *(unsigned char*)eff->vramInfoBackup;
-    eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
+    eff->frameIndex = *(unsigned char*)P<unsigned char>(eff->vramInfoBackup);
+    eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
     eff->uvDataBackup = (unsigned int)eff->frameIndex * 4 + eff->uvData;
     eff->animId = 1;
     eff->updateId = 1;
@@ -679,7 +679,7 @@ static void effect_ground_splat(void)
         g_playerPosScratch.y = (int)eff->posY;
         g_playerPosScratch.z = (int)eff->posZ;
         Effect_CreateBillboard(9, 1, 0, NULL, &g_playerPosScratch, eff->animHeader[3]);
-        Play3DSnd(2, 8, 0, (int)&g_playerPosScratch);
+        Play3DSnd(2, 8, 0, O(&g_playerPosScratch));
     }
 }
 
@@ -736,7 +736,7 @@ static int effect_projectile_hit_check(int range, short x, short z)
                 }
                 short* health = &pPVar->health;
                 short base = *health;
-                if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+                if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                     *health = (short)(base - 5);
                     if (g_EnemiesList[0].id == 3) *health = (short)(base - 10);
                     if (g_EnemiesList[0].id == 4) *health = *health - 7;
@@ -816,7 +816,7 @@ unsigned char mirror_point_visible(void* light, unsigned char param_2, int param
     unsigned int uVar4 = (unsigned int)param_2 * 8;
     unsigned int uVar5 = (unsigned int)g_mirrorPlaneCoord;
     char* lp = (char*)light;
-    char* pp = (char*)param_3;
+    char* pp = P<char>(param_3);   // param_3 is a 32-bit slot value
 
     int iVar3 = *(int*)(pp - uVar4 + 8);
     int iVar1 = *(int*)(lp - uVar4 + 8);
@@ -850,7 +850,7 @@ static void effect_behavior_timer_refresh(void)
 
     if (eff->animHeader[3] == 0) {
         effect_behavior_next_phase();
-        memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+        memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
         return;
     }
     eff->animHeader[3]--;
@@ -972,7 +972,7 @@ static void effect_behavior_gravity_impact(void)
             g_playerPosScratch.x = (int)eff->posX;
             g_playerPosScratch.y = (int)eff->posY;
             g_playerPosScratch.z = (int)eff->posZ;
-            Play3DSnd(1, 10, 0, (int)&g_playerPosScratch);
+            Play3DSnd(1, 10, 0, O(&g_playerPosScratch));
         }
     }
 }
@@ -1014,12 +1014,12 @@ static void effect_behavior_projectile(void)
             AH_USHORT(eff, 10) |= 0x400b;
             eff->animDataFrame += 0x18;
             eff->animDataFrame += ((unsigned int)g_RandSeed % (unsigned int)eff->animHeader[1]) * 0x18;
-            eff->updateId = *(unsigned char*)(eff->animDataFrame + 1);
-            AH_SHORT(eff, 0xc) = *(short*)(eff->animDataFrame + 0x10);
-            AH_SHORT(eff, 0xe) = *(short*)(eff->animDataFrame + 0x12);
+            eff->updateId = *(unsigned char*)(P<unsigned char>(eff->animDataFrame) + 1);
+            AH_SHORT(eff, 0xc) = *(short*)(P<unsigned char>(eff->animDataFrame) + 0x10);
+            AH_SHORT(eff, 0xe) = *(short*)(P<unsigned char>(eff->animDataFrame) + 0x12);
             AH_SHORT(eff, 0x10) = (short)(((unsigned int)g_RandSeed % (unsigned int)eff->animHeader[1]) * 10
-                                          + *(short*)(eff->animDataFrame + 0x14));
-            eff->yaw += *(short*)(eff->animDataFrame + 0x16);
+                                          + *(short*)(P<unsigned char>(eff->animDataFrame) + 0x14));
+            eff->yaw += *(short*)(P<unsigned char>(eff->animDataFrame) + 0x16);
             eff->rotSpeedY = (short)((g_playerEntity.posY - eff->spriteOffsetY) - eff->localOffsetY);
             if (eff->animHeader[2] != 0) {
                 AH_SHORT(eff, 0xc) = (short)-AH_SHORT(eff, 0xc);
@@ -1028,7 +1028,7 @@ static void effect_behavior_projectile(void)
                 g_playerPosScratch.x = (int)eff->posX;
                 g_playerPosScratch.y = (int)eff->posY;
                 g_playerPosScratch.z = (int)eff->posZ;
-                Play3DSnd(1, 10, 0, (int)&g_playerPosScratch);
+                Play3DSnd(1, 10, 0, O(&g_playerPosScratch));
             }
         }
     } else {
@@ -1081,17 +1081,17 @@ static void effect_behavior_rand_phase(void)
     unsigned char lightFactor = eff->lightFactor;
 
     if ((g_RandSeed & 1) == 0) {
-        effect_copy_header_block(eff, (const unsigned char*)eff->animDataFrame);
+        effect_copy_header_block(eff, P<const unsigned char>(eff->animDataFrame));
         eff->animDataFrame += 0x18;
     } else {
         eff->animDataFrame += 0x18;
-        effect_copy_header_block(eff, (const unsigned char*)eff->animDataFrame);
+        effect_copy_header_block(eff, P<const unsigned char>(eff->animDataFrame));
     }
 
     eff->yaw = (short)(eff->yaw + yaw);
     eff->animHeader[3] = phase;
     eff->lightFactor = lightFactor;
-    memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+    memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
 }
 
 // ============================================================================
@@ -1108,7 +1108,7 @@ static void effect_behavior_spawner(void)
         g_playerPosScratch.y = (int)eff->localOffsetY;
         g_playerPosScratch.z = (int)eff->localOffsetZ;
         Effect_CreateBillboard(eff->effectType, eff->depthGroup, eff->yaw,
-                               (void*)eff->spriteInfo, &g_playerPosScratch, 0);
+                               P<void>(eff->spriteInfo), &g_playerPosScratch, 0);
         effect_behavior_next_phase();
         return;
     }
@@ -1186,7 +1186,7 @@ static void effect_behavior_wobble(void)
     eff->animId = 0x11;
     eff->animHeader[3] = 0;
     eff->type = 2;
-    memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+    memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
 }
 
 // ============================================================================
@@ -1276,7 +1276,7 @@ static void effect_behavior_clone(void)
         dst->animDataBase = eff->animDataBase;
         dst->animDataFrame = eff->animDataFrame;
         dst->animDataFrame += 0x18;
-        effect_copy_header_block(dst, (const unsigned char*)dst->animDataFrame);
+        effect_copy_header_block(dst, P<const unsigned char>(dst->animDataFrame));
         eff->animId = 1;
         return;
     }
@@ -1453,8 +1453,8 @@ static void effect_behavior_rand_frame(void)
     Effect* eff = &g_effectPool[g_activeEffectIndex];
 
     eff->vramInfoBackup += (g_RandSeed % 3) * 4;
-    eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
-    eff->uvDataBackup = (unsigned int)*(unsigned char*)eff->vramInfoBackup * 4 + eff->uvData;
+    eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
+    eff->uvDataBackup = (unsigned int)*(unsigned char*)P<unsigned char>(eff->vramInfoBackup) * 4 + eff->uvData;
 }
 
 // ============================================================================
@@ -1506,8 +1506,8 @@ static void effect_shot_impact(int hit)
 
     switch (eff->animHeader[1]) {
     case 7:
-        Play3DSnd(1, 0xc, 4, (int)&g_playerPosScratch);
-        Play3DSnd(1, 0xc, 0, (int)&g_playerPosScratch);
+        Play3DSnd(1, 0xc, 4, O(&g_playerPosScratch));
+        Play3DSnd(1, 0xc, 0, O(&g_playerPosScratch));
         if (hit != 0) {
             g_playerPosScratch.y -= 0x96;
             Effect_CreateBillboard(0xe, 3, eff->yaw, NULL, &g_playerPosScratch, 0x19);
@@ -1545,8 +1545,8 @@ static void effect_shot_impact(int hit)
         }
         break;
     case 8:
-        Play3DSnd(1, 0xd, 4, (int)&g_playerPosScratch);
-        Play3DSnd(1, 0xd, 0, (int)&g_playerPosScratch);
+        Play3DSnd(1, 0xd, 4, O(&g_playerPosScratch));
+        Play3DSnd(1, 0xd, 0, O(&g_playerPosScratch));
         if (hit != 0) {
             Effect_CreateBillboard(9, 0, eff->yaw, NULL, &g_playerPosScratch, 0x10);
             Effect_CreateBillboard(9, 0, (short)(eff->yaw + 0x555), NULL,
@@ -1569,8 +1569,8 @@ static void effect_shot_impact(int hit)
         }
         break;
     case 9:
-        Play3DSnd(1, 0xe, 4, (int)&g_playerPosScratch);
-        Play3DSnd(1, 0xe, 0, (int)&g_playerPosScratch);
+        Play3DSnd(1, 0xe, 4, O(&g_playerPosScratch));
+        Play3DSnd(1, 0xe, 0, O(&g_playerPosScratch));
         if (hit != 0) {
             Effect_CreateBillboard(0xe, 5, eff->yaw, NULL, &g_playerPosScratch, 0x1b);
             g_playerPosScratch.x -= 0xb4;
@@ -1604,8 +1604,8 @@ static void effect_rocket_explode(void)
     g_playerPosScratch.y = (int)eff->posY;
     g_playerPosScratch.z = (int)eff->posZ;
 
-    Play3DSnd(1, 0xf, 4, (int)&g_playerPosScratch);
-    Play3DSnd(1, 0xf, 0, (int)&g_playerPosScratch);
+    Play3DSnd(1, 0xf, 4, O(&g_playerPosScratch));
+    Play3DSnd(1, 0xf, 0, O(&g_playerPosScratch));
     Effect_CreateBillboard(0xe, 3, eff->yaw, NULL, &g_playerPosScratch, 0x1c);
     Effect_CreateBillboard(0xe, 3, eff->yaw, NULL, &g_playerPosScratch, 0x19);
 
@@ -1722,7 +1722,7 @@ static void effect_behavior_fire_wobble(void)
     eff->animId = 0x11;
     eff->animHeader[3] = 0;
     eff->type = 2;
-    memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+    memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
 }
 
 // ============================================================================
@@ -1789,7 +1789,7 @@ static void effect_behavior_set_tint(void)
 
     eff->updateId = 1;
     eff->type = 2;
-    memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+    memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
     eff->lightFactor = tintTable[eff->animHeader[0]];
 }
 
@@ -1812,7 +1812,7 @@ static void effect_behavior_pair_timer(void)
     if (eff->animHeader[2] == 0) {
         eff->animHeader[2] = 4;
         Effect_CreateBillboard(eff->animHeader[0], eff->animHeader[1], eff->yaw,
-                               (void*)eff->spriteInfo, &eff->spawnPosX, eff->lightFactor);
+                               P<void>(eff->spriteInfo), &eff->spawnPosX, eff->lightFactor);
     }
 }
 
@@ -1854,7 +1854,7 @@ static void effect_behavior_charge(void)
         return;
     case 1:
         eff->type = 2;
-        memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+        memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
         eff->animHeader[3]++;
         return;
     case 2:
@@ -1945,19 +1945,19 @@ static void effect_behavior_fire_burst(void)
     switch (eff->animHeader[0]) {
     case 0:
         Effect_CreateBillboard(1, (unsigned char)(eff->depthGroup + 1), eff->yaw,
-                               (void*)eff->spriteInfo, &g_playerPosScratch, 0);
+                               P<void>(eff->spriteInfo), &g_playerPosScratch, 0);
         eff->animHeader[0] = 1;
         return;
     case 1:
         Effect_CreateBillboard(1, (unsigned char)(eff->depthGroup + 2), eff->yaw,
-                               (void*)eff->spriteInfo, &g_playerPosScratch, 0);
+                               P<void>(eff->spriteInfo), &g_playerPosScratch, 0);
         Effect_CreateBillboard(1, (unsigned char)(eff->depthGroup + 3), eff->yaw,
-                               (void*)eff->spriteInfo, &g_playerPosScratch, 0);
+                               P<void>(eff->spriteInfo), &g_playerPosScratch, 0);
         eff->animHeader[0] = 2;
         return;
     case 2:
         Effect_CreateBillboard(1, (unsigned char)(eff->depthGroup + 4), eff->yaw,
-                               (void*)eff->spriteInfo, &g_playerPosScratch, 0);
+                               P<void>(eff->spriteInfo), &g_playerPosScratch, 0);
         effect_behavior_kill();
         return;
     default:
@@ -2008,8 +2008,8 @@ static void effect_behavior_rocket(void)
         g_playerPosScratch.x = (int)eff->posX;
         g_playerPosScratch.y = (int)eff->posY;
         g_playerPosScratch.z = (int)eff->posZ;
-        Play3DSnd(1, 0xf, 4, (int)&g_playerPosScratch);
-        Play3DSnd(1, 0xf, 0, (int)&g_playerPosScratch);
+        Play3DSnd(1, 0xf, 4, O(&g_playerPosScratch));
+        Play3DSnd(1, 0xf, 0, O(&g_playerPosScratch));
         FUN_0047cf80(7, (unsigned int)eff->effectType, (unsigned int)eff->depthGroup,
                      (unsigned int)eff->animHeader[2], NULL);
         return;
@@ -2101,7 +2101,7 @@ static void effect_behavior_sysflag(void)
 {
     Effect* eff = &g_effectPool[g_activeEffectIndex];
 
-    if (Flg_ck((int)g_SysFlags, 0) != 0) {
+    if (Flg_ck(O(g_SysFlags), 0) != 0) {
         eff->animId = 1;
         effect_behavior_set_frame();
     }
@@ -2115,7 +2115,7 @@ static void effect_behavior_to_settle(void)
 {
     Effect* eff = &g_effectPool[g_activeEffectIndex];
 
-    memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+    memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
     eff->type = 2;
     eff->animId = 5;
     effect_behavior_gravity_settle();
@@ -2179,8 +2179,8 @@ static void effect_behavior_splash_timer(void)
     if (eff->animHeader[0] == 0) {
         eff->animHeader[0] = 4;
         eff->vramInfoBackup = eff->vramInfo + 0x1c;
-        eff->frameIndex = *(unsigned char*)eff->vramInfoBackup;
-        eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
+        eff->frameIndex = *(unsigned char*)P<unsigned char>(eff->vramInfoBackup);
+        eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
         eff->uvDataBackup = (unsigned int)eff->frameIndex * 4 + eff->uvData;
     }
 
@@ -2211,8 +2211,8 @@ static void effect_behavior_fire_phases(void)
     switch (eff->animHeader[0]) {
     case 0:
         eff->vramInfoBackup = eff->vramInfo + 0x14;
-        eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
-        eff->uvDataBackup = (unsigned int)*(unsigned char*)eff->vramInfoBackup * 4 + eff->uvData;
+        eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
+        eff->uvDataBackup = (unsigned int)*(unsigned char*)P<unsigned char>(eff->vramInfoBackup) * 4 + eff->uvData;
         eff->animHeader[1] = 0xb;
         eff->animHeader[0] = 1;
         // fall through
@@ -2230,8 +2230,8 @@ static void effect_behavior_fire_phases(void)
         break;
     case 2:
         eff->vramInfoBackup = eff->vramInfo + 0x14;
-        eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
-        eff->uvDataBackup = (unsigned int)*(unsigned char*)eff->vramInfoBackup * 4 + eff->uvData;
+        eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
+        eff->uvDataBackup = (unsigned int)*(unsigned char*)P<unsigned char>(eff->vramInfoBackup) * 4 + eff->uvData;
         eff->animHeader[1] = (unsigned char)(((char)(g_RandSeed % 5) + 10) * 10);
         eff->animHeader[0] = 3;
         eff->animHeader[10] = 0;
@@ -2267,7 +2267,7 @@ static void effect_behavior_muzzle_phases(void)
         eff->animHeader[0] = 1;
         return;
     case 1:
-        memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+        memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
         eff->type = 2;
         eff->animHeader[1] = 2;
         eff->animHeader[0] = 2;
@@ -2278,8 +2278,8 @@ static void effect_behavior_muzzle_phases(void)
             eff->animHeader[2]--;
             eff->animHeader[1] = 4;
             eff->vramInfoBackup = eff->vramInfo + 0x10;
-            eff->frameDelay = *(unsigned char*)(eff->vramInfoBackup + 1);
-            eff->uvDataBackup = (unsigned int)*(unsigned char*)eff->vramInfoBackup * 4 + eff->uvData;
+            eff->frameDelay = *(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 1);
+            eff->uvDataBackup = (unsigned int)*(unsigned char*)P<unsigned char>(eff->vramInfoBackup) * 4 + eff->uvData;
         }
         if (eff->animHeader[2] == 0) {
             eff->animHeader[0] = 3;
@@ -2315,7 +2315,7 @@ static void effect_behavior_dual_shot(void)
             g_playerPosScratch.x = (int)eff->localOffsetX - (int)(char)eff->animHeader[2];
             g_playerPosScratch.y = (int)eff->localOffsetY + 10;
             g_playerPosScratch.z = (int)(char)eff->animHeader[3] + (int)eff->localOffsetZ;
-            unsigned char slot = Effect_CreateBillboard(5, 3, eff->yaw, (void*)eff->spriteInfo,
+            unsigned char slot = Effect_CreateBillboard(5, 3, eff->yaw, P<void>(eff->spriteInfo),
                                                         &g_playerPosScratch, eff->lightFactor);
             g_playerDisplacement = (int)(char)slot;
             g_effectPool[g_playerDisplacement].animHeader[3] =
@@ -2324,7 +2324,7 @@ static void effect_behavior_dual_shot(void)
         g_playerPosScratch.x = (int)(char)eff->animHeader[2] + (int)eff->localOffsetX;
         g_playerPosScratch.y = (int)eff->localOffsetY;
         g_playerPosScratch.z = (int)(char)eff->animHeader[3] + (int)eff->localOffsetZ;
-        unsigned char slot = Effect_CreateBillboard(5, 3, eff->yaw, (void*)eff->spriteInfo,
+        unsigned char slot = Effect_CreateBillboard(5, 3, eff->yaw, P<void>(eff->spriteInfo),
                                                     &g_playerPosScratch, eff->lightFactor);
         g_playerDisplacement = (int)(char)slot;
         g_effectPool[g_playerDisplacement].animHeader[3] =
@@ -2421,7 +2421,7 @@ static void Effect_AnimateSprite(void)
     Effect* eff = &g_effectPool[g_activeEffectIndex];
 
     if (eff->frameDelay == 0) {
-        unsigned char* entry = (unsigned char*)(eff->vramInfoBackup + 4);
+        unsigned char* entry = P<unsigned char>(eff->vramInfoBackup) + 4;
         eff->frameIndex++;
 
         if (entry[0] == 0 && entry[1] == 0) {
@@ -2437,13 +2437,13 @@ static void Effect_AnimateSprite(void)
 
         if (entry[1] == 0xFF) {
             // jump: the frame byte selects the new entry from the vram base
-            entry = (unsigned char*)((unsigned int)entry[0] * 4 + eff->vramInfo);
+            entry = P<unsigned char>((unsigned int)entry[0] * 4 + eff->vramInfo);
             eff->frameIndex = entry[0];
         }
 
         eff->frameDelay = entry[1];
         eff->uvDataBackup = (unsigned int)entry[0] * 4 + eff->uvData;
-        eff->vramInfoBackup = (int)entry;
+        eff->vramInfoBackup = O(entry);
     }
 
     // the original decrements the (possibly freshly loaded) delay every frame
@@ -2480,18 +2480,18 @@ static void effect_submit_sprite(Effect* eff, short screenX, short screenY,
                                  int scaleDivisor, unsigned int depth,
                                  int texVHack, int stage4Special)
 {
-    unsigned char* uv = (unsigned char*)eff->uvDataBackup;
+    unsigned char* uv = P<unsigned char>(eff->uvDataBackup);
 
     // ---- texture descriptor (0x0047c6d8-0x0047c79b) ----
     g_TextureDesc.flags = ((unsigned int)(eff->animHeader[10] >> 6) << 0x16) | 0x40;
-    g_TextureDesc.width = (unsigned short)*(unsigned char*)(eff->vramInfoBackup + 2);
-    g_TextureDesc.height = (unsigned short)*(unsigned char*)(eff->vramInfoBackup + 3);
+    g_TextureDesc.width = (unsigned short)*(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 2);
+    g_TextureDesc.height = (unsigned short)*(unsigned char*)(P<unsigned char>(eff->vramInfoBackup) + 3);
     g_TextureDesc.pivotX = 0x80 - (unsigned short)uv[2];
     g_TextureDesc.pivotY = 0x80 - (unsigned short)uv[3];
     g_TextureDesc.screenX = screenX;
     g_TextureDesc.screenY = screenY;
-    g_TextureDesc.texturePage = *(unsigned short*)(eff->clutInfo + 6);
-    g_TextureDesc.clutX = (*(unsigned short*)(eff->clutInfo + 4) & 0x3f) << 4;
+    g_TextureDesc.texturePage = *(unsigned short*)(P<unsigned char>(eff->clutInfo) + 6);
+    g_TextureDesc.clutX = (*(unsigned short*)(P<unsigned char>(eff->clutInfo) + 4) & 0x3f) << 4;
     g_TextureDesc.texU = uv[0];
     g_TextureDesc.texV = uv[1];
     // depthGroup packs two things: the low 3 bits select the animation, and
@@ -2793,7 +2793,7 @@ void EffectActor_UpdateAndRender(void)
         g_svecScratch.z += eff->localOffsetZ;
 
         if (eff->type == 1) {
-            memcpy(eff->transform, (void*)eff->spriteInfo, 0x20);
+            memcpy(eff->transform, P<void>(eff->spriteInfo), 0x20);
         }
 
         ApplyMatrix((MATRIX*)eff->transform, &g_svecScratch, (VECTOR*)&g_playerPosScratch);
@@ -2886,8 +2886,12 @@ static void effect_draw_mirror_reflection(void)
     if ((eff->animHeader[11] & 0x80) != 0) return;
 
     int* camera = (int*)((char*)g_RdtPointer + 0x9c + (int)g_roomCameraId * 0x2c);
+    // mirror_point_visible takes the probe point as a 32-bit slot value, which
+    // cannot encode a stack address on a 64-bit host: probe a static copy.
+    static VECTOR s_mirrorProbe;
+    s_mirrorProbe = local_10;
     if (mirror_point_visible((void*)camera, (unsigned char)((g_main_state_flags & MSF_MIRROR_PLANE_X) != 0),
-                     (int)&local_10) == 0) return;
+                     (int)O(&s_mirrorProbe)) == 0) return;
 
     if (is_entity_in_switch_zone(&local_10, g_CurrentRdtDataTypePtr) == 0) return;
 

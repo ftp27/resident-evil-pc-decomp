@@ -94,7 +94,7 @@ int cmd_if(void)
 {
     unsigned short val = scd_read_u16(0);
     g_ScdOpcodes += 2;
-    *g_CmdOpcodesPointer = (unsigned int)(val >> 8) + (unsigned int)g_ScdOpcodes;
+    *g_CmdOpcodesPointer = (unsigned int)(val >> 8) + O(g_ScdOpcodes);
     g_CmdOpcodesPointer++;
     g_ScriptContinueFlag++;
     return 1;
@@ -307,11 +307,11 @@ int cmd_cut_lock_set(void)
 
     // Walk cam_switch_zones to find matching camera
     unsigned short camId = *(unsigned short*)((char*)g_RdtPointer->cam_switch_zones + 2);
-    unsigned int zonePtr = (unsigned int)g_RdtPointer->cam_switch_zones;
+    unsigned char* zonePtr = g_RdtPointer->cam_switch_zones;
     while (camId != g_roomCameraId) {
         g_CurrentRdtDataTypePtr = (void*)(zonePtr + 0x14);
         camId = *(unsigned short*)(zonePtr + 0x16);
-        zonePtr = (unsigned int)g_CurrentRdtDataTypePtr;
+        zonePtr = (unsigned char*)g_CurrentRdtDataTypePtr;
     }
     g_CurrentRdtDataTypePtr = (void*)zonePtr;
     cut_set();
@@ -328,11 +328,11 @@ int cmd_current_cut_set(void)
 {
     g_roomCameraId = g_cutId;
     unsigned short camId = *(unsigned short*)((char*)g_RdtPointer->cam_switch_zones + 2);
-    unsigned int zonePtr = (unsigned int)g_RdtPointer->cam_switch_zones;
+    unsigned char* zonePtr = g_RdtPointer->cam_switch_zones;
     while (camId != g_cutId) {
         g_CurrentRdtDataTypePtr = (void*)(zonePtr + 0x14);
         camId = *(unsigned short*)(zonePtr + 0x16);
-        zonePtr = (unsigned int)g_CurrentRdtDataTypePtr;
+        zonePtr = (unsigned char*)g_CurrentRdtDataTypePtr;
     }
     g_CurrentRdtDataTypePtr = (void*)zonePtr;
     cut_set();
@@ -373,7 +373,7 @@ int cmd_door_set(void)
     entry[0] = 1;
     entry[1] = g_ScdOpcodes[0x19];
     *(unsigned short*)(entry + 2) = (unsigned short)doorNumber;
-    *(unsigned int*)(entry + 8) = (unsigned int)(g_ScdOpcodes + 2);
+    *(unsigned int*)(entry + 8) = O(g_ScdOpcodes + 2);
     g_ScdOpcodes += 0x1a;
     dbg_printf("DOOR_AT_SET END %s\n", "door_at_set");
     return 1;
@@ -401,7 +401,7 @@ int cmd_room_action_set(void)
     *(unsigned short*)(entry + 2) = *(unsigned short*)(g_ScdOpcodes + 12);
     *(unsigned short*)(entry + 4) = *(unsigned short*)(g_ScdOpcodes + 14);
     *(unsigned short*)(entry + 6) = *(unsigned short*)(g_ScdOpcodes + 16);
-    *(unsigned int*)(entry + 8) = (unsigned int)(g_ScdOpcodes + 2);
+    *(unsigned int*)(entry + 8) = O(g_ScdOpcodes + 2);
     g_ScdOpcodes += 18;
     return 1;
 }
@@ -581,17 +581,17 @@ int cmd_sfx_3d_play(void)
         g_playerPosScratch.y = 0;
         g_playerPosScratch.z = (int)scd_read_s16(2);
         g_ScdOpcodes += 4;
-        Play3DSnd(sndType, sndId, (int)vol, (unsigned int)&g_playerPosScratch);
+        Play3DSnd(sndType, sndId, (int)vol, (unsigned int)O(&g_playerPosScratch));
         break;
     case 1:
         g_ScdOpcodes += 4;
         Play3DSnd(sndType, sndId, (int)vol,
-            (unsigned int)g_playerEntity.scaMatrixData.localMatrix.t);
+            (unsigned int)O(g_playerEntity.scaMatrixData.localMatrix.t));
         break;
     case 2:
         g_ScdOpcodes += 4;
         Play3DSnd(sndType, sndId, (int)vol,
-            (unsigned int)g_EnemiesList[op3 >> 8].scaMatrixData.localMatrix.t);
+            (unsigned int)O(g_EnemiesList[op3 >> 8].scaMatrixData.localMatrix.t));
         break;
     case 3:
         // Original pushes a third (unused) argument; play_sfx reads only two.
@@ -613,7 +613,7 @@ int cmd_item_model_set(void)
 
     // skip ink ribbon model set if jill's first playthrough
     if ((char)g_ScdOpcodes[10] == ITEM_INK_RIBBONS && (g_playerEntity.id & 3) == 1) {
-        if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             FUN_00473f10((int*)&g_roomItemsFlags, g_ScdOpcodes[0x16]);
             g_ScdOpcodes += 0x1a;
             return 1;
@@ -634,14 +634,14 @@ int cmd_item_model_set(void)
     unsigned char visFlag;
     if (itemType <= ITEM_MAP_LAST) {
         if (itemType < ITEM_MAP_FIRST) {
-            visFlag = (Flg_ck((int)&g_roomItemsFlags, g_ScdOpcodes[0x16]) == 0) - 1;
+            visFlag = (Flg_ck((int)O(&g_roomItemsFlags), g_ScdOpcodes[0x16]) == 0) - 1;
             visFlag &= 4;
         } else {
-            visFlag = (Flg_ck((int)&g_roomItemsFlags, g_ScdOpcodes[0x16]) == 0) - 1;
+            visFlag = (Flg_ck((int)O(&g_roomItemsFlags), g_ScdOpcodes[0x16]) == 0) - 1;
             visFlag &= 0xf;
         }
     } else {
-        visFlag = (Flg_ck((int)&g_roomItemsFlags, g_ScdOpcodes[0x16]) == 0) - 1;
+        visFlag = (Flg_ck((int)O(&g_roomItemsFlags), g_ScdOpcodes[0x16]) == 0) - 1;
         visFlag &= 0xd;
     }
     entry[0] = visFlag;
@@ -656,7 +656,7 @@ int cmd_item_model_set(void)
     *(unsigned short*)(entry + 2) = scd_read_u16(0x18);
     *(unsigned short*)(entry + 4) = (unsigned short)g_ScdOpcodes[0xc];
     *(unsigned short*)(entry + 6) = (unsigned short)g_ScdOpcodes[0x16];
-    *(unsigned int*)(entry + 8) = (unsigned int)(g_ScdOpcodes + 2);
+    *(unsigned int*)(entry + 8) = O(g_ScdOpcodes + 2);
     if (entry > (unsigned char*)g_RoomActionTail) {
         g_RoomActionTail = entry;
     }
@@ -680,7 +680,7 @@ int cmd_item_model_set(void)
             // 9, clamped at 0, bit 15 kept. This loop was missing entirely.
             if ((char)g_ScdOpcodes[10] == ITEM_MAP_GUARDHOUSE ||
                 (char)g_ScdOpcodes[10] == ITEM_MAP_COURTYARD) {
-                unsigned short* pal = (unsigned short*)(itemModelData[1] + 0x14);
+                unsigned short* pal = (unsigned short*)(P<unsigned char>(itemModelData[1]) + 0x14);
                 for (int n = 0; n < 256; n++) {
                     unsigned short c = *pal;
                     unsigned char r = (unsigned char)(c & 0x1f);
@@ -696,7 +696,7 @@ int cmd_item_model_set(void)
             ProcessTmdAsync((unsigned int)itemModelData[1]);
         }
         if ((char)g_ItemModelCount == 0 || *itemModelData != *DAT_00bca0d0) {
-            ProcessTmdTextures(2, (unsigned int*)(unsigned int)*itemModelData, DAT_008e1c78, DAT_008e1c70);
+            ProcessTmdTextures(2, P<unsigned int>(*itemModelData), DAT_008e1c78, DAT_008e1c70);
         }
         FUN_00473ea0(*itemModelData, modelPtr + 0xc, (ScaMatrixData*)(modelPtr + 0x1c));
         if ((char)g_ScdOpcodes[10] == ITEM_CRANK_HEX) {
@@ -722,11 +722,11 @@ int cmd_item_model_set(void)
             modelPtr[0x66] = 0; modelPtr[0x67] = 0;
             spriteInfo = (MATRIX*)(modelPtr + 0x20);
         } else if (parentType == 0xfe) {
-            *(int*)(modelPtr + 100) = (int)&g_playerEntity + 0x1c;
+            *(int*)(modelPtr + 100) = (int)O((unsigned char*)&g_playerEntity + 0x1c);
             spriteInfo = &g_playerEntity.scaMatrixData.localMatrix;
         } else {
-            *(int*)(modelPtr + 100) = (int)g_omodel_table[parentType] + 0x1c;
-            spriteInfo = (MATRIX*)((int)g_omodel_table[parentType] + 0x20);
+            *(int*)(modelPtr + 100) = (int)O((unsigned char*)g_omodel_table[parentType] + 0x1c);
+            spriteInfo = (MATRIX*)((unsigned char*)g_omodel_table[parentType] + 0x20);
         }
         InitScaMatrix(*(int*)(modelPtr + 100), (ScaMatrixData*)(modelPtr + 0x1c));
     }
@@ -734,7 +734,7 @@ int cmd_item_model_set(void)
     modelPtr[0x86] = 0;
     modelPtr[0x87] = 0;
 
-    int flagResult = Flg_ck((int)&g_roomItemsFlags, g_ScdOpcodes[0x16]);
+    int flagResult = Flg_ck((int)O(&g_roomItemsFlags), g_ScdOpcodes[0x16]);
     if (flagResult != 0 && (flags18 & 0x8000) != 0) {
         unsigned int animType = (unsigned int)(flags18 & 0xf00);
         unsigned char effectId;
@@ -773,11 +773,11 @@ int cmd_item_model_set(void)
     // These two writes target the item model's byte 0 (`*pcVar5` in the original),
     // not the room action entry - the entry's byte 0 was already set from
     // visFlag further up.
-    flagResult = Flg_ck((int)&g_roomItemsFlags, g_ScdOpcodes[0x16]);
+    flagResult = Flg_ck((int)O(&g_roomItemsFlags), g_ScdOpcodes[0x16]);
     modelPtr[0] = (char)(1 - (flagResult == 0));
 
     if ((char)g_ScdOpcodes[10] == ITEM_INK_RIBBONS && (g_playerEntity.id & 3) == CHAR_JILL) {
-        if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             modelPtr[0] = 0;
         }
     }
@@ -849,7 +849,7 @@ int cmd_enemy_set(void)
     dbg_printf("ENEMY SET START %s\n", "enemy_set");
 
     if ((char)g_ScdOpcodes[3] != -1) {
-        if (Flg_ck((int)g_EnemiesFlags, (unsigned char)g_ScdOpcodes[3]) != 0) {
+        if (Flg_ck((int)O(g_EnemiesFlags), (unsigned char)g_ScdOpcodes[3]) != 0) {
             g_ScdOpcodes += 0x16;
             dbg_printf("ENEMY SET END %s\n", "enemy_set");
             return 1;
@@ -1057,7 +1057,7 @@ int cmd_omodel_set(void)
         if (doPaletteBlock) {
             // Stage 1 room 12: adjust TMD colors
             if (g_stageId == STAGE_MANSION_1F && g_roomId == ROOM_GREENHOUSE && (g_ScdOpcodes[1] & 0x3f) == 0) {
-                unsigned short* colorPtr = (unsigned short*)(modelData[1] + 0x14);
+                unsigned short* colorPtr = (unsigned short*)(P<unsigned char>(modelData[1]) + 0x14);
                 for (int i = 0; i < 256; i++) {
                     unsigned short c = *colorPtr;
                     unsigned short r = (c & 0x1f) + 3;
@@ -1078,7 +1078,7 @@ int cmd_omodel_set(void)
             // Mansion 2F (stages 2/7) room 11: fix transparent colors.
             // The original zeroes palette entry 0 before the scan; that was missing.
             if ((get_stage_id() + 1) % 5 == 2 && g_roomId == ROOM_FRONT_LESSON_ROOM && (g_ScdOpcodes[1] & 0x3f) == 0) {
-                unsigned short* colorPtr = (unsigned short*)(modelData[1] + 0x14);
+                unsigned short* colorPtr = (unsigned short*)(P<unsigned char>(modelData[1]) + 0x14);
                 *colorPtr = 0;
                 for (int i = 0; i < 256; i++) {
                     if ((*colorPtr & 0x7fff) == 0x7fff) *colorPtr = 0x4e73;
@@ -1094,7 +1094,7 @@ int cmd_omodel_set(void)
 
     // TMD texture processing
     if ((char)g_omodelCount == 0 || *DAT_00bca0d4 != *modelData) {
-        unsigned int texResult = ProcessTmdTextures(2, (unsigned int*)(unsigned int)*modelData, DAT_008e1c7c, DAT_008e1c74);
+        unsigned int texResult = ProcessTmdTextures(2, P<unsigned int>(*modelData), DAT_008e1c7c, DAT_008e1c74);
         if (g_ScdOpcodes[1] & 0x80) {
             QueueTextureForProcessing((char)DAT_008e1c74,
                 (unsigned char)(((unsigned int)texResult & 0xFFFFFF00) | (g_ScdOpcodes[1] & 0xBF)));
@@ -1124,18 +1124,18 @@ int cmd_omodel_set(void)
     parentByte = g_ScdOpcodes[3];
     parentIdx = (unsigned int)parentByte;
     if (parentIdx == 0xfe) {
-        *(int*)(objPtr + 100) = (int)&g_playerEntity + 0x1c;
+        *(int*)(objPtr + 100) = (int)O((unsigned char*)&g_playerEntity + 0x1c);
     } else if (parentIdx == 0xff) {
         *(int*)(objPtr + 100) = 0;
     } else if (parentByte < 0x80) {
-        *(int*)(objPtr + 100) = (int)g_omodel_table[parentIdx] + 0x1c;
+        *(int*)(objPtr + 100) = (int)O((unsigned char*)g_omodel_table[parentIdx] + 0x1c);
     } else {
         // Original: (parent & 0x7F) * 0x18C + 0xBE6480, i.e. the scaMatrixData (+0x1C)
         // of g_EnemiesList[parent & 0x7F] - g_EnemiesList is at 0x00BE6464. Must be
         // computed from the symbol: a literal 0xBE6480 does not point at the port's
         // array.
         *(unsigned int*)(objPtr + 100) =
-            (unsigned int)&g_EnemiesList[parentByte & 0x7f].scaMatrixData;
+            O(&g_EnemiesList[parentByte & 0x7f].scaMatrixData);
     }
     InitScaMatrix(*(int*)(objPtr + 100), (ScaMatrixData*)(objPtr + 0x1c));
 
@@ -1154,7 +1154,7 @@ setupObject:
     *(unsigned short*)(objPtr + 0x76) = 0;
 
     // Set up entry data pointer
-    *(unsigned int*)(objPtr + 4) = (unsigned int)(objPtr + 0x88);
+    *(unsigned int*)(objPtr + 4) = O(objPtr + 0x88);
     *(unsigned short*)(objPtr + 0x88) = 0x8000;
     *(unsigned short*)(objPtr + 0x8a) = scd_read_u16(0x18);
     *(unsigned short*)(objPtr + 0x8c) = scd_read_u16(0x16);
@@ -1583,7 +1583,7 @@ int cmd_effect_spawn(void)
         spriteInfo = (MATRIX*)((char*)g_EnemiesList +
                                (int)(parentType - 2) * sizeof(Entity) + 0x20);
     } else {
-        spriteInfo = (MATRIX*)((int)g_omodel_table[(parentParam & 0x7f00) >> 8] + 0x20);
+        spriteInfo = (MATRIX*)((unsigned char*)g_omodel_table[(parentParam & 0x7f00) >> 8] + 0x20);
     }
 
     Effect_CreateBillboard(
@@ -1690,7 +1690,7 @@ int cmd_boundary_set(void)
 
     unsigned short* boundary = (unsigned short*)(
         (op2 & 0xff) * 0xc +
-        *(int*)(((op1 >> 6) & 0xfffffffc) + 4 + (unsigned int)g_RdtPointer->boundaries));
+        P<unsigned char>(*(int*)(((op1 >> 6) & 0xfffffffc) + 4 + g_RdtPointer->boundaries)));
 
     if ((op2 & 0xff00) != 0) {
         unsigned short flags = boundary[5];
@@ -1933,7 +1933,7 @@ int cmd_obj_field_test(void)
     g_ScdOpcodes += 2;
 
     unsigned short* objField = (unsigned short*)(
-        *(int*)((int)&g_omodel_table + ((op1 >> 6) & 0xfffffffc)) + 0x86);
+        (unsigned char*)g_omodel_table[((op1 >> 6) & 0xfffffffc) / 4] + 0x86);
     unsigned short fieldVal = *objField;
     unsigned short compareVal = op2 >> 8;
 
@@ -2002,9 +2002,9 @@ int cmd_enemy_flags_get(void)
 int cmd_cut_zone_set(void)
 {
     unsigned char zoneIdx = g_ScdOpcodes[1];
-    *(unsigned short*)((unsigned int)zoneIdx * 0x14 + 2 + (unsigned int)g_RdtPointer->cam_switch_zones) =
+    *(unsigned short*)((unsigned int)zoneIdx * 0x14 + 2 + g_RdtPointer->cam_switch_zones) =
         (unsigned short)g_ScdOpcodes[2];
-    *(unsigned short*)((unsigned int)zoneIdx * 0x14 + (unsigned int)g_RdtPointer->cam_switch_zones) =
+    *(unsigned short*)((unsigned int)zoneIdx * 0x14 + g_RdtPointer->cam_switch_zones) =
         (unsigned short)g_ScdOpcodes[3];
     g_ScdOpcodes += 4;
     return 1;
@@ -2050,9 +2050,9 @@ int cmd_player_dist_test(void)
     if ((targetSpec & 0xff) == 0) {
         targetPos = g_EnemiesList[targetSpec >> 8].scaMatrixData.localMatrix.t;
     } else if ((targetSpec & 0xff) == 1) {
-        targetPos = (int*)(*(int*)((int)&g_omodel_table + ((targetSpec >> 6) & 0xfffffffc)) + 0x34);
+        targetPos = (int*)((unsigned char*)g_omodel_table[((targetSpec >> 6) & 0xfffffffc) / 4] + 0x34);
     } else if ((targetSpec & 0xff) == 2) {
-        targetPos = (int*)(*(int*)((int)&g_item_model_table + ((targetSpec >> 6) & 0xfffffffc)) + 0x34);
+        targetPos = (int*)((unsigned char*)g_item_model_table[((targetSpec >> 6) & 0xfffffffc) / 4] + 0x34);
     } else {
         return 0;
     }
@@ -2100,14 +2100,14 @@ int cmd_bullet_effect_spawn(void)
         // The original indexes with the ALREADY-shifted high byte (`uVar2 >> 6` where
         // uVar2 == typeParam >> 8), so the byte offset is always 0 - i.e. itembox 0.
         // Using `typeParam >> 6` instead picked a different object entirely.
-        spriteInfo = (MATRIX*)(*(int*)((char*)&g_omodel_table +
-                        (((unsigned int)(typeParam >> 8) >> 6) & 0xFFFFFFFC)) + 0x20);
+        spriteInfo = (MATRIX*)((unsigned char*)g_omodel_table[
+                        (((unsigned int)(typeParam >> 8) >> 6) & 0xFFFFFFFC) / 4] + 0x20);
     }
 
     unsigned char effectType = (unsigned char)(typeParam >> 8);
     Effect_CreateBillboard(effectType, (unsigned char)parentParam, effectFlags, spriteInfo, &spawnPos, 0);
     g_bulletEffectId = effectType;
-    DAT_00bf0a34 = (int)spriteInfo;
+    DAT_00bf0a34 = (int)O(spriteInfo);
     return 1;
 }
 
@@ -2119,7 +2119,7 @@ int cmd_bullet_effect_spawn(void)
 // ============================================================================
 int cmd_bullet_effect_clear(void)
 {
-    FUN_0047cf80(9, g_bulletEffectId, 0, 0, (MATRIX*)DAT_00bf0a34);
+    FUN_0047cf80(9, g_bulletEffectId, 0, 0, P<MATRIX>(DAT_00bf0a34));
     g_ScdOpcodes += 2;
     return 1;
 }
@@ -2280,7 +2280,7 @@ int cmd_obj_transform_set(void)
 {
     unsigned short slot = scd_read_u16(0);
     g_ScdOpcodes += 14;
-    int objBase = (int)g_omodel_table[slot >> 8];
+    unsigned char* objBase = (unsigned char*)g_omodel_table[slot >> 8];
     *(short*)(objBase + 0x72) = scd_read_s16(-12);
     *(short*)(objBase + 0x74) = scd_read_s16(-10);
     *(short*)(objBase + 0x76) = scd_read_s16(-8);
@@ -2395,7 +2395,7 @@ int cmd_item_record_transfer(void)
     //   (&DAT_00d91aa8)[slot * 3]   ==  *(u8**)(table + slot * 0xC + 8)
     // The old code indexed the table entry itself at +9 / +8, i.e. it read and wrote
     // the bytes of the pointer instead of following it.
-    unsigned char* rec = *(unsigned char**)&g_RoomActionTable[slotIdx * 0xc + 8];
+    unsigned char* rec = P<unsigned char>(*(unsigned int*)&g_RoomActionTable[slotIdx * 0xc + 8]);
 
     if (mode == 0) {
         (&g_stageId)[fieldIdx] = rec[9];
@@ -2604,7 +2604,7 @@ extern void ResolveAnimPointers(unsigned char* data);        // TmdAnimation.cpp
 // ---------------------------------------------------------------------------
 void Flg_on(int baseAddr, unsigned int bitIndex)
 {
-    unsigned int* flagWord = (unsigned int*)(((bitIndex & 0xffffffe7) >> 3) + baseAddr);
+    unsigned int* flagWord = (unsigned int*)(((bitIndex & 0xffffffe7) >> 3) + P<unsigned char>(baseAddr));
     *flagWord = *flagWord | (0x80000000U >> ((unsigned char)bitIndex & 0x1f));
 }
 
@@ -2679,7 +2679,7 @@ static void TmdObjectTintAdd(void* modelObj, int r, int g, int b)
         return;   // complex-TMD path, not modelled (see the note above)
     }
 
-    unsigned char* tmd = *(unsigned char**)(obj + 0x20);
+    unsigned char* tmd = P<unsigned char>(*(unsigned int*)(obj + 0x20));
     if (tmd == NULL || (*(unsigned int*)(tmd + 0x4C0) & 0x7FFFFFFF) == 0) {
         return;
     }
@@ -2751,7 +2751,7 @@ static void TmdObjectTintSet(void* modelObj, int r, int g, int b)
         return;   // complex-TMD path, not modelled
     }
 
-    unsigned char* tmd = *(unsigned char**)(obj + 0x20);
+    unsigned char* tmd = P<unsigned char>(*(unsigned int*)(obj + 0x20));
     if (tmd == NULL || (*(unsigned int*)(tmd + 0x4C0) & 0x7FFFFFFF) == 0) {
         return;
     }
@@ -2869,11 +2869,11 @@ void scd_model_tint_apply(short p1, short p2, short p3, unsigned short p4, unsig
     }
 
     if (e[3] == e[4] && e[3] == e[5]) {
-        int obj = (int)g_omodel_table[(unsigned char)p6 & 0x7F];
-        TmdObjectSetLightScale(*(void**)((unsigned char*)obj + 0x18), (int)(char)e[3]);
+        unsigned char* obj = (unsigned char*)g_omodel_table[(unsigned char)p6 & 0x7F];
+        TmdObjectSetLightScale(P<void>(*(unsigned int*)(obj + 0x18)), (int)(char)e[3]);
     } else {
-        int obj = (int)g_omodel_table[(unsigned char)p6 & 0x3F];
-        TmdObjectTintAdd(*(void**)((unsigned char*)obj + 0x18), (int)p1, (int)p2, (int)p3);
+        unsigned char* obj = (unsigned char*)g_omodel_table[(unsigned char)p6 & 0x3F];
+        TmdObjectTintAdd(P<void>(*(unsigned int*)(obj + 0x18)), (int)p1, (int)p2, (int)p3);
     }
 }
 
@@ -2937,13 +2937,13 @@ void FUN_00473d60(char p1, unsigned char p2, unsigned char p3)
 // ============================================================================
 void FUN_00473e40(int param)
 {
-    unsigned int* p = (unsigned int*)param;
+    unsigned int* p = P<unsigned int>(param);
     if (p[1] == 0) {
         ResolveAnimPointers((unsigned char*)(p + 1));
     }
     unsigned int* group = p + 3;
     for (int groups = (int)p[2]; groups != 0; groups--) {
-        unsigned int* prim = (unsigned int*)group[4];
+        unsigned int* prim = P<unsigned int>(group[4]);
         for (int prims = (int)group[5]; prims != 0; prims--) {
             unsigned int cmd = *prim;
             if ((cmd & 0x04000000) != 0) {
@@ -2967,13 +2967,14 @@ void FUN_00473ea0(int param1, void* param2, ScaMatrixData* param3)
     extern void SetAnimSlot(AnimSlot* slots, int slotPtr, int index);
     extern unsigned int* CreateAnimObject(int slotPtr, unsigned int* param2);
 
-    if (*(int*)(param1 + 4) == 0) {
-        ResolveAnimPointers((unsigned char*)(param1 + 4));
+    unsigned char* tmd = P<unsigned char>(param1);
+    if (*(int*)(tmd + 4) == 0) {
+        ResolveAnimPointers(tmd + 4);
     }
-    SetAnimSlot((AnimSlot*)(param1 + 0xc), (int)param2, 0);
-    ((unsigned int*)param2)[1] = (unsigned int)param3;
+    SetAnimSlot((AnimSlot*)(tmd + 0xc), (int)O(param2), 0);
+    ((unsigned int*)param2)[1] = O(param3);
     *((unsigned int*)param2) = 0;
-    g_loadDataDestPointer = CreateAnimObject((int)param2, (unsigned int*)g_loadDataDestPointer);
+    g_loadDataDestPointer = CreateAnimObject((int)O(param2), (unsigned int*)g_loadDataDestPointer);
 }
 
 // ============================================================================
@@ -3010,7 +3011,7 @@ void FUN_0047cf80(int param1, unsigned int param2, unsigned int param3, unsigned
         if ((mask & 4) != 0 && e->animHeader[2] == (unsigned char)param4) {
             matched |= 4;
         }
-        if ((mask & 8) != 0 && e->spriteInfo == (int)param5) {
+        if ((mask & 8) != 0 && e->spriteInfo == (int)O(param5)) {
             matched |= 8;
         }
 
@@ -3033,7 +3034,7 @@ void FUN_0047cf80(int param1, unsigned int param2, unsigned int param3, unsigned
 // ============================================================================
 void FUN_004870d0(int param)
 {
-    int base = *(int*)(param + 0x20);
+    unsigned char* base = P<unsigned char>(*(int*)(P<unsigned char>(param) + 0x20));
     int offset = 0;
     do {
         offset += 0x84;
@@ -3063,7 +3064,7 @@ void FUN_0048a190(void* param1, int param2, int param3, int param4)
 
     unsigned char* joint = (unsigned char*)param1;
     *joint |= 0x80;
-    g_playerDisplacement = *(int*)(*(int*)(joint + 0x14) + 0x14) * 2;
+    g_playerDisplacement = *(int*)(P<unsigned char>(*(int*)(joint + 0x14)) + 0x14) * 2;
     JointSetColorTint(*(int*)(joint + 0x18), (unsigned int)param2);
 
     if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
@@ -3071,7 +3072,7 @@ void FUN_0048a190(void* param1, int param2, int param3, int param4)
                   *(int*)((unsigned char*)ENTITY + 0x98));
         g_tempVar = joint;
         *joint |= 0x80;
-        g_playerDisplacement = *(int*)(*(int*)(joint + 0x14) + 0x14) * 2;
+        g_playerDisplacement = *(int*)(P<unsigned char>(*(int*)(joint + 0x14)) + 0x14) * 2;
         JointSetColorTint(*(int*)(joint + 0x18), (unsigned int)param2);
     }
 }
@@ -3086,9 +3087,9 @@ void FUN_0048a190(void* param1, int param2, int param3, int param4)
 void FUN_0048bfe0(void)
 {
     unsigned char* ent = (unsigned char*)ENTITY;
-    *(void**)(ent + 0xB0) = g_loadDataDestPointer;
+    *(unsigned int*)(ent + 0xB0) = O(g_loadDataDestPointer);
     g_loadDataDestPointer = (char*)g_loadDataDestPointer + 0x7A00;
-    *(void**)(ent + 0xB4) = g_loadDataDestPointer;
+    *(unsigned int*)(ent + 0xB4) = O(g_loadDataDestPointer);
     g_loadDataDestPointer = (char*)g_loadDataDestPointer + 0x1A00;
 }
 
@@ -3113,20 +3114,20 @@ void FUN_0048c020(int param)
     extern void reverse_anim_frame_data(int animFieldAddr);
 
     unsigned char* ent = (unsigned char*)ENTITY;
-    int dst = *(int*)(ent + 0xac) + (unsigned int)(unsigned char)param * 0x7c;
-    int src = *(int*)(ent + 0x98) + (unsigned int)(unsigned char)param * 0x7c;
+    unsigned char* dst = P<unsigned char>(*(int*)(ent + 0xac)) + (unsigned int)(unsigned char)param * 0x7c;
+    unsigned char* src = P<unsigned char>(*(int*)(ent + 0x98)) + (unsigned int)(unsigned char)param * 0x7c;
 
-    int* animSlot = *(int**)(src + 0x14);
-    void* buf0 = *(void**)(ent + 0xb0);
-    void* buf1 = *(void**)(ent + 0xb4);
-    memcpy(buf0, animSlot, (size_t)(*animSlot - (int)animSlot));
+    int* animSlot = P<int>(*(int*)(src + 0x14));
+    void* buf0 = P<void>(*(unsigned int*)(ent + 0xb0));
+    void* buf1 = P<void>(*(unsigned int*)(ent + 0xb4));
+    memcpy(buf0, animSlot, (size_t)(*animSlot - (int)O(animSlot)));
 
-    int slotPtr = dst + 0xc;
-    *(void**)(dst + 0x14) = buf0;
-    *(void**)(dst + 0x18) = buf1;
+    int slotPtr = (int)O(dst + 0xc);
+    *(unsigned int*)(dst + 0x14) = O(buf0);
+    *(unsigned int*)(dst + 0x18) = O(buf1);
     SetAnimSlot((AnimSlot*)buf0, slotPtr, 0);
 
-    int* fixup = (int*)(*(int*)(dst + 0x14) + 0x10);
+    int* fixup = (int*)(P<unsigned char>(*(int*)(dst + 0x14)) + 0x10);
     *fixup += *(int*)(dst + 0x14) - *(int*)(src + 0x14);
 
     reverse_anim_frame_data(slotPtr);

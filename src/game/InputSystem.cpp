@@ -147,6 +147,8 @@ DWORD ReadPadBoth(void)
 		tmp = JoyToPSX(g_pMasterInputState.joysticks[0].currPress, 1);
 		g_PadBtnWord |= tmp;
 	}
+	// Port addition: scripted / recorded test runs (docs/TESTING.md).
+	g_PadBtnWord = plat_test_filter_pad(g_PadBtnWord);
 	if (g_DisablePad != 0) {
 		return 0;
 	}

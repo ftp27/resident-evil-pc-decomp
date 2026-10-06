@@ -195,7 +195,7 @@ void roots_phase_sink(void)
     if (PR_AMPLITUDE <= 0) {
         pr_phase() += 1;
         // death_event_id is 0xFF here (em_set flag byte) - flag 255 of the room bank.
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
     }
 }
 
@@ -229,11 +229,11 @@ void roots_move_a(void)
 
     PR_SND_TIMER = (short)(PR_SND_TIMER - 1);
     if (PR_SND_TIMER == 0) {
-        Play3DSnd(2, 0x19, 0, (int)&ENTITY->scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(2, 0x19, 0, O(&ENTITY->scaMatrixData.localMatrix.t[0]));
         PR_SND_TIMER = (short)(((rand() & 7) + (rand() & 7)) + 0xc);
     }
     if ((rand() & 0x1f) == 1) {
-        Play3DSnd(2, 0x19, 0, (int)&ENTITY->scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(2, 0x19, 0, O(&ENTITY->scaMatrixData.localMatrix.t[0]));
     }
 }
 
@@ -267,7 +267,7 @@ void roots_init(void)
     set_state_word(1);                          // -> state 1, ignore/beh/action zeroed
 
     PR_HEALTH = 1;
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)s_rootsScaInfo;
+    ENTITY->Sca_info = O(s_rootsScaInfo);
 
     ENTITY->status_flags &= 0x1F;
     ENTITY->status_flags |= 0x04;

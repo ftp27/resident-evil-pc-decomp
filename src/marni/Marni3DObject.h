@@ -19,11 +19,11 @@
 class CDirect3DObject {
 public:
     // --- VTable pointer (offset 0x00) ---
-    void** vtable;                    // 0x00
+    Ptr32<void*> vtable;              // 0x00
 
     // --- Buffer pointers (offset 0x04 - 0x0B) ---
-    void*  m_pVertexBuffer;           // 0x04 - vertex data (32 bytes per vertex)
-    void*  m_pIndexBuffer;            // 0x08 - index list data (8/16 bytes per primitive)
+    Ptr32<void> m_pVertexBuffer;      // 0x04 - vertex data (32 bytes per vertex)
+    Ptr32<void> m_pIndexBuffer;       // 0x08 - index list data (8/16 bytes per primitive)
 
     // --- State flags (offset 0x0C - 0x23) ---
     DWORD  m_bHasBuffers;             // 0x0C - buffers allocated flag
@@ -149,13 +149,13 @@ struct TMDObjectData {
 class CMarniDirect3DTMD {
 public:
     // --- VTable pointer (offset 0x00) ---
-    void** vtable;                    // 0x00
+    Ptr32<void*> vtable;              // 0x00
 
     // --- Unknown/padding (0x04 - 0x47) ---
     BYTE   m_pad1[0x44];             // 0x04 - 0x47
 
     // --- Material data pointer (0x48) ---
-    void*  m_pMaterialData;          // 0x48 - material/texture descriptor array (0x4C stride)
+    Ptr32<void> m_pMaterialData;     // 0x48 - material/texture descriptor array (0x4C stride)
 
     // --- Padding to object management fields ---
     BYTE   m_pad2[0x474];            // 0x4C - 0x4BF
@@ -164,7 +164,7 @@ public:
     DWORD  m_objectCount;            // 0x4C0 - number of TMD mesh objects (max 16)
     DWORD  m_flag4C4;                // 0x4C4
     DWORD  m_unknown4C8;             // 0x4C8
-    void*  m_pD3DContext;            // 0x4CC - pointer to MarniSystem Direct3D context
+    Ptr32<void> m_pD3DContext;       // 0x4CC - pointer to MarniSystem Direct3D context
 
     // --- Per-object data array (0x4D0 - 0xD0F) ---
     // 16 objects × 0x84 bytes each = 0x840 bytes

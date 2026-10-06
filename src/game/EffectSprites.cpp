@@ -190,9 +190,9 @@ unsigned char load_effect_sprite_data(unsigned char* effectAnimIndex, unsigned c
             i = i + 1;
             unsigned int si = (unsigned int)spriteIdx;
             int dataOffset = *(int*)(effectAnimData - idx * 4);
-            g_effectSpriteInfo[si] = (DWORD)rdtBase + dataOffset;
-            g_effectAnimData[si] = (DWORD)rdtBase + dataOffset;
-            unsigned char* spriteInfo = (unsigned char*)g_effectSpriteInfo[si];
+            g_effectSpriteInfo[si] = O(rdtBase) + dataOffset;
+            g_effectAnimData[si] = O(rdtBase) + dataOffset;
+            unsigned char* spriteInfo = P<unsigned char>(g_effectSpriteInfo[si]);
             g_effectAnimData[si] = g_effectAnimData[si] +
                 ((unsigned int)spriteInfo[2] + (unsigned int)spriteInfo[0]) * 4 + 8;
         }
@@ -288,7 +288,7 @@ void setup_effect_sprite_textures(unsigned char startSlot)
         if (spriteIdx == 0xFF) break;
 
         TmdTextureHeader header;
-        ParseTmdTextureHeader((void*)(DAT_00ac9cd0[slot] + 4), &header);
+        ParseTmdTextureHeader(P<void>(DAT_00ac9cd0[slot] + 4), &header);
 
         unsigned short texW = header.field_0A;
         unsigned short texH = header.field_16;
@@ -306,7 +306,7 @@ void setup_effect_sprite_textures(unsigned char startSlot)
         // 0x0047bd82: the original calls 0x00483510 here, a stub that just
         // returns 0 - call dropped
 
-        unsigned short* spriteInfo = (unsigned short*)g_effectSpriteInfo[spriteIdx];
+        unsigned short* spriteInfo = P<unsigned short>(g_effectSpriteInfo[spriteIdx]);
         spriteInfo[2] = curV * 0x40 + pageRow + 0x7810;
         *((unsigned char*)(spriteInfo + 3)) = texY;
 
@@ -493,7 +493,7 @@ static void load_effect_sprites(void)
         unsigned char type = g_abEffSpriteIndexTable[8 + slot];
         if (type == 0xFF) continue;
         unsigned int rows = 1;
-        const unsigned char* tim = (const unsigned char*)DAT_00ac9cd0[slot];
+        const unsigned char* tim = P<const unsigned char>(DAT_00ac9cd0[slot]);
         if (tim != NULL && *(const unsigned int*)tim == 0x10 &&
             (*(const unsigned int*)(tim + 4) & 8)) {
             unsigned int clutH = *(const unsigned short*)(tim + 18);
@@ -520,7 +520,7 @@ static void load_effect_sprites(void)
         // were already made page-absolute with the same offset, so the render
         // samples exactly the blitted region.
         blit_effect_tim_at(s_pageBuffer[page],
-                           (const unsigned char*)DAT_00ac9cd0[slot],
+                           P<const unsigned char>(DAT_00ac9cd0[slot]),
                            g_effectSpritePageV[type], 0);
     }
 
@@ -558,7 +558,7 @@ static void load_effect_sprites(void)
             if (page >= 4) continue;
             if ((unsigned int)g_effectSpriteClutRows[type] <= row) continue;
             blit_effect_tim_at(s_pageBuffer[page],
-                               (const unsigned char*)DAT_00ac9cd0[slot],
+                               P<const unsigned char>(DAT_00ac9cd0[slot]),
                                g_effectSpritePageV[type], row);
             anyRow = true;
         }
@@ -753,7 +753,7 @@ void load_shoot_direction_data(void)
     unsigned char* etmEnd = (unsigned char*)g_DataBuffer + (size & 0xfffffffc)
                           + ((size & 3) ? 4 : 0);
     for (unsigned char i = 0; i < lastValid; i++) {
-        DAT_00ac9cd0[i] = (int)g_DataBuffer + *(int*)(etmEnd - 4 - i * 4);
+        DAT_00ac9cd0[i] = O(g_DataBuffer) + *(int*)(etmEnd - 4 - i * 4);
     }
 
     setup_effect_sprite_textures(0);
@@ -785,7 +785,7 @@ void load_shoot_direction_data(void)
     for (int i = 0; i < 8; i++) {
         if (DAT_00ac9cd0[i] == 0) continue;
         if (!BakeWeaponSheetFromPage(i, kWeaponSheetPageFile[i])) {
-            LoadEffectTextureSheet(3 + i, (void*)DAT_00ac9cd0[i]);
+            LoadEffectTextureSheet(3 + i, P<void>(DAT_00ac9cd0[i]));
         }
     }
 }
@@ -843,7 +843,7 @@ void InitRoomEffSprite(void)
         unsigned int idx = (unsigned int)i;
         i = i + 1;
         // (RDT+3)-3 in the decompile: the offsets are relative to the RDT base.
-        DAT_00ac9cd0[idx] = (int)pRdt + *(int*)(spriteImBase - idx * 4);
+        DAT_00ac9cd0[idx] = O(pRdt) + *(int*)(spriteImBase - idx * 4);
     } while (i < 8);
 
     // 0x0047ba5c: Set up effect sprite texture positions

@@ -694,13 +694,17 @@ void MarniDX::DrawTriangles3D(const float* verts, int triCount, MarniHandle tex,
 // Readback
 // ---------------------------------------------------------------------------
 
+void* operator_new(size_t size);   // MarniSystem.cpp
+
 BOOL MarniDX::CaptureBackbufferToRGBA(void** outPixels, DWORD* outWidth, DWORD* outHeight)
 {
     Impl* p = m_pImpl;
     if (p == nullptr || !p->ready || outPixels == nullptr) return FALSE;
 
     size_t size = (size_t)p->width * p->height * 4;
-    unsigned char* buf = (unsigned char*)malloc(size);
+    // operator_new, per the header contract: the caller parks the buffer in a
+    // 32-bit CMarniBits slot and releases it with operator_delete.
+    unsigned char* buf = (unsigned char*)operator_new(size);
     if (buf == nullptr) return FALSE;
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);

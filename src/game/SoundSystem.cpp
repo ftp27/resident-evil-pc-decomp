@@ -112,7 +112,7 @@ void LoadSoundBank(int sound_bank_id, void* buffer)
         *((char*)&bankPtr[1]) = 0;
         *((char*)&bankPtr[1] + 1) = 0;
 
-        const char* filename = *(const char**)((BYTE*)subtable + iVar6);
+        const char* filename = subtable[iVar6 / 4];
         if (filename != NULL) {
             char path[256];
             sprintf(path, GAME_DATA_ROOT "sound\\%s.wav", filename);
@@ -439,7 +439,7 @@ void load_room_sfx(unsigned char soundTableIndex)
         *((unsigned char*)&piVar7[1] + 1) = 0;
 
         if (puVar2 != NULL) {
-            const char* filename = *(const char**)((BYTE*)puVar2 + iVar6);
+            const char* filename = puVar2[iVar6 / 4];
             if (filename != NULL) {
                 char path[260];
                 sprintf(path, GAME_DATA_ROOT "sound\\%s.wav", filename);
@@ -551,7 +551,7 @@ void load_character_sfx(unsigned char charId)
         *((unsigned char*)&piVar7[1] + 1) = 0;
 
         if (puVar2 != NULL) {
-            const char* filename = *(const char**)((BYTE*)puVar2 + iVar6);
+            const char* filename = puVar2[iVar6 / 4];
             if (filename != NULL) {
                 char path[260];
                 sprintf(path, GAME_DATA_ROOT "sound\\%s.wav", filename);
@@ -697,9 +697,9 @@ static void bgm_load_and_start(unsigned char bgmState)
     // channel and the cutscene ran with no voices.
     if (g_stageId == STAGE_COURTYARD && g_roomId == ROOM_UNDERGROUND_ENTRY &&
         !((g_playerEntity.id & 3) == 1 &&
-          Flg_ck((int)&g_ScenarioFlags2, SCENARIO2_FLAG_PROGRESS_5C) &&
-          Flg_ck((int)&g_ScenarioFlags2, SCENARIO2_FLAG_PROGRESS_48) &&
-          !Flg_ck((int)&g_ScenarioFlags2, SCENARIO2_FLAG_PROGRESS_55))) {
+          Flg_ck(O(&g_ScenarioFlags2), SCENARIO2_FLAG_PROGRESS_5C) &&
+          Flg_ck(O(&g_ScenarioFlags2), SCENARIO2_FLAG_PROGRESS_48) &&
+          !Flg_ck(O(&g_ScenarioFlags2), SCENARIO2_FLAG_PROGRESS_55))) {
         slotCount = 2;
         if (g_SndBank[2].handle != 0) {
             destroySndBank(g_SndBank[2].handle);
@@ -1037,7 +1037,7 @@ int CalcPanVolume(int panL, int panR) // 0x00480610
 // ============================================================================
 void Play3DSnd(int bank, int soundId, int vol, int pos) // 0x0047f9c0
 {
-    VECTOR* soundPos = (VECTOR*)pos;
+    VECTOR* soundPos = P<VECTOR>(pos);
     int handle = 0;
 
     switch (bank) {

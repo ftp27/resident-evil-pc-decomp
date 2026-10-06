@@ -625,7 +625,7 @@ int tyrant_player_distance(void)
 // Every hit test and blood billboard in the file starts with this.
 void tyrant_load_fx_anchor(int y)
 {
-    const int* dead = (const int*)((char*)(uintptr_t)g_deadMoveValue + 0x14);
+    const int* dead = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch.x   = dead[0];
     g_playerPosScratch.z   = dead[2];
     g_playerPosScratch.pad = dead[3];
@@ -679,7 +679,7 @@ void tyrant_flash_claw_and_stagger(unsigned char playerBehavior)
 // around is_facing_toward_entity so the reaction picks the right side.
 void tyrant_latch_player_attacker(short yawBias)
 {
-    g_playerEntity.unk_b8 = (unsigned int)(uintptr_t)ENTITY;
+    g_playerEntity.unk_b8 = O(ENTITY);
     ew(ENTITY, 0x74) = (short)(ew(ENTITY, 0x74) + yawBias);
     g_playerEntity.attackAnim = (unsigned char)is_facing_toward_entity(&g_playerEntity);
     ew(ENTITY, 0x74) = (short)(ew(ENTITY, 0x74) - yawBias);
@@ -690,7 +690,7 @@ void tyrant_latch_player_attacker(short yawBias)
 // every enemy AI reads, NOT a defense-item check).
 void tyrant_damage_player(int base, int withFlag)
 {
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+    if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
         g_playerEntity.health = (short)(g_playerEntity.health - base);
     else
         g_playerEntity.health = (short)(g_playerEntity.health - withFlag);
@@ -835,7 +835,7 @@ void tyrant_draw_claw_ghosts(void)
 
     for (int i = 1; i >= 0; i--) {
         MATRIX view;
-        ApplyLVAndMul0Matrix(reinterpret_cast<void*>(static_cast<uintptr_t>(g_RoomCameraDataCopy)),
+        ApplyLVAndMul0Matrix(P<void>(g_RoomCameraDataCopy),
                              block + i * 0x7c + 0x44, &view);
         SetRotAndTransMatrix(&view);
         FUN_00483250(0, 0, 0, *(int*)(block + 0x18 + i * 0x7c), 0, 4, spriteSlot);
@@ -863,9 +863,9 @@ void tyrant_draw_heart(void)
     if (joints == nullptr) return;
     if (g_RoomCameraDataCopy == 0) return;
 
-    Entity* heart = reinterpret_cast<Entity*>(static_cast<uintptr_t>(eu(owner, 0x170)));
+    Entity* heart = P<Entity>(eu(owner, 0x170));
     if (!tyrant_pool_pointer(heart, sizeof(Entity))) return;
-    if (!tyrant_pool_pointer((const void*)(uintptr_t)heart->unk_18, 0xb4)) return;
+    if (!tyrant_pool_pointer(P<const void>(heart->unk_18), 0xb4)) return;
 
     update_entity_lighting(reinterpret_cast<VECTOR*>(&owner->scaMatrixData.localMatrix.t[0]));
 
@@ -896,12 +896,12 @@ void tyrant_draw_heart(void)
     ApplyLVAndMul0Matrix(anchor, &heart->scaMatrixData.localMatrix, &local);
     ew(heart, 0x6e) = (short)local.t[1];
 
-    ApplyLVAndMul0Matrix(reinterpret_cast<void*>(static_cast<uintptr_t>(g_RoomCameraDataCopy)),
+    ApplyLVAndMul0Matrix(P<void>(g_RoomCameraDataCopy),
                          &local, &g_matrixScratch);
 
     MATRIX lightMatrix = local;
     if (g_lightMatrixPtr != 0)
-        MulMatrix0(reinterpret_cast<MATRIX*>(static_cast<uintptr_t>(g_lightMatrixPtr)),
+        MulMatrix0(P<MATRIX>(g_lightMatrixPtr),
                    anchor, &lightMatrix);
 
     g_entityJointPosX = (int)heart->modelLoadBuffer;
@@ -925,10 +925,10 @@ void tyrant_clone_entity(unsigned char count, int /*animSlotBytes*/,
     g_playerDisplacement = (int)(*(unsigned int*)((char*)ENTITY->jointsStructs + 0x14) +
                                  (unsigned int)jointIndex * 0x1c);
 
-    *out = (unsigned int)(uintptr_t)g_loadDataDestPointer;
+    *out = O(g_loadDataDestPointer);
     g_loadDataDestPointer = (char*)g_loadDataDestPointer + (unsigned int)count * 0x18c;
 
-    Entity* copy = reinterpret_cast<Entity*>(static_cast<uintptr_t>(*out));
+    Entity* copy = P<Entity>(*out);
     MATRIX savedLocal = ENTITY->scaMatrixData.localMatrix;
 
     unsigned char remaining = count;
@@ -937,11 +937,11 @@ void tyrant_clone_entity(unsigned char count, int /*animSlotBytes*/,
         copy->scaMatrixData.localMatrix = savedLocal;
         ew(copy, 0x74) = (short)(ew(copy, 0x74) + (short)((unsigned short)remaining * 0x100));
         copy->modelLoadBuffer = (unsigned int)g_playerDisplacement;
-        copy->unk_18 = (unsigned int)(uintptr_t)g_loadDataDestPointer;
-        SetAnimSlot(reinterpret_cast<AnimSlot*>(static_cast<uintptr_t>(copy->modelLoadBuffer)),
-                    (int)&copy->unk_0c, 0);
-        g_loadDataDestPointer = CreateAnimObject((int)&copy->unk_0c,
-            reinterpret_cast<unsigned int*>(static_cast<uintptr_t>(copy->unk_18)));
+        copy->unk_18 = O(g_loadDataDestPointer);
+        SetAnimSlot(P<AnimSlot>(copy->modelLoadBuffer),
+                    (int)O(&copy->unk_0c), 0);
+        g_loadDataDestPointer = CreateAnimObject((int)O(&copy->unk_0c),
+            P<unsigned int>(copy->unk_18));
         copy->state = 0;
         copy->action_state = (unsigned char)((rand() & 3) == 0);
         copy = reinterpret_cast<Entity*>((char*)copy + 0x18c);
@@ -966,11 +966,11 @@ void tyrant_behavior_restrained(void)
         eub(ENTITY, 0x8c) = 0x0f;
         ty_anim() = 8;
         euw(ENTITY, 0x88) = 0xffff;          // health = -1: unkillable while bound
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on((int)O(g_EnemiesFlags), ENTITY->death_event_id);
     } else if (sub != 1) {
         if (sub == 2) {
             ENTITY->status_flags |= 10;
-            Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+            Flg_on((int)O(g_EnemiesFlags), ENTITY->death_event_id);
         }
         tyrant_root_motion(0, 0);
         Add_speedXZ(0);
@@ -990,7 +990,7 @@ void tyrant_behavior_restrained(void)
 // --- 0x00424d70 - behaviour 1: hand control to the SCD ----------------------
 void tyrant_behavior_yield_to_scd(void)
 {
-    Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+    Flg_on((int)O(g_EnemiesFlags), ENTITY->death_event_id);
     ENTITY->behavior_flags |= 0x40;
     ty_frame() = 0;
     eub(ENTITY, 0xbf) = 0;
@@ -1178,7 +1178,7 @@ void tyrant_behavior_claw_slash(void)
 
             // The 0xFC00 knock-back bias, and NO +1 on the dx == 0 path - both
             // verified against 0x00422b04 / 0x00422b21.
-            if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+            if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                 if (ENTITY->id == 0x10 && g_playerEntity.health > 0x0c) {
                     tyrant_set_player_knockback((short)0xfc00, 0);
                     eub(ENTITY, 0x181) = 0xd2;
@@ -1256,7 +1256,7 @@ void tyrant_behavior_claw_thrust(void)
             tyrant_flash_claw_and_stagger(1);
 
             int hp = (int)g_playerEntity.health;
-            if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+            if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                 if (hp > 0x10) tyrant_set_player_knockback(0x400, 1);
             } else {
                 if (hp > 0x14) tyrant_set_player_knockback(0x400, 1);
@@ -1373,7 +1373,7 @@ void tyrant_behavior_impale(void)
         g_playerEntity.animFrameId = 0xc;
         g_playerEntity.action_behavior = 0;
         g_playerEntity.action_state = 0;
-        g_playerEntity.unk_b8 = (unsigned int)(uintptr_t)ENTITY;
+        g_playerEntity.unk_b8 = O(ENTITY);
         Snd_em(1);
         g_tyTrailTimer = 0x802f;
     } else if (sub != 1) {
@@ -1426,12 +1426,12 @@ void tyrant_behavior_charge(void)
         eub(ENTITY, 0x8c) = 7;
         ty_anim() = 2;
         ty_speed() = 0x190;
-        if (Flg_ck((int)g_SysFlags, 0x1e) != 0) ty_speed() = 0x12c;
+        if (Flg_ck((int)O(g_SysFlags), 0x1e) != 0) ty_speed() = 0x12c;
         eub(ENTITY, 0x17f) = 0x0f;
         // fallthrough
     case 1: {
         entity_rotate_toward_target((VECTOR*)ty_playerT(),
-                                    Flg_ck((int)g_SysFlags, 0x1e) == 0 ? 0x20 : 0x30);
+                                    Flg_ck((int)O(g_SysFlags), 0x1e) == 0 ? 0x20 : 0x30);
         Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x200);
 
         tyrant_player_distance();
@@ -1446,7 +1446,7 @@ void tyrant_behavior_charge(void)
         int sx = ei(ENTITY, 0x34), sy = ei(ENTITY, 0x38), sz = ei(ENTITY, 0x3c);
         g_playerDisplacement = (int)check_room_collision(
             reinterpret_cast<VECTOR*>(&ei(ENTITY, 0x34)),
-            *(short*)((char*)(uintptr_t)ENTITY->Sca_info + 10));
+            *(short*)(P<char>(ENTITY->Sca_info) + 10));
         ei(ENTITY, 0x34) = sx; ei(ENTITY, 0x38) = sy; ei(ENTITY, 0x3c) = sz;
         if (g_playerDisplacement != 0) ty_sub() = 2;
 
@@ -1527,7 +1527,7 @@ void tyrant_behavior_erupt(void)
         ty_ticks() = 0x3c;
         play_sound_and_voice_effect(1, 0x2d);
         g_main_state_flags |= MSF_VOICE_PLAYING;
-        Play3DSnd(2, 0x1c, 0, (int)&ei(ENTITY, 0x34));
+        Play3DSnd(2, 0x1c, 0, (int)O(&ei(ENTITY, 0x34)));
         srand(0xb23);
         // fallthrough
     case 1: {
@@ -1586,8 +1586,8 @@ void tyrant_behavior_erupt(void)
                 ei(ENTITY, 0x3c) -= 0x14;
                 ei(ENTITY, 0x34) -= 0x14;
             }
-            if (ty_frame() == 0x34) Play3DSnd(2, 0x1d, 0, (int)&ei(ENTITY, 0x34));
-            if (ty_frame() == 0x40) Play3DSnd(2, 0x1e, 0, (int)&ei(ENTITY, 0x34));
+            if (ty_frame() == 0x34) Play3DSnd(2, 0x1d, 0, (int)O(&ei(ENTITY, 0x34)));
+            if (ty_frame() == 0x40) Play3DSnd(2, 0x1e, 0, (int)O(&ei(ENTITY, 0x34)));
 
             ei(ENTITY, 0x38) -= 10;
             if (ei(ENTITY, 0x38) < 0) ei(ENTITY, 0x38) = 0;
@@ -1650,7 +1650,7 @@ void tyrant_behavior_rush(void)
         eub(ENTITY, 0x8c) = 7;
         ty_anim() = 2;
         ty_speed() = 0x190;
-        if (Flg_ck((int)g_SysFlags, 0x1e) != 0) ty_speed() = 0x12c;
+        if (Flg_ck((int)O(g_SysFlags), 0x1e) != 0) ty_speed() = 0x12c;
         ty_ticks() = 0x3c;
         eub(ENTITY, 0x17f) = 0x0d;
         // fallthrough
@@ -1669,7 +1669,7 @@ void tyrant_behavior_rush(void)
         int sx = ei(ENTITY, 0x34), sy = ei(ENTITY, 0x38), sz = ei(ENTITY, 0x3c);
         g_playerDisplacement = (int)check_room_collision(
             reinterpret_cast<VECTOR*>(&ei(ENTITY, 0x34)),
-            *(short*)((char*)(uintptr_t)ENTITY->Sca_info + 10));
+            *(short*)(P<char>(ENTITY->Sca_info) + 10));
         ei(ENTITY, 0x34) = sx; ei(ENTITY, 0x38) = sy; ei(ENTITY, 0x3c) = sz;
 
         if (ty_ticks() != 0) ty_ticks() = (short)(ty_ticks() - 1);
@@ -1705,7 +1705,7 @@ void tyrant_behavior_rush(void)
                 tyrant_flash_claw_and_stagger(1);
 
                 int hp = (int)g_playerEntity.health;
-                if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+                if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                     if (hp > 0x0c) tyrant_set_player_knockback(0x400, 1);
                 } else {
                     if (hp > 0x12) tyrant_set_player_knockback(0x400, 1);
@@ -1868,7 +1868,7 @@ void tyrant_think_roof(void)
         }
     }
 
-    if (Flg_ck((int)g_SysFlags, 0x1e) != 0 && g_playerDisplacement < 0xa8c &&
+    if (Flg_ck((int)O(g_SysFlags), 0x1e) != 0 && g_playerDisplacement < 0xa8c &&
         (short)turn_toward_target((VECTOR*)ty_playerT(), 0x200) == 0) {
         set_state_word(0x00070101);          // behaviour 7 -> impale
     }
@@ -1926,11 +1926,11 @@ static void tyrant_init(void)
     ENTITY->health = 0xdc;                                   // 220
     if (ENTITY->id == 0x10) ENTITY->health = 600;
 
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)s_tyrantScaInfo;   // PTR_DAT_004ba24c
+    ENTITY->Sca_info = O(s_tyrantScaInfo);   // PTR_DAT_004ba24c
 
     // The exposed heart: one clone parked at ENTITY+0x170, riding joint 1.
     tyrant_clone_entity(1, 5000, ENTITY->jointCount, &eu(ENTITY, 0x170));
-    Entity* heart = reinterpret_cast<Entity*>(static_cast<uintptr_t>(eu(ENTITY, 0x170)));
+    Entity* heart = P<Entity>(eu(ENTITY, 0x170));
     ew(heart, 0x72) = 0;
     ew(heart, 0x74) = 0;
     ew(heart, 0x76) = 0;
@@ -1989,8 +1989,8 @@ static void tyrant_init(void)
     }
     for (int i = 1; i >= 0; i--) {
         char* dst = block + i * 0x7c;
-        *(unsigned int**)(dst + 0x18) = (unsigned int*)g_loadDataDestPointer;
-        g_loadDataDestPointer = CreateAnimObject((int)(dst + 0x0c),
+        *(uint32_t*)(dst + 0x18) = O(g_loadDataDestPointer);   // anim_object: 4-byte slot
+        g_loadDataDestPointer = CreateAnimObject((int)O(dst + 0x0c),
                                                  (unsigned int*)g_loadDataDestPointer);
     }
     JointApplyColorTint(reinterpret_cast<JointStruct*>(block), 0xff, 0xff, (void*)0xff);
@@ -2155,7 +2155,7 @@ void em_scd_behavior_walk_to(void)
         if ((ENTITY->behavior_flags & 1) != 0) ty_ticks() = 1;
     } else if (sub != 1) {
         if (sub == 2) {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on((int)O(g_SysFlags), ENTITY->scd_anim_param);
             if ((ENTITY->collisionFlags & 0x80) == 0) {
                 // ONE 16-bit store: it clears action_behavior AND action_state.
                 euw(ENTITY, 0x86) = 0;
@@ -2295,7 +2295,7 @@ void em_scd_behavior_break_glass(void)
         ty_anim() = 6;
     } else if (sub != 1) {
         if (sub != 2) return;
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on((int)O(g_SysFlags), ENTITY->scd_anim_param);
         euw(ENTITY, 0x86) = 0;
         return;
     }
@@ -2308,7 +2308,7 @@ void em_scd_behavior_break_glass(void)
         g_playerPosScratch.y = -0x1004;
         g_playerPosScratch.z = 5000;
         Effect_CreateBillboard(1, 0, 0, nullptr, &g_playerPosScratch, 0);
-        Play3DSnd(2, 0x19, 0, (int)&g_playerPosScratch);
+        Play3DSnd(2, 0x19, 0, (int)O(&g_playerPosScratch));
     }
 
     if (ty_frame() == 0x55) {
@@ -2317,8 +2317,8 @@ void em_scd_behavior_break_glass(void)
         g_playerPosScratch.z = 5000;
         play_sound_and_voice_effect(1, 0xb3);
         g_main_state_flags |= MSF_VOICE_PLAYING;
-        Play3DSnd(2, 0x1a, 0, (int)&g_playerPosScratch);
-        Play3DSnd(2, 0x1b, 0, (int)&g_playerPosScratch);
+        Play3DSnd(2, 0x1a, 0, (int)O(&g_playerPosScratch));
+        Play3DSnd(2, 0x1b, 0, (int)O(&g_playerPosScratch));
     }
 
     if (ty_frame() == 0x59) {
@@ -2328,7 +2328,7 @@ void em_scd_behavior_break_glass(void)
             g_playerPosScratch.x = (rand() & s.xzMask) + s.xBase;
             g_playerPosScratch.z = (rand() & s.xzMask) + s.zBase;
             Effect_CreateBillboard(0x15, s.variant, (short)g_animFrameIdSave,
-                                   (void*)(uintptr_t)g_deadMoveValue,
+                                   P<void>(g_deadMoveValue),
                                    &g_playerPosScratch, (char)s.life);
         }
     }
@@ -2379,7 +2379,7 @@ void em_scd_behavior_pod(void)
     case 3:
         ei(ENTITY, 0x38) += 4;
         if (ei(ENTITY, 0x38) > 0) {
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on((int)O(g_SysFlags), ENTITY->scd_anim_param);
             ty_sub()++;
             ei(ENTITY, 0x38) = 0;
         }
@@ -2389,7 +2389,7 @@ void em_scd_behavior_pod(void)
     }
 
     // The release: checked every frame, from any sub.
-    if (Flg_ck((int)g_SysFlags, 0x1f) != 0) ty_sub() = 3;
+    if (Flg_ck((int)O(g_SysFlags), 0x1f) != 0) ty_sub() = 3;
 }
 
 // ---------------------------------------------------------------------------
@@ -2470,20 +2470,20 @@ void em_scd_behavior_rocket_death(void)
         ty_ticks() = 0;
         srand(1534);
 
-        Entity* heart = reinterpret_cast<Entity*>(static_cast<uintptr_t>(eu(ENTITY, 0x170)));
+        Entity* heart = P<Entity>(eu(ENTITY, 0x170));
         if (tyrant_pool_pointer(heart, sizeof(Entity)))
             ew(heart, 0x70) = (short)0xfed4;
 
-        Play3DSnd(2, 0x19, 0, (int)&ei(ENTITY, 0x34));
-        Play3DSnd(2, 0x1a, 0, (int)&ei(ENTITY, 0x34));
-        Play3DSnd(2, 0x1b, 0, (int)&ei(ENTITY, 0x34));
+        Play3DSnd(2, 0x19, 0, (int)O(&ei(ENTITY, 0x34)));
+        Play3DSnd(2, 0x1a, 0, (int)O(&ei(ENTITY, 0x34)));
+        Play3DSnd(2, 0x1b, 0, (int)O(&ei(ENTITY, 0x34)));
 
         joints[0] = (char)(joints[0] | 0x28);
-        joint_setup_attack_effect((int)(joints         ), 0x13, 0x0c, 3);
-        joint_setup_attack_effect((int)(joints + 0x07c), 0x13, 0,    3);
-        joint_setup_attack_effect((int)(joints + 0x174), 0x13, 0,    3);
-        joint_setup_attack_effect((int)(joints + 0x2e8), 0x13, 0,    3);
-        joint_setup_attack_effect((int)(joints + 0x45c), 0x13, 0,    3);
+        joint_setup_attack_effect((int)O(joints         ), 0x13, 0x0c, 3);
+        joint_setup_attack_effect((int)O(joints + 0x07c), 0x13, 0,    3);
+        joint_setup_attack_effect((int)O(joints + 0x174), 0x13, 0,    3);
+        joint_setup_attack_effect((int)O(joints + 0x2e8), 0x13, 0,    3);
+        joint_setup_attack_effect((int)O(joints + 0x45c), 0x13, 0,    3);
 
         // Five limbs, each with its own launch velocity and tumble axis.
         struct { unsigned int off; short vx, vy, vz; short tx, ty, tz; } kLimbs[5] = {
@@ -2542,16 +2542,16 @@ void em_scd_behavior_rocket_death(void)
 
     // ---- sub 1: the blast ----
     if (ty_ticks() == 2) {
-        Play3DSnd(2, 0x19, 0, (int)&ei(ENTITY, 0x34));
-        Play3DSnd(2, 0x1a, 0, (int)&ei(ENTITY, 0x34));
-        Play3DSnd(2, 0x1b, 0, (int)&ei(ENTITY, 0x34));
+        Play3DSnd(2, 0x19, 0, (int)O(&ei(ENTITY, 0x34)));
+        Play3DSnd(2, 0x1a, 0, (int)O(&ei(ENTITY, 0x34)));
+        Play3DSnd(2, 0x1b, 0, (int)O(&ei(ENTITY, 0x34)));
     }
     if (ty_ticks() == 6) {
-        Play3DSnd(2, 0x19, 0, (int)&ei(ENTITY, 0x34));
-        Play3DSnd(2, 0x1a, 0, (int)&ei(ENTITY, 0x34));
-        Play3DSnd(2, 0x1b, 0, (int)&ei(ENTITY, 0x34));
+        Play3DSnd(2, 0x19, 0, (int)O(&ei(ENTITY, 0x34)));
+        Play3DSnd(2, 0x1a, 0, (int)O(&ei(ENTITY, 0x34)));
+        Play3DSnd(2, 0x1b, 0, (int)O(&ei(ENTITY, 0x34)));
     }
-    if (ty_ticks() == 9) Play3DSnd(2, 0x19, 0, (int)&ei(ENTITY, 0x34));
+    if (ty_ticks() == 9) Play3DSnd(2, 0x19, 0, (int)O(&ei(ENTITY, 0x34)));
 
     if (ty_frame() < 0x0e) {
         // The rocket's smoke streak, walking away from the body along a fixed
@@ -2642,7 +2642,7 @@ void em_scd_behavior_rocket_death(void)
     }
 
     // The exposed heart drops out of the chest once it clears -400.
-    Entity* heart = reinterpret_cast<Entity*>(static_cast<uintptr_t>(eu(ENTITY, 0x170)));
+    Entity* heart = P<Entity>(eu(ENTITY, 0x170));
     if (tyrant_pool_pointer(heart, sizeof(Entity))) {
         if (ew(heart, 0x6e) < -400) {
             ei(heart, 0x38) += (int)ew(heart, 0x70);
@@ -2673,7 +2673,7 @@ void em_scd_behavior_anim(void)
     }
 
     if ((char)Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x80) != 0) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on((int)O(g_SysFlags), ENTITY->scd_anim_param);
         euw(ENTITY, 0x86) = 0;
     }
 }
@@ -2699,7 +2699,7 @@ void em_scd_behavior_face_player(void)
     short prev = ty_ticks();
     ty_ticks() = (short)(prev - 1);
     if (prev == 0 || (int)g_animFrameIdSave == 0) {
-        Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+        Flg_on((int)O(g_SysFlags), ENTITY->scd_anim_param);
         euw(ENTITY, 0x86) = 0;
         ew(ENTITY, 0x166) = (short)g_playerEntity.scaMatrixData.localMatrix.t[0];
         ew(ENTITY, 0x168) = (short)g_playerEntity.scaMatrixData.localMatrix.t[2];
@@ -2726,7 +2726,7 @@ void em_scd_behavior_strike(void)
         Snd_em(1);
     } else if (sub != 1) {
         if (sub != 2) return;
-        Flg_on((int)g_SysFlags, 0x1e);
+        Flg_on((int)O(g_SysFlags), 0x1e);
         euw(ENTITY, 0x86) = 0;
         return;
     }
@@ -2769,7 +2769,7 @@ void em_scd_behavior_impale(void)
     }
     if (sub != 1) {
         if (sub != 2) return;
-        Flg_on((int)g_SysFlags, 0x1e);
+        Flg_on((int)O(g_SysFlags), 0x1e);
         ENTITY->action_behavior = 0;
         ty_sub() = 0;
         ty_hitMask() &= 0xf8;
@@ -2881,7 +2881,7 @@ static void tyrant_state_scd(void)
             lastSub = ENTITY->action_state;
             dbg_printf("[TYRANT] scd behaviour %u sub %u  y=%d flg1e=%u flg1f=%u victim=%p\n",
                        b, ENTITY->action_state, ei(ENTITY, 0x38),
-                       Flg_ck((int)g_SysFlags, 0x1e), Flg_ck((int)g_SysFlags, 0x1f),
+                       Flg_ck((int)O(g_SysFlags), 0x1e), Flg_ck((int)O(g_SysFlags), 0x1f),
                        (void*)g_emScdVictim);
         }
         if (b < 18 && s_emScdBehaviors[b] != nullptr) s_emScdBehaviors[b]();
@@ -2939,7 +2939,7 @@ void tyrant_update(void)
             HandleEnemyPlayerCollisions();
             eub(ENTITY, 0x16c) |= check_room_collision(
                 reinterpret_cast<VECTOR*>(&ei(ENTITY, 0x34)),
-                *(short*)((char*)(uintptr_t)ENTITY->Sca_info + 10));
+                *(short*)(P<char>(ENTITY->Sca_info) + 10));
             ew(ENTITY, 0x17c) = (short)(unsigned int)(uintptr_t)g_tempVar;
         }
 
@@ -3023,7 +3023,7 @@ void tyrant_update(void)
     // room's "boss dead" flag goes up and the health is pinned so the death
     // behaviour runs exactly once.
     if ((ty_flags() & 8) == 0 && ENTITY->id == 0x10 && ENTITY->health < 0xc9) {
-        Flg_on((int)g_SysFlags, 0x1f);
+        Flg_on((int)O(g_SysFlags), 0x1f);
         ENTITY->health = 200;
     }
 
@@ -3052,9 +3052,9 @@ void tyrant_update(void)
 namespace {
 
 // The attacker the player latched into unk_b8 when the hit landed.
-inline char* ty_attacker(void) { return (char*)(uintptr_t)g_playerEntity.unk_b8; }
+inline char* ty_attacker(void) { return P<char>(g_playerEntity.unk_b8); }
 
-inline int ty_playerSoundPos(void) { return (int)g_playerEntity.scaMatrixData.localMatrix.t; }
+inline int ty_playerSoundPos(void) { return (int)O(g_playerEntity.scaMatrixData.localMatrix.t); }
 
 // Bleed the player's knock-back speed off, clamped at zero.  0xC2 is unsigned
 // in the struct but the original compares it signed.
@@ -3101,14 +3101,14 @@ void player_tyrant_stagger(short startSpeed, int decay, int bloodY, int pushBias
         Play3DSnd(3, g_playerEntity.attackAnim + 1, 0, ty_playerSoundPos());
 
     if (g_playerEntity.animation_frame_id < 4) {
-        const int* dead = (const int*)((char*)(uintptr_t)g_deadMoveValue + 0x14);
+        const int* dead = (const int*)(P<char>(g_deadMoveValue) + 0x14);
         g_playerPosScratch.x   = dead[0];
         g_playerPosScratch.z   = dead[2];
         g_playerPosScratch.pad = dead[3];
         g_playerPosScratch.y   = 800;
         // Blood off the Tyrant's claw (its joint 8 world matrix)...
         Effect_CreateBillboard(0, 0, 0,
-            (void*)(*(int*)(ty_attacker() + 0x98) + 0x424), &g_playerPosScratch, 0);
+            (void*)(P<char>(*(uint32_t*)(ty_attacker() + 0x98)) + 0x424), &g_playerPosScratch, 0);
         // ...and off the player.
         g_playerPosScratch.y = bloodY;
         Effect_CreateBillboard(0, 0, 0,
@@ -3167,7 +3167,7 @@ void player_tyrant_hit_02(void)
 
         g_playerDisplacement = (int)check_room_collision(
             (VECTOR*)g_playerEntity.scaMatrixData.localMatrix.t,
-            *(short*)((char*)(uintptr_t)g_playerEntity.Sca_info + 10));
+            *(short*)(P<char>(g_playerEntity.Sca_info) + 10));
 
         g_playerEntity.scaMatrixData.localMatrix.t[0] = sx;
         g_playerEntity.scaMatrixData.localMatrix.t[1] = sy;
@@ -3191,7 +3191,7 @@ void player_tyrant_hit_02(void)
     case 3: {
         if ((g_playerEntity.animation_frame_id & 1) == 0 &&
             g_playerEntity.animation_frame_id < 10) {
-            const int* dead = (const int*)((char*)(uintptr_t)g_deadMoveValue + 0x14);
+            const int* dead = (const int*)(P<char>(g_deadMoveValue) + 0x14);
             g_playerPosScratch.x   = dead[0];
             g_playerPosScratch.y   = dead[1];   // full anchor here, y NOT overridden
             g_playerPosScratch.z   = dead[2];
@@ -3224,7 +3224,7 @@ void player_tyrant_hit_02(void)
         g_playerEntity.unk_8c = 3;
         Play3DSnd(2, 0x20, 0, ty_playerSoundPos());
         Play3DSnd(3, 2, 0, ty_playerSoundPos());
-        const int* dead = (const int*)((char*)(uintptr_t)g_deadMoveValue + 0x14);
+        const int* dead = (const int*)(P<char>(g_deadMoveValue) + 0x14);
         JointStruct* j = g_playerEntity.jointsStructs;
         g_playerPosScratch.y   = dead[1];
         g_playerPosScratch.z   = dead[2];

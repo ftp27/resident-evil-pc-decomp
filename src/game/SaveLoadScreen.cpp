@@ -586,7 +586,7 @@ unsigned int Flg_ck(int baseAddr, unsigned int bitIndex)
     // Original: *(uint*)(((bitIndex & 0xffffffe7) >> 3) + baseAddr) & (0x80000000 >> (bitIndex & 0x1f))
     unsigned int wordIndex = (bitIndex & 0xFFFFFFE7) >> 3;
     unsigned int bitMask = 0x80000000 >> (bitIndex & 0x1F);
-    unsigned int* flagWord = (unsigned int*)((unsigned char*)baseAddr + wordIndex);
+    unsigned int* flagWord = (unsigned int*)(P<unsigned char>(baseAddr) + wordIndex);
     return *flagWord & bitMask;
 }
 
@@ -1102,7 +1102,7 @@ void LoadSaveGameState(int mode, int flags, int useInkRibbon, int sfxBank, int c
             // Chris always spends one when the typewriter offers it.
             if ((useInkRibbon != 0) &&
                 (((g_playerEntityPointer.id & 3) != 1) ||
-                 (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0))) {
+                 (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0))) {
                 g_selectedItemId = ITEM_INK_RIBBONS;
                 use_room_action_item();
             }

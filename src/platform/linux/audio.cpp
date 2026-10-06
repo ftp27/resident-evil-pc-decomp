@@ -14,6 +14,7 @@
 //   - GetStatus returns 1 while the bank is playing, 0 otherwise
 #include "Globals.h"
 #include "platform/platform.h"
+#include "platform/linux/testmode.h"
 #include "marni/MarniSound.h"
 #include "system/AssetPath.h"
 #include "system/AudioFile.h"
@@ -407,7 +408,14 @@ void InitializeSoundSystem(void)
     want.format   = AUDIO_S16SYS;
     want.channels = 2;
     want.samples  = 1024;
-    want.callback = MixCallback;
+    // A test run mixes from plat_audio_push_tick and queues the result, so
+    // the bank state the game polls advances with the frame count, not with
+    // the sound card (testmode.h). A muted run opens no device at all.
+    want.callback = test_active() ? NULL : MixCallback;
+    if (test_active() && test_mute()) {
+        fprintf(stderr, "[AUDIO] test run: mixing without an output device\n");
+        return;
+    }
 
     SDL_AudioSpec have = {};
     s_dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
@@ -432,6 +440,27 @@ void InitializeSoundSystem(void)
                 "[AUDIO] WARNING: no sound card found - ALSA is using a null device, "
                 "so audio will be silent. Under WSLg this usually means the PulseAudio "
                 "bridge died; restart WSL (`wsl --shutdown`) and try again.\n");
+    }
+}
+
+// Test runs (testmode.h): mix `ms` worth of output. The remainder is carried,
+// so 33 ms frames at 22050 Hz average out exactly instead of drifting.
+void plat_audio_push_tick(int ms)
+{
+    static long s_remainder = 0;      // in units of 1/1000 frame
+    static Sint16 s_buf[8192 * 2];
+
+    long scaled = (long)OUT_RATE * ms + s_remainder;
+    int frames = (int)(scaled / 1000);
+    s_remainder = scaled % 1000;
+    if (frames <= 0) return;
+    if (frames > 8192) frames = 8192;
+
+    MixCallback(NULL, (Uint8*)s_buf, frames * 4);
+    if (s_dev != 0) {
+        // Keep at most ~250 ms queued, so a stall cannot build up latency.
+        if (SDL_GetQueuedAudioSize(s_dev) > (Uint32)OUT_RATE) SDL_ClearQueuedAudio(s_dev);
+        SDL_QueueAudio(s_dev, s_buf, (Uint32)frames * 4);
     }
 }
 

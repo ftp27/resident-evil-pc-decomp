@@ -210,12 +210,12 @@ inline VECTOR* player_pos_vec(void)  { return (VECTOR*)g_playerEntity.scaMatrixD
 // The dead-move matrix (0x00d1fdd0) HOLDS a pointer - see the note in
 // CharacterNpc.cpp.  Its translation block at +0x14 is the room-space anchor
 // every Yawn billboard is spawned from.
-inline const int* dead_move_pos(void) { return (const int*)((char*)g_deadMoveValue + 0x14); }
+inline const int* dead_move_pos(void) { return (const int*)(P<char>(g_deadMoveValue) + 0x14); }
 
 // The original inlines this 32-byte copy at four sites (`REP MOVSD ECX=8`).
 inline void copy_dead_move_matrix(void)
 {
-    memcpy(&g_matrixScratch, (const void*)g_deadMoveValue, sizeof(MATRIX));
+    memcpy(&g_matrixScratch, P<const void>(g_deadMoveValue), sizeof(MATRIX));
 }
 
 // 0x0040a250 - transpose the 3x3 short block of a MATRIX.  MainMenu.cpp and
@@ -410,11 +410,12 @@ unsigned char yawn_anim_advance(unsigned char reverse, short blendStep)
         return 0;
     }
 
-    int animHeader = (int)ENTITY->animHeader;
+    unsigned char* animHeader = P<unsigned char>(ENTITY->animHeader);
     g_playerDisplacement = (int)(*(short*)(animHeader + 6) / 2);
 
-    unsigned short* slot = (unsigned short*)(ENTITY->animBase + (unsigned int)eub(ENTITY, 0xbd) * 4);
-    int frames = (int)((slot[1] & ~3u) + ENTITY->animBase);
+    unsigned char* animBase = P<unsigned char>(ENTITY->animBase);
+    unsigned short* slot = (unsigned short*)(animBase + (unsigned int)eub(ENTITY, 0xbd) * 4);
+    unsigned char* frames = (slot[1] & ~3u) + animBase;
 
     unsigned short* frame;
     if (reverse == 0) {
@@ -425,7 +426,7 @@ unsigned char yawn_anim_advance(unsigned char reverse, short blendStep)
 
     char* j = (char*)ENTITY->jointsStructs;
 
-    int poseBase = animHeader
+    unsigned char* poseBase = animHeader
                  + (short)((int)((int)*(short*)(animHeader + 2)
                                  + ((int)*(short*)(animHeader + 2) >> 31 & 3u)) >> 2) * 4
                  + (unsigned int)frame[0] * g_playerDisplacement * 2;
@@ -603,17 +604,18 @@ unsigned char yawn_anim_advance(unsigned char reverse, short blendStep)
 // ============================================================================
 void yawn_pose_init(void)
 {
-    int animHeader = (int)ENTITY->animHeader;
+    unsigned char* animHeader = P<unsigned char>(ENTITY->animHeader);
     g_playerDisplacement = (int)(*(short*)(animHeader + 6) / 2);
 
     char* j = (char*)ENTITY->jointsStructs;
 
-    unsigned short frameOff = *(unsigned short*)(ENTITY->animBase + 2
+    unsigned char* animBase = P<unsigned char>(ENTITY->animBase);
+    unsigned short frameOff = *(unsigned short*)(animBase + 2
                                                  + (unsigned int)eub(ENTITY, 0xbd) * 4);
     unsigned short frameIdx = *(unsigned short*)((frameOff & ~3u)
                                                  + (unsigned int)eub(ENTITY, 0xbe) * 4
-                                                 + ENTITY->animBase);
-    int poseBase = animHeader
+                                                 + animBase);
+    unsigned char* poseBase = animHeader
                  + (short)((int)((int)*(short*)(animHeader + 2)
                                  + ((int)*(short*)(animHeader + 2) >> 31 & 3u)) >> 2) * 4
                  + (unsigned int)frameIdx * g_playerDisplacement * 2;
@@ -683,7 +685,7 @@ void yawn_post_move(short angleStep)
     }
 
     g_playerDisplacement = check_room_collision(entity_pos(),
-                                                *(short*)(ENTITY->Sca_info + 10));
+                                                *(short*)(P<char>(ENTITY->Sca_info) + 10));
 
     if ((ENTITY->behavior_flags & 1) == 0) {
         if (g_playerDisplacement == 0) {
@@ -730,7 +732,7 @@ void yawn_spawn_dust(int side)
     g_playerPosScratch.x = g_matrixScratch.t[0];
     g_playerPosScratch.y = g_matrixScratch.t[1];
     g_playerPosScratch.z = g_matrixScratch.t[2];
-    Effect_CreateBillboard(0, 4, 0, (void*)g_deadMoveValue, &g_playerPosScratch, 0x14);
+    Effect_CreateBillboard(0, 4, 0, P<void>(g_deadMoveValue), &g_playerPosScratch, 0x14);
 }
 
 // ============================================================================
@@ -875,7 +877,7 @@ void yawn_action_bite(void)
             if (player_distance_z != 0 && g_playerEntity.isBeingAttackedFlag == 0) {
                 g_animFrameIdSave = is_facing_toward_entity(&g_playerEntity) & 0xff;
 
-                if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+                if (Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                     g_playerEntity.health = (short)(g_playerEntity.health - 10);
                 } else {
                     g_playerEntity.health = (short)(g_playerEntity.health - 0x1c);
@@ -900,8 +902,8 @@ void yawn_action_bite(void)
 
                 // Only the FIRST Yawn (entity id 13) poisons, and only if the
                 // serum has not already been taken.
-                if (ENTITY->id == 0x0d && Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_YAWN_SERUM) == 0) {
-                    Flg_on((int)&g_ScenarioFlags2, SCENARIO2_FLAG_YAWN_POISONED);
+                if (ENTITY->id == 0x0d && Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_YAWN_SERUM) == 0) {
+                    Flg_on((int)O(&g_ScenarioFlags2), SCENARIO2_FLAG_YAWN_POISONED);
                     g_playerEntity.healthStatusFlags |= 0x20;
                 }
 
@@ -1259,7 +1261,7 @@ grab_hold:
         }
         Snd_em(5);
         Play3DSnd(2, (g_playerEntity.id & 1) + 0x17, 0,
-                  (int)ENTITY->scaMatrixData.localMatrix.t);
+                  (int)O(ENTITY->scaMatrixData.localMatrix.t));
     }
     Add_speedXZ(0);
 
@@ -1309,7 +1311,7 @@ void yawn_action_entry(void)
         euw(ENTITY, 0xc4) = 2;
         eub(ENTITY, 0x8a) = 1;
         if (eb(ENTITY, 1) == 0x0d) {
-            Flg_on((int)&g_ScenarioFlags, SCENARIO_FLAG_YAWN_BITE);
+            Flg_on((int)O(&g_ScenarioFlags), SCENARIO_FLAG_YAWN_BITE);
         }
     }
 
@@ -1342,7 +1344,7 @@ void yawn_action_entry(void)
         g_playerPosScratch.y = -(int)((unsigned int)rand() & 0x3ff);
         g_playerPosScratch.z = ((unsigned int)rand() & 0x3ff) + 0x2904;
     }
-    Effect_CreateBillboard(9, 0x11, 0, (void*)g_deadMoveValue, &g_playerPosScratch, 0);
+    Effect_CreateBillboard(9, 0x11, 0, P<void>(g_deadMoveValue), &g_playerPosScratch, 0);
 
     yawn_anim_advance(0, 0x200);
     Add_speedXZ((int)ew(ENTITY, 0x172));
@@ -1402,7 +1404,7 @@ void yawn_action_emerge(void)
             for (int i = 0; i < 10; i++) {
                 g_playerPosScratch.x = ((unsigned int)rand() & 0x7ff) + 2000;
                 g_playerPosScratch.z = ((unsigned int)rand() & 0x7ff) + 0xe74;
-                Effect_CreateBillboard(kType[i], kDepth[i], 0, (void*)g_deadMoveValue,
+                Effect_CreateBillboard(kType[i], kDepth[i], 0, P<void>(g_deadMoveValue),
                                        &g_playerPosScratch, 0);
             }
         }
@@ -1486,14 +1488,14 @@ void yawn_action_flee(void)
         eub(ENTITY, 0x17c) = 1;
         eub(ENTITY, 0x16c) = 1;
         ew(ENTITY, 0x172) = 0;
-        Flg_on((int)g_EnemiesFlags, eub(ENTITY, 0x163));
+        Flg_on((int)O(g_EnemiesFlags), eub(ENTITY, 0x163));
     }
 
     if (eub(ENTITY, 0x17e) > 6) {
         g_playerPosScratch.x = ((unsigned int)rand() & 0x1ff) + 0x10cc;
         g_playerPosScratch.y = -(int)((unsigned int)rand() & 0x3ff);
         g_playerPosScratch.z = ((unsigned int)rand() & 0x7ff) + 0x58ac;
-        Effect_CreateBillboard(9, 0x11, 0, (void*)g_deadMoveValue, &g_playerPosScratch, 0);
+        Effect_CreateBillboard(9, 0x11, 0, P<void>(g_deadMoveValue), &g_playerPosScratch, 0);
     }
 
     {
@@ -1720,7 +1722,7 @@ void yawn_die_run(void)
         Effect_CreateBillboard(0, 0x0b, 0, head, &g_playerPosScratch, 0);
         Effect_CreateBillboard(0, 0x08, 0, head, &g_playerPosScratch, 0);
         Snd_em(2);
-        Flg_on((int)g_EnemiesFlags, eub(ENTITY, 0x163));
+        Flg_on((int)O(g_EnemiesFlags), eub(ENTITY, 0x163));
         // fall through
     }
     case 1:
@@ -2074,7 +2076,7 @@ void yawn_init(void)
 
     ew(ENTITY, 0x88) = 0x0bea;
     if (eub(ENTITY, 1) == 0x12) {
-        if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+        if (Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
             ew(ENTITY, 0x88) = 0x012c;
         } else {
             ew(ENTITY, 0x88) = 0x0190;
@@ -2115,10 +2117,10 @@ void yawn_init(void)
 
     // 0x004b19bc holds the address of the SCA record; the record's [1] field is
     // copied into the hit-data block so the segments share one hitbox height.
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)s_yawnScaInfo;
-    *(short*)(uintptr_t)ENTITY->pSca_hit_data       = 0;
-    *(short*)((uintptr_t)ENTITY->pSca_hit_data + 4) = 0;
-    *(short*)((uintptr_t)ENTITY->pSca_hit_data + 2) = *(short*)(ENTITY->Sca_info + 4);
+    ENTITY->Sca_info = O(s_yawnScaInfo);
+    *P<short>(ENTITY->pSca_hit_data)       = 0;
+    *(short*)(P<char>(ENTITY->pSca_hit_data) + 4) = 0;
+    *(short*)(P<char>(ENTITY->pSca_hit_data) + 2) = *(short*)(P<char>(ENTITY->Sca_info) + 4);
 
     j[0].transform.t[0] = 0;
     j[0].transform.t[2] = 0;
@@ -2151,7 +2153,7 @@ void yawn_init(void)
     for (g_playerDisplacement = 12; ; g_playerDisplacement--, copy--) {
         memcpy(copy, ENTITY, 0x18c);
         // Segment k tracks joint 2 + k.
-        copy->scd_target_ptr = (unsigned int)(uintptr_t)(joints + g_playerDisplacement * 0x7c + 0xf8);
+        copy->scd_target_ptr = O(joints + g_playerDisplacement * 0x7c + 0xf8);
         copy->scaMatrixData.localMatrix.t[0] = *(int*)(joints + 0x150 + g_playerDisplacement * 0x7c);
         copy->scaMatrixData.localMatrix.t[1] = *(int*)(joints + 0x154 + g_playerDisplacement * 0x7c);
         copy->scaMatrixData.localMatrix.t[2] = *(int*)(joints + 0x158 + g_playerDisplacement * 0x7c);
@@ -2182,7 +2184,7 @@ void yawn_init(void)
         // Already in the room, grown, and the fight flag is up.
         eub(ENTITY, 0x16e) = 1;
         if (eub(ENTITY, 1) == 0x0d) {
-            Flg_on((int)&g_ScenarioFlags, SCENARIO_FLAG_YAWN_BITE);
+            Flg_on((int)O(&g_ScenarioFlags), SCENARIO_FLAG_YAWN_BITE);
         }
         if ((ENTITY->behavior_flags & 0x80) != 0) {
             eub(ENTITY, 0x84) = 4;
@@ -2299,7 +2301,7 @@ void yawn_update(void)
 
     // Segment: mirror the joint it owns, and take damage from the boss's death.
     if (ENTITY->behavior_flags == 1) {
-        seg = (JointStruct*)(uintptr_t)ENTITY->scd_target_ptr;
+        seg = P<JointStruct>(ENTITY->scd_target_ptr);
 
         ENTITY->scaMatrixData.localMatrix.t[0] = seg->world.t[0];
         ENTITY->scaMatrixData.localMatrix.t[1] = seg->world.t[1];
@@ -2336,15 +2338,15 @@ void yawn_update(void)
             }
             if ((eub(ENTITY, 0x8a) & 7) == 0) {
                 // Serum taken -> the snake only takes 5 per tick instead of 15.
-                if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+                if (Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                     g_EnemiesList[0].health = (short)(g_EnemiesList[0].health - 0xf);
                 } else {
                     g_EnemiesList[0].health = (short)(g_EnemiesList[0].health - 5);
                 }
                 // A hit on joints 0-9 (the front half) with the serum taken
                 // does another 15.
-                JointStruct* hit = (JointStruct*)(uintptr_t)ENTITY->scd_target_ptr;
-                if (hit->index < 10 && Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
+                JointStruct* hit = P<JointStruct>(ENTITY->scd_target_ptr);
+                if (hit->index < 10 && Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
                     g_EnemiesList[0].health = (short)(g_EnemiesList[0].health - 0xf);
                 }
                 g_EnemiesList[0].angle = (short)(g_EnemiesList[0].angle
@@ -2361,7 +2363,7 @@ void yawn_update(void)
     }
 
     g_playerDisplacement = check_room_collision(entity_pos(),
-                                                *(short*)(ENTITY->Sca_info + 10));
+                                                *(short*)(P<char>(ENTITY->Sca_info) + 10));
 
     if (ENTITY->behavior_flags == 1 && g_playerDisplacement != 0) {
         // The segment was pushed out of a wall: drag the rest of the body.
@@ -2404,10 +2406,10 @@ void yawn_update(void)
 
         // The head's model scale ramp (swallow grab) is applied here, with
         // ENTITY temporarily pointed at slot 0.
-        JointStruct* own = (JointStruct*)(uintptr_t)ENTITY->scd_target_ptr;
+        JointStruct* own = P<JointStruct>(ENTITY->scd_target_ptr);
         Entity* saved = ENTITY;
         ENTITY = g_EnemiesList;
-        DAT_00be0e00 = (int)(uintptr_t)saved;
+        DAT_00be0e00 = O(saved);
 
         if (own->index == 4 && ew(g_EnemiesList, 0x170) != 0
             && eub(g_EnemiesList, 0x16e) == 0) {
@@ -2423,7 +2425,7 @@ void yawn_update(void)
             ScaleMatrixCols(&own->world, &g_playerPosScratch);
         }
 
-        ENTITY = (Entity*)(uintptr_t)DAT_00be0e00;
+        ENTITY = P<Entity>(DAT_00be0e00);
     }
 
     ENTITY->has_enter_switch_zone &= 0x80;
@@ -2431,7 +2433,7 @@ void yawn_update(void)
             entity_pos(), g_CurrentRdtDataTypePtr);
 
     if (ENTITY->behavior_flags == 1) {
-        JointStruct* own = (JointStruct*)(uintptr_t)ENTITY->scd_target_ptr;
+        JointStruct* own = P<JointStruct>(ENTITY->scd_target_ptr);
 
         if (g_EnemiesList[0].health < 0) {
             ENTITY->status_flags |= 2;
@@ -2453,7 +2455,7 @@ void yawn_update(void)
                     entity_add_fade_sprite((VECTOR*)shadowJoint->world.t,
                                            (short*)&e->pushVelocity, 0, e->angle);
                 }
-                shadowJoint = (JointStruct*)(uintptr_t)e[1].scd_target_ptr;
+                shadowJoint = P<JointStruct>(e[1].scd_target_ptr);
                 e++;
                 int n = g_playerDisplacement--;
                 if (n == 0) break;

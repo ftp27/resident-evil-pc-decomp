@@ -75,9 +75,9 @@ struct JointStruct {
     unsigned char  pad_03;             // 0x03
     SVECTOR        rotation;           // 0x04 - rotation angles
     int            anim_field;         // 0x0C - anim sub-struct base
-    void*          data_ptr;           // 0x10 - points to &scale_flag
+    Ptr32<void> data_ptr;              // 0x10 - points to &scale_flag
     int            anim_slot_ptr;      // 0x14
-    void*          anim_object;        // 0x18
+    Ptr32<void> anim_object;           // 0x18
     int            field_1c;           // 0x1C
     int            scale_flag;         // 0x20 - set to 1
     MATRIX         transform;          // 0x24 - current joint transform
@@ -538,7 +538,7 @@ static_assert(sizeof(RDT_Boundary) == 0x0C, "RDT_Boundary size mismatch");
 struct RDT_BoundaryHeader {
     short          cellX;       // 0x00 - X of the quadrant split point
     short          cellZ;       // 0x02 - Z of the quadrant split point
-    RDT_Boundary*  group[5];    // 0x04 - counts in the file, pointers after setup
+    Ptr32<RDT_Boundary> group[5]; // 0x04 - counts in the file, pointers after setup
     // 0x18: RDT_Boundary entries[]
 };
 static_assert(sizeof(RDT_BoundaryHeader) == 0x18, "RDT_BoundaryHeader size mismatch");
@@ -565,31 +565,31 @@ struct RDT {
     short          ambient_light_g;     // 0x08
     short          ambient_light_b;     // 0x0A
     RDT_Light      lights[3];           // 0x0C-0x47
-    unsigned char* cam_switch_zones;    // 0x48
-    unsigned char* boundaries;          // 0x4C
-    unsigned char* object_models;       // 0x50 - omodel_slot_count x {TMD*, TIM*}
-    unsigned char* item_models;         // 0x54 - item_count x {TMD*, TIM*}
-    unsigned char* walk_zones;          // 0x58 - NPC navigation grid: count byte,
+    Ptr32<unsigned char> cam_switch_zones; // 0x48
+    Ptr32<unsigned char> boundaries;    // 0x4C
+    Ptr32<unsigned char> object_models; // 0x50 - omodel_slot_count x {TMD*, TIM*}
+    Ptr32<unsigned char> item_models;   // 0x54 - item_count x {TMD*, TIM*}
+    Ptr32<unsigned char> walk_zones;    // 0x58 - NPC navigation grid: count byte,
                                         //         then 0xC-byte zones from +2
-    unsigned char* footstep_sound_zones;// 0x5C
-    unsigned char* initialization_scd;  // 0x60
-    unsigned char* scd_opcodes;         // 0x64
-    unsigned char* scd_opcodes2;        // 0x68
-    unsigned char* player_anim_header;  // 0x6C - room's player animation pair; both
-    unsigned char* player_anim_base;    // 0x70   go to g_playerEntity.jointMoveData2/3
+    Ptr32<unsigned char> footstep_sound_zones; // 0x5C
+    Ptr32<unsigned char> initialization_scd; // 0x60
+    Ptr32<unsigned char> scd_opcodes;   // 0x64
+    Ptr32<unsigned char> scd_opcodes2;  // 0x68
+    Ptr32<unsigned char> player_anim_header; // 0x6C - room's player animation pair; both
+    Ptr32<unsigned char> player_anim_base; // 0x70   go to g_playerEntity.jointMoveData2/3
                                         //        and feed Joint_move (door / push /
                                         //        crank poses)
-    unsigned char* messages;            // 0x74
-    unsigned char* item_icons;          // 0x78 - item_count x 1200-byte 40x30 8bpp
+    Ptr32<unsigned char> messages;      // 0x74
+    Ptr32<unsigned char> item_icons;    // 0x78 - item_count x 1200-byte 40x30 8bpp
                                         //         inventory icons, the same tiles as
                                         //         Data/ITEM_ALL.tim. PS1 leftover:
                                         //         no reader anywhere in the binary
-    unsigned char* effect_anim_index;   // 0x7C
-    unsigned char* effect_anim_data;    // 0x80
-    unsigned char* effect_anim_sprite;  // 0x84
-    unsigned char* sound_attribute_table;// 0x88
-    unsigned char* vab_header_file;     // 0x8C
-    unsigned char* vab_sound_file;      // 0x90
+    Ptr32<unsigned char> effect_anim_index; // 0x7C
+    Ptr32<unsigned char> effect_anim_data; // 0x80
+    Ptr32<unsigned char> effect_anim_sprite; // 0x84
+    Ptr32<unsigned char> sound_attribute_table; // 0x88
+    Ptr32<unsigned char> vab_header_file; // 0x8C
+    Ptr32<unsigned char> vab_sound_file; // 0x90
 };
 #pragma pack(pop)
 static_assert(sizeof(RDT) == 0x94, "RDT header size mismatch");
@@ -605,8 +605,8 @@ struct ScdEventEntry {
     unsigned char   pad_01;             // 0x01: unused (zeroed by init)
     unsigned char   active;             // 0x02: active flag (0=inactive, non-zero=active)
     unsigned char   stackDepth;         // 0x03: operand stack index (0xFF = empty)
-    Entity*         entity;             // 0x04: associated entity pointer
-    unsigned char*  scriptPtr;          // 0x08: current SCD instruction pointer
+    Ptr32<Entity> entity;               // 0x04: associated entity pointer
+    Ptr32<unsigned char> scriptPtr;     // 0x08: current SCD instruction pointer
     unsigned int    returnStack[4];     // 0x0C: return address stack (for SCD loops)
     unsigned int    callStack[4];       // 0x1C: saved script pointer stack (for SCD subroutines)
     short           counterStack[4];    // 0x2C: loop counter stack
@@ -826,7 +826,7 @@ struct D3DRendererInfo {
 #pragma pack(push, 1)
 struct SpriteAnimSlot {
     int   count;        // 0x00 - count / OT shift value (4 or 10)
-    void* dataPtr;      // 0x04 - pointer to sprite/lighting data buffer
+    Ptr32<void> dataPtr; // 0x04 - pointer to sprite/lighting data buffer
     BYTE  pad_08[0x0C]; // 0x08 - unused/unknown
 };
 #pragma pack(pop)

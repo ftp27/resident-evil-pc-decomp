@@ -147,7 +147,7 @@ static void collision_flag_set(short* bounds, int* pos, short* prevPos)
 // ===========================================================================
 static void collision_push_rect(short* bounds, int* pos, short* prevPos)
 {
-    short radius = *(short*)(ENTITY->Sca_info + 10);
+    short radius = *P<short>(ENTITY->Sca_info + 10);
 
     // The original does all four subtractions in 16 bits, against only the low
     // word of the 32-bit position. `bounds` is signed here even though the
@@ -245,7 +245,7 @@ static void collision_push_circle(short* bounds, int* pos, short* prevPos)
 {
     (void)prevPos;
     unsigned short* b = (unsigned short*)bounds;
-    unsigned int radius = (unsigned int)*(unsigned short*)(ENTITY->Sca_info + 10);
+    unsigned int radius = (unsigned int)*P<unsigned short>(ENTITY->Sca_info + 10);
 
     // (width / 2) + entity radius, then the offsets from the circle centre.
     int reach = (int)(((unsigned int)b[0] - (unsigned int)b[2]) + radius * 2) / 2;
@@ -292,12 +292,12 @@ void Room_SetupCollisionCallbacks(void)
     RDT_BoundaryHeader* hdr = (RDT_BoundaryHeader*)g_RdtPointer->boundaries;
     RDT_Boundary* base = (RDT_Boundary*)((char*)hdr + 0x18);
 
-    int running = (int)(size_t)hdr->group[0];   // still the quadrant-0 count
+    int running = (int)(uint32_t)hdr->group[0];   // still the quadrant-0 count
     hdr->group[0] = base;
 
     g_playerDisplacement = 0;
     do {
-        int count = (int)(size_t)hdr->group[g_playerDisplacement + 1];
+        int count = (int)(uint32_t)hdr->group[g_playerDisplacement + 1];
         hdr->group[g_playerDisplacement + 1] = base + running;
         g_playerDisplacement++;
         running += count;
@@ -718,7 +718,7 @@ unsigned char check_room_collision_two_point(SVECTOR* endA, SVECTOR* endB)
             if (shape == 4 || shape == 5) continue;
 
             unsigned short s = boundary_classify(&g_svecScratch, rec,
-                (unsigned short)*(short*)(ENTITY->Sca_info + 10));
+                (unsigned short)*P<short>(ENTITY->Sca_info + 10));
             if (s == 0xFFFF) continue;
 
             g_CollisionShapeHandlers[s]((short*)rec, (int*)centre, &world->x);
@@ -755,7 +755,7 @@ unsigned char check_room_collision_two_point(SVECTOR* endA, SVECTOR* endB)
             if (shape == 4 || shape == 5) continue;
 
             unsigned short s = boundary_classify(&g_svecScratch, rec,
-                (unsigned short)*(short*)(ENTITY->Sca_info + 10));
+                (unsigned short)*P<short>(ENTITY->Sca_info + 10));
             if ((s & 0x8000) != 0) continue;
 
             bitsB |= (unsigned short)((rec->flags & 0x300) >> 8);
@@ -836,17 +836,17 @@ int ChkEntitySlide(unsigned char* ent, unsigned char* obj, int moveObject)
     if ((ent[0] & 0x08) != 0) return 0;     // entity has collision disabled
     if ((obj[0] & 0x02) != 0) return 0;     // object is intangible
 
-    short* offsets = *(short**)(ent + 8);   // pSca_hit_data - per-part x,y,z
-    short* sizes   = *(short**)(ent + 4);   // Sca_info - the walked size list
+    short* offsets = *(Ptr32<short>*)(ent + 8);   // pSca_hit_data - per-part x,y,z
+    short* sizes   = *(Ptr32<short>*)(ent + 4);   // Sca_info - the walked size list
 
     // PORT GUARD, no equivalent in the original: an entity whose SCA data has
     // not been bound yet would walk a null list. The original is always called
     // after SetEntityScaHitData; the port has more stubbed init paths.
-    if (offsets == NULL || sizes == NULL || *(short**)(obj + 4) == NULL) return 0;
+    if (offsets == NULL || sizes == NULL || *(Ptr32<short>*)(obj + 4) == NULL) return 0;
 
     for (;;) {
-        short* entSize = *(short**)(ent + 4);   // always the base record
-        short* objSize = *(short**)(obj + 4);
+        short* entSize = *(Ptr32<short>*)(ent + 4);   // always the base record
+        short* objSize = *(Ptr32<short>*)(obj + 4);
 
         int objX = *(int*)(obj + 0x34);
         int objZ = *(int*)(obj + 0x3c);
@@ -920,8 +920,8 @@ static int ChkObjSlide(unsigned char* mover, unsigned char* other)
     int dx = *(int*)(other + 0x34) - *(int*)(mover + 0x34);
     int dz = *(int*)(other + 0x3c) - *(int*)(mover + 0x3c);
 
-    short* moverSize = *(short**)(mover + 4);
-    short* otherSize = *(short**)(other + 4);
+    short* moverSize = *(Ptr32<short>*)(mover + 4);
+    short* otherSize = *(Ptr32<short>*)(other + 4);
 
     int extX = (int)otherSize[1] + (int)moverSize[1];
     int extZ = (int)otherSize[3] + (int)moverSize[3];
@@ -998,7 +998,7 @@ void update_room_objects(void)
         // not run when the first two have already failed.
         if (ChkEntitySlide((unsigned char*)&g_playerEntity, obj, 1) == 0 ||
             ((unsigned char)g_PlayerDpadHeld & 1) == 0 ||
-            ChkPlReachEntity((int)obj) == 0) {
+            ChkPlReachEntity(O(obj)) == 0) {
             obj[0x86] = 0;
             obj[0x87] = 0;
         } else {
@@ -1030,12 +1030,12 @@ void update_room_objects(void)
                 // player lets go, so a blocked object cannot re-trigger.
                 obj[0x86] = 10;
                 obj[0x87] = 0;
-                DAT_00ae9ee8 = (unsigned int)obj;
+                DAT_00ae9ee8 = O(obj);
             } else {
                 pushStarted = 1;
                 obj[0x86] = 8;
                 obj[0x87] = 0;
-                DAT_00ae9ee8 = (unsigned int)obj;
+                DAT_00ae9ee8 = O(obj);
 
                 // Snap the player square to the object before the animation.
                 g_playerEntity.directionAngle =
@@ -1066,7 +1066,7 @@ void update_room_objects(void)
                     if (ChkObjSlide(other, obj) != 0) {
                         obj[0x86] = 10;
                         obj[0x87] = 0;
-                        DAT_00ae9ee8 = (unsigned int)obj;
+                        DAT_00ae9ee8 = O(obj);
                         vetoed = 1;
                         break;
                     }

@@ -23,7 +23,7 @@ void player_anim_attack_recoil(void) {
         g_playerEntity.action_state = 1;
         g_playerEntity.scaMatrixData.localMatrix.t[0] = (int)*(unsigned short*)((char*)ENTITY + 0xC6);
         g_playerEntity.scaMatrixData.localMatrix.t[2] = (int)*(unsigned short*)((char*)ENTITY + 0xC8);
-        Play3DSnd(3, 0, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 0, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         g_playerEntity.flags |= 2;
     case 1:
         entity_apply_anim_vertex((Entity*)&g_playerEntity, g_playerEntity.emdScratchPtr1, g_playerEntity.emdScratchPtr2);
@@ -74,7 +74,7 @@ void player_anim_simple_recovery(void) {
         g_playerEntity.unk_bf = 0;
         g_playerEntity.unk_8c = 0;
         g_playerEntity.attackAnim = 2;
-        Play3DSnd(3, 2, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 2, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         return;
     }
     if (g_playerEntity.animation_frame_id == 0xf) {
@@ -149,20 +149,20 @@ void player_anim_dispatch_4c2ac8(void) {
         g_playerEntity.jointsStructs[1].flags |= 8;
         pJVar1 = g_playerEntity.jointsStructs;
         {
-            int* deadData = (int*)g_deadMoveValue;
+            int* deadData = P<int>(g_deadMoveValue);
             g_playerPosScratch.x = deadData[5];
             g_playerPosScratch.y = deadData[6];
             g_playerPosScratch.z = deadData[7];
             g_playerPosScratch.pad = deadData[8];
         }
         Effect_CreateBillboard(0, 3, 0, &pJVar1[1].world, &g_playerPosScratch, 0);
-        Effect_CreateBillboard(0, 3, 0, (void*)g_deadMoveValue, &pJVar1[1].world.t, 0);
+        Effect_CreateBillboard(0, 3, 0, P<void>(g_deadMoveValue), &pJVar1[1].world.t, 0);
         g_playerEntity.health = -1;
         // fall through
     case 1:
         pJVar1 = g_playerEntity.jointsStructs;
         if (ENTITY->animation_frame_id < 10) {
-            int* deadData = (int*)g_deadMoveValue;
+            int* deadData = P<int>(g_deadMoveValue);
             g_playerPosScratch.x = deadData[5];
             g_playerPosScratch.z = deadData[7];
             g_playerPosScratch.pad = deadData[8];
@@ -186,7 +186,7 @@ void player_anim_dispatch_4c2ac8(void) {
         g_svecScratch.z = 0;
         g_svecScratch.x = -900;
         {
-            int* src = (int*)g_deadMoveValue;
+            int* src = P<int>(g_deadMoveValue);
             int* dst = (int*)&g_matrixScratch;
             for (int i = 0; i < 8; i++) {
                 dst[i] = src[i];
@@ -274,7 +274,7 @@ static void player_anim_effects_at_joints(int a, int b, int c, int d,
                                           int xBias)
 {
     JointStruct* j = g_playerEntity.jointsStructs;
-    VECTOR* dead = (VECTOR*)((uintptr_t)g_deadMoveValue + 0x14);
+    VECTOR* dead = (VECTOR*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch = *dead;
     g_playerPosScratch.x += xBias;
     Effect_CreateBillboard(type, variant, 0, &j[a].world, &g_playerPosScratch, 0);
@@ -295,7 +295,7 @@ static void player_anim_knockdown_recover(void)
         g_playerEntity.attackAnim = 6;
         g_playerEntity.unk_8c = 4;
         g_playerEntity.move_speed_current = 1000;
-        Play3DSnd(3, 2, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(3, 2, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
         // fall through
     case 1: {
         g_playerEntity.move_speed_current =
@@ -312,7 +312,7 @@ static void player_anim_knockdown_recover(void)
         int t2 = g_playerEntity.scaMatrixData.localMatrix.t[2];
         unsigned char hit = check_room_collision(
             (VECTOR*)g_playerEntity.scaMatrixData.localMatrix.t,
-            *(short*)(g_playerEntity.Sca_info + 10));
+            *P<short>(g_playerEntity.Sca_info + 10));
         g_playerDisplacement = (int)hit;
         g_playerEntity.scaMatrixData.localMatrix.t[0] = t0;
         g_playerEntity.scaMatrixData.localMatrix.t[1] = t1;
@@ -329,7 +329,7 @@ static void player_anim_knockdown_recover(void)
         g_playerEntity.unk_8c = 3;
         g_playerEntity.unk_bf = 0;
         g_playerEntity.attackAnim = 7;
-        Play3DSnd(2, 0x1d, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(2, 0x1d, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
         // fall through
     case 3:
         if ((g_playerEntity.animation_frame_id & 1) == 0 &&
@@ -358,8 +358,8 @@ static void player_anim_knockdown_recover(void)
         g_playerEntity.unk_bf = 0;
         g_playerEntity.attackAnim = 4;
         g_playerEntity.unk_8c = 3;
-        Play3DSnd(2, 0x1a, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
-        Play3DSnd(3, 2, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(2, 0x1a, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
+        Play3DSnd(3, 2, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
         player_anim_effects_at_joints(5, 8, -1, -1, 9, 0x16, -400);
         player_anim_effects_at_joints(0, 3, 6, -1, 9, 0x11, -400);
         // fall through
@@ -440,7 +440,7 @@ static void player_anim_grabbed(void)
         JointStruct* head = joints + 2;
         head->flags |= 0x0c;
         g_playerEntity.action_state = 7;
-        g_playerPosScratch = *(VECTOR*)((uintptr_t)g_deadMoveValue + 0x14);
+        g_playerPosScratch = *(VECTOR*)(P<char>(g_deadMoveValue) + 0x14);
         Effect_CreateBillboard(0, 3, 0, &joints[2].world, &g_playerPosScratch, 0);
         Effect_CreateBillboard(0, 0, 0, NULL, joints[0].world.t, 0);
         JointApplyColorTint(head, 0x30, 0x80820, (void*)0x00606060);
@@ -462,7 +462,7 @@ static void player_anim_thrown(void)
         g_playerEntity.animation_frame_id = 0;
         g_playerEntity.unk_bf = 0;
         if (g_playerEntity.health < 0) {
-            Play3DSnd(3, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+            Play3DSnd(3, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
         }
         // fall through
     case 1:
@@ -505,8 +505,8 @@ static void player_anim_thrown(void)
         g_playerEntity.unk_8c = 7;
         g_playerEntity.attackDirection = 0;
         g_playerEntity.move_speed_current = 500;
-        Play3DSnd(3, 1, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
-        Play3DSnd(2, 0x19, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(3, 1, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
+        Play3DSnd(2, 0x19, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
         // fall through
     case 6:
         if (g_playerEntity.animation_frame_id == 5 || g_playerEntity.animation_frame_id == 7) {
@@ -591,7 +591,7 @@ void player_anim_dispatch_4ba360(void) {
         JointApplyColorTint(pJVar5 + 2, 0x30, 0x80820, &DAT_00606060);
         JointApplyColorTint(pJVar5 + 1, 0x30, 0x80820, &DAT_00606060);
         {
-            int* deadData = (int*)g_deadMoveValue;
+            int* deadData = P<int>(g_deadMoveValue);
             g_playerPosScratch.x = *(int*)(deadData + 5);
             g_playerPosScratch.y = *(int*)(deadData + 6);
             g_playerPosScratch.z = *(int*)(deadData + 7);
@@ -600,8 +600,8 @@ void player_anim_dispatch_4ba360(void) {
         Effect_CreateBillboard(0, 3, 0, &pJVar5[0].world, &g_playerPosScratch, 0);
         Effect_CreateBillboard(0, 3, 0, &pJVar5[2].world, &g_playerPosScratch, 0);
         Effect_CreateBillboard(0, 3, 0, &pJVar5[1].world, &g_playerPosScratch, 0);
-        Play3DSnd(3, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
-        Play3DSnd(4, 0, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
+        Play3DSnd(4, 0, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         g_playerEntity.flags |= 4;
         g_playerEntity.attackDirection = 0xf;
         // fall through
@@ -627,7 +627,7 @@ void player_anim_dispatch_4ba360(void) {
             if (0xff < pJVar5[2].rotation.y) {
                 pJVar5[2].velX = (short)0x8002;
                 {
-                    int* deadData = (int*)g_deadMoveValue;
+                    int* deadData = P<int>(g_deadMoveValue);
                     g_playerPosScratch.x = deadData[5];
                     g_playerPosScratch.y = deadData[6];
                     g_playerPosScratch.z = deadData[7];
@@ -646,7 +646,7 @@ void player_anim_dispatch_4ba360(void) {
         g_playerEntity.action_state = 3;
         g_playerEntity.unk_8c = 0xf;
         {
-            int* deadData = (int*)g_deadMoveValue;
+            int* deadData = P<int>(g_deadMoveValue);
             g_playerPosScratch.x = deadData[5];
             g_playerPosScratch.y = deadData[6];
             g_playerPosScratch.z = deadData[7];
@@ -702,7 +702,7 @@ void player_anim_dispatch_4ba360(void) {
             pJVar5[0].velX--;
             g_playerEntity.action_state = 4;
             {
-                int* deadData = (int*)g_deadMoveValue;
+                int* deadData = P<int>(g_deadMoveValue);
                 g_playerPosScratch.x = deadData[5];
                 g_playerPosScratch.z = deadData[7];
                 g_playerPosScratch.pad = deadData[8];
@@ -748,7 +748,7 @@ void player_anim_dispatch_4ba360(void) {
             pJVar5[2].velY = (short)((int)((int)sVar8 + ((int)sVar8 >> 31 & 7U)) >> 3);
             pJVar5[2].velX--;
             {
-                int* deadData = (int*)g_deadMoveValue;
+                int* deadData = P<int>(g_deadMoveValue);
                 g_playerPosScratch.x = deadData[5];
                 g_playerPosScratch.y = deadData[6];
                 g_playerPosScratch.z = deadData[7];
@@ -802,7 +802,7 @@ void player_anim_dispatch_4c10b0(void) {
         // fall through
     case 3:
         if ((1 < g_playerEntity.isBeingAttackedFlag) && (3 < g_playerEntity.animation_frame_id)) {
-            Play3DSnd(3, 2, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(3, 2, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             PlayEntitySnd(2);
             g_playerEntity.isBeingAttackedFlag = 1;
         }
@@ -868,7 +868,7 @@ void player_anim_dispatch_4c10b0(void) {
         }
         break;
     case 8:
-        Play3DSnd(3, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         g_playerEntity.action_state = 9;
         g_playerEntity.attackDirection = 0x5a;
         BillboardSetColor(&g_playerEntity.pushVelocity, 1, 2, 0x00ffff50);
@@ -894,7 +894,7 @@ void player_anim_poison_death(void) {
         g_playerEntity.unk_bf = 0;
         g_playerEntity.unk_8c = 3;
         g_playerEntity.isBeingAttackedFlag = 1;
-        Play3DSnd(3, 0, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 0, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
     }
     Joint_move(0, g_playerEntity.emdScratchPtr1, g_playerEntity.emdScratchPtr2, 0x400);
 }
@@ -955,7 +955,7 @@ void player_anim_enemy_interact(void) {
         g_playerEntity.unk_8c = 0;
     } else if (g_playerEntity.action_state == 1) {
         if (g_playerEntity.animation_frame_id == 8) {
-            Play3DSnd(3, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(3, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             JointStruct* joints = g_playerEntity.jointsStructs;
             JointApplyColorTint(joints,      0x30, 0x80820, &DAT_00606060);
             JointApplyColorTint(joints + 1,  0x30, 0x80820, &DAT_00606060);
@@ -965,7 +965,7 @@ void player_anim_enemy_interact(void) {
         }
         {
             // g_deadMoveValue fields: 0x14/0x18/0x1c/0x20 = deadData[5..8]
-            int* deadData = (int*)g_deadMoveValue;
+            int* deadData = P<int>(g_deadMoveValue);
             if (g_playerEntity.animation_frame_id < 9) {
                 g_playerPosScratch.x = deadData[5];
                 g_playerPosScratch.z = deadData[7];
@@ -1072,11 +1072,13 @@ void entity_extract_anim_vertex(Entity* entity, unsigned int emdScratch1, unsign
 {
     // emdScratch1 points to animation header: [+2] = vertex stride, [+6] = vertex count
     // emdScratch2 points to animation frame table (indexed by animationId)
-    short headerStride = *(short*)(emdScratch1 + 2);
-    short headerCount  = *(short*)(emdScratch1 + 6);
+    unsigned char* animHeader = P<unsigned char>(emdScratch1);
+    unsigned char* frameTable = P<unsigned char>(emdScratch2);
+    short headerStride = *(short*)(animHeader + 2);
+    short headerCount  = *(short*)(animHeader + 6);
 
     unsigned char* frameIdPtr = &ENTITY->animation_frame_id;
-    unsigned short* animSlot = (unsigned short*)(emdScratch2 + (unsigned int)entity->animationId * 4);
+    unsigned short* animSlot = (unsigned short*)(frameTable + (unsigned int)entity->animationId * 4);
 
     // Save current frame id (will be restored at the end)
     g_animFrameIdSave = (unsigned int)*frameIdPtr;
@@ -1090,7 +1092,7 @@ void entity_extract_anim_vertex(Entity* entity, unsigned int emdScratch1, unsign
     }
 
     // Calculate base of frame data
-    unsigned int frameDataBase = emdScratch2 + (animSlot[1] & 0xFFFFFFFC);
+    unsigned char* frameDataBase = frameTable + (animSlot[1] & 0xFFFFFFFC);
 
     // Get frame entry pointer based on direction
     unsigned short* frameEntry;
@@ -1103,8 +1105,8 @@ void entity_extract_anim_vertex(Entity* entity, unsigned int emdScratch1, unsign
     // Calculate vertex address in animation data
     // align4(headerStride) * 4 = round headerStride down to multiple of 4
     short aligned = (short)(((int)headerStride + ((int)headerStride >> 31 & 3)) >> 2);
-    unsigned int vertexAddr = emdScratch1 + (int)aligned * 4 +
-                              (unsigned int)*frameEntry * ((int)headerCount / 2 & 0xFFFF) * 2;
+    unsigned char* vertexAddr = animHeader + (int)aligned * 4 +
+                                (unsigned int)*frameEntry * ((int)headerCount / 2 & 0xFFFF) * 2;
 
     // Extract vertex position (offsets +6, +8, +10 from vertex data)
     g_svecScratch.x = *(short*)(vertexAddr + 6);
@@ -1152,12 +1154,13 @@ void JointSetColorTint(int modelObjPtr, unsigned int packedColor)
     unsigned char g = (unsigned char)((packedColor >> 8) & 0xFF);
     unsigned char b = (unsigned char)((packedColor >> 16) & 0xFF);
 
-    if (*(int*)(modelObjPtr + 0x10) == 0) {
-        int vertexDataPtr = *(int*)(modelObjPtr + 0x20);
-        int vertexCount = *(int*)(vertexDataPtr + 0x4c0);
+    unsigned char* modelObj = P<unsigned char>(modelObjPtr);
+    if (*(int*)(modelObj + 0x10) == 0) {
+        unsigned char* vertexData = P<unsigned char>(*(int*)(modelObj + 0x20));
+        int vertexCount = *(int*)(vertexData + 0x4c0);
         if ((vertexCount & 0x7FFFFFFF) == 0) return;
 
-        int entry = vertexDataPtr + 0x4d0;
+        unsigned char* entry = vertexData + 0x4d0;
         unsigned int idx = 0;
         do {
             *(unsigned int*)(entry + 0x80) |= 2;
@@ -1189,7 +1192,7 @@ void JointSetColorTint(int modelObjPtr, unsigned int packedColor)
 void JointApplyColorTint(JointStruct* joint, int param2, int param3, void* data)
 {
     joint->flags |= 0x80;
-    g_playerDisplacement = *(int*)(joint->anim_slot_ptr + 0x14) * 2;
+    g_playerDisplacement = *P<int>(joint->anim_slot_ptr + 0x14) * 2;
     JointSetColorTint((int)joint->anim_object, (unsigned int)param2);
 
     if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
@@ -1197,7 +1200,7 @@ void JointApplyColorTint(JointStruct* joint, int param2, int param3, void* data)
         JointStruct* weaponJoint = (JointStruct*)((unsigned char*)joint + offset);
         g_tempVar = weaponJoint;
         weaponJoint->flags |= 0x80;
-        g_playerDisplacement = *(int*)(weaponJoint->anim_slot_ptr + 0x14) * 2;
+        g_playerDisplacement = *P<int>(weaponJoint->anim_slot_ptr + 0x14) * 2;
         JointSetColorTint((int)weaponJoint->anim_object, (unsigned int)param2);
     }
 }
@@ -1221,22 +1224,24 @@ unsigned int Joint_move(char reverse, unsigned int animHeader, unsigned int anim
     }
 
     // Calculate vertex count per frame from animHeader
-    g_playerDisplacement = (int)(*(short*)(animHeader + 6) / 2);
+    g_playerDisplacement = (int)(*P<short>(animHeader + 6) / 2);
 
     // Get animation slot for current animationId
-    unsigned short* animSlot = (unsigned short*)(animBase + (unsigned int)ENTITY->animationId * 4);
+    unsigned short* animSlot = P<unsigned short>(animBase + (unsigned int)ENTITY->animationId * 4);
 
     // Get frame entry pointer
-    unsigned short* frameEntry = (unsigned short*)((animSlot[1] & 0xFFFFFFFC) +
+    unsigned short* frameEntry = P<unsigned short>((animSlot[1] & 0xFFFFFFFC) +
         (unsigned int)ENTITY->animation_frame_id * 4 + animBase);
     if (reverse != 0) {
-        frameEntry = frameEntry + ((unsigned int)*animSlot + (unsigned int)ENTITY->animation_frame_id * (unsigned int)-2) * 2 + (unsigned int)-2;
+        // Signed: on a 64-bit host an unsigned "negative" step added to a
+        // pointer moves it 4 G elements forward instead of back.
+        frameEntry = frameEntry + ((int)*animSlot - (int)ENTITY->animation_frame_id * 2) * 2 - 2;
     }
 
     // Calculate base of animation vertex data for this frame
-    short headerStride = *(short*)(animHeader + 2);
+    short headerStride = *P<short>(animHeader + 2);
     short aligned = (short)(((int)headerStride + ((int)headerStride >> 31 & 3)) >> 2);
-    short* animData = (short*)(animHeader + (int)aligned * 4 +
+    short* animData = P<short>(animHeader + (int)aligned * 4 +
         (unsigned int)*frameEntry * g_playerDisplacement * 2);
 
     JointStruct* joint = ENTITY->jointsStructs;
@@ -1371,7 +1376,7 @@ unsigned char Effect_CreateBillboard(
         eff->localOffsetX = (short)vPos->x;
         eff->localOffsetY = (short)vPos->y;
         eff->localOffsetZ = (short)vPos->z;
-        eff->spriteInfo = (int)spriteInfo;
+        eff->spriteInfo = O(spriteInfo);
 
         // Copy full-precision spawn position (VECTOR with pad)
         eff->spawnPosX = vPos->x;
@@ -1381,7 +1386,7 @@ unsigned char Effect_CreateBillboard(
 
         // Set up texture pointers from sprite info table
         unsigned int typeIdx = (unsigned int)type;
-        DWORD* spriteInfoBase = (DWORD*)g_effectSpriteInfo[typeIdx];
+        DWORD* spriteInfoBase = P<DWORD>(g_effectSpriteInfo[typeIdx]);
 
         // g_effectSpriteInfo is populated per-room by load_effect_sprite_data from
         // the RDT's effect-animation index table, so only the effect types the
@@ -1392,7 +1397,7 @@ unsigned char Effect_CreateBillboard(
         //
         // The original does not guard this either; it would fault the same way. The
         // guard is port-only so a data-ordering bug reports instead of crashing.
-        if (spriteInfoBase == NULL || (DWORD)spriteInfoBase == 0xFFFFFFFF) {
+        if (spriteInfoBase == NULL || g_effectSpriteInfo[typeIdx] == 0xFFFFFFFF) {
             // Hand the slot BACK. The search loop above already claimed it with
             // `g_freeEffectSlots--`, but this path never sets eff->animId, so the
             // slot stays free in the pool while the counter says it is taken.
@@ -1411,25 +1416,25 @@ unsigned char Effect_CreateBillboard(
             return 0;
         }
 
-        eff->clutInfo = (int)spriteInfoBase;
-        eff->vramInfo = (int)(spriteInfoBase + 2);      // +8 bytes
-        eff->vramInfoBackup = (int)(spriteInfoBase + 2);
+        eff->clutInfo = O(spriteInfoBase);
+        eff->vramInfo = O(spriteInfoBase + 2);      // +8 bytes
+        eff->vramInfoBackup = O(spriteInfoBase + 2);
 
         // UV data starts after sprite entries: base + 8 + count * 4
         unsigned short uvCount = *(unsigned short*)((char*)spriteInfoBase + 2);
-        int uvAddr = (int)((char*)spriteInfoBase + 8 + uvCount * 4);
+        int uvAddr = O((char*)spriteInfoBase + 8 + uvCount * 4);
         eff->uvData = uvAddr;
         eff->uvDataBackup = uvAddr;
 
         // Read initial frame delay and index from VRAM info
-        unsigned char* vramPtr = (unsigned char*)eff->vramInfo;
+        unsigned char* vramPtr = P<unsigned char>(eff->vramInfo);
         eff->frameDelay = vramPtr[1];
         eff->frameIndex = vramPtr[0];
 
         // Look up animation data (only on first iteration)
         if (needAnimLookup) {
             needAnimLookup = false;
-            unsigned char* animBase = (unsigned char*)g_effectAnimData[typeIdx];
+            unsigned char* animBase = P<unsigned char>(g_effectAnimData[typeIdx]);
             unsigned char depthIdx = depthGroup & 0x07;
             unsigned int tableIndex = (unsigned int)animBase[depthIdx];
             frameArrayPtr = (unsigned int*)(animBase + tableIndex * 4);
@@ -1448,8 +1453,8 @@ unsigned char Effect_CreateBillboard(
         }
 
         // Set animation frame data pointers (past the 4-byte header)
-        eff->animDataFrame = (int)(pFrame + 1);
-        eff->animDataBase = (int)(pFrame + 1);
+        eff->animDataFrame = O(pFrame + 1);
+        eff->animDataBase = O(pFrame + 1);
 
         // Copy 24-byte animation header into the slot (6 DWORDs)
         unsigned int* src = (unsigned int*)(pFrame + 1);
@@ -1468,7 +1473,7 @@ unsigned char Effect_CreateBillboard(
 
         // Use identity matrix if no sprite info was provided
         if (spriteInfo == NULL) {
-            eff->spriteInfo = (int)&g_identityMatrixData;
+            eff->spriteInfo = O(&g_identityMatrixData);
         }
 
         // If no more frames remain, return this slot
@@ -1721,7 +1726,7 @@ void EntityUpdateLookAtAngles(void)
 
     // ---- reload live target from SCD event pointer ----
     if ((ent->lookAtFlags & 0x80) != 0) {
-        unsigned int tgt = ent->scd_target_ptr;
+        unsigned char* tgt = P<unsigned char>(ent->scd_target_ptr);
         ent->scd_pos_x = *(int*)(tgt + 0x34);
         ent->scd_pos_y = *(int*)(tgt + 0x38) + -0xA28;   // head-height bias
         ent->scd_pos_z = *(int*)(tgt + 0x3C);
@@ -1847,7 +1852,7 @@ void EntityUpdateLookAtAngles(void)
 // ----------------------------------------------------------------------------
 static void player_update_shadow_sprite(int posPtr, int sprPtr, int height, int angle)
 {
-    entity_add_fade_sprite((VECTOR*)posPtr, (short*)sprPtr, (short)height, (short)angle);
+    entity_add_fade_sprite(P<VECTOR>(posPtr), P<short>(sprPtr), (short)height, (short)angle);
 }
 
 // ----------------------------------------------------------------------------
@@ -1912,11 +1917,11 @@ static void player_clip_state_1_fall(JointStruct* clip)
 
     if (bounced == 0 && (g_main_state_flags2 & MSF2_EFFECT_ZONE) != 0
         && *(int*)((char*)g_omodel_table[0] + 0x38) < (int)clip->velY) {
-        g_playerPosScratch.x   = *(int*)((char*)g_deadMoveValue + 0x14);
-        g_playerPosScratch.y   = *(int*)((char*)g_deadMoveValue + 0x18);
-        g_playerPosScratch.z   = *(int*)((char*)g_deadMoveValue + 0x1c);
-        g_playerPosScratch.pad = *(int*)((char*)g_deadMoveValue + 0x20);
-        Effect_CreateBillboard(0x17, 8, 0, (void*)g_deadMoveValue, clip->world.t, 0);
+        g_playerPosScratch.x   = *(int*)(P<char>(g_deadMoveValue) + 0x14);
+        g_playerPosScratch.y   = *(int*)(P<char>(g_deadMoveValue) + 0x18);
+        g_playerPosScratch.z   = *(int*)(P<char>(g_deadMoveValue) + 0x1c);
+        g_playerPosScratch.pad = *(int*)(P<char>(g_deadMoveValue) + 0x20);
+        Effect_CreateBillboard(0x17, 8, 0, P<void>(g_deadMoveValue), clip->world.t, 0);
         clip->rotDeltaY = 1;
         return;
     }
@@ -1931,7 +1936,7 @@ static void player_clip_state_1_fall(JointStruct* clip)
         g_playerPosScratch.x = clip->world.t[0] + clip->transform.t[0];
         g_playerPosScratch.y = clip->transform.t[1] + clip->world.t[1];
         g_playerPosScratch.z = clip->world.t[2] + clip->transform.t[2];
-        Play3DSnd(2, 0x15, 0, (int)&g_playerPosScratch);
+        Play3DSnd(2, 0x15, 0, O(&g_playerPosScratch));
     }
 }
 
@@ -1985,14 +1990,14 @@ static void player_update_detached_joint(void)   // 0x00429d50
     MATRIX local;
     RotMatrix(&clip->rotation, &clip->transform);
     ApplyLVAndMul0Matrix(&clip->world, &clip->transform, &local);
-    CompMatrix((MATRIX*)g_RoomCameraDataCopy, &local, &g_matrixScratch);
-    MulMatrix0((MATRIX*)g_lightMatrixPtr, &clip->world, &local);
+    CompMatrix(P<MATRIX>(g_RoomCameraDataCopy), &local, &g_matrixScratch);
+    MulMatrix0(P<MATRIX>(g_lightMatrixPtr), &clip->world, &local);
 
     g_entityJointPosX = clip->anim_slot_ptr;
     SetLightMatrix(&local);
     SetRotAndTransMatrix(&g_matrixScratch);
 
-    const int* slot = (const int*)clip->anim_slot_ptr;
+    const int* slot = P<const int>(clip->anim_slot_ptr);
     FUN_00483250(slot[4], slot[0], slot[2], (int)clip->anim_object, slot[5], 4,
                  (char*)&g_spriteAnimSlots[2] + (unsigned int)g_spriteAnimActive * 0x14);
 }
@@ -2032,10 +2037,10 @@ static void player_state_init(void) // 0x00494eb0
     Joint_move(0, g_playerEntity.animHeader, g_playerEntity.animBase, 0x400);
 
     // 0x00494f60: reset the hit box; the width comes from the SCA info block
-    *(unsigned short*)(g_playerEntity.pSca_hit_data + 0) = 0;
-    *(unsigned short*)(g_playerEntity.pSca_hit_data + 4) = 0;
-    *(unsigned short*)(g_playerEntity.pSca_hit_data + 2) =
-        *(unsigned short*)(g_playerEntity.Sca_info + 4);
+    *P<unsigned short>(g_playerEntity.pSca_hit_data + 0) = 0;
+    *P<unsigned short>(g_playerEntity.pSca_hit_data + 4) = 0;
+    *P<unsigned short>(g_playerEntity.pSca_hit_data + 2) =
+        *P<unsigned short>(g_playerEntity.Sca_info + 4);
 
     g_playerEntity.position.y = (short)g_playerEntity.scaMatrixData.localMatrix.t[1];
     g_playerEntity.position.x = (short)g_playerEntity.scaMatrixData.localMatrix.t[0];
@@ -2159,7 +2164,7 @@ static void player_hit_react_common(bool damageAnimSet, unsigned char sndId, sho
         g_playerEntity.move_speed_current = (unsigned short)startSpeed;
         g_playerEntity.action_state = 1;
         g_playerEntity.unk_8c = 3;
-        Play3DSnd(3, sndId, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]);
+        Play3DSnd(3, sndId, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t[0]));
     } else if (g_playerEntity.action_state != 1) {
         return;
     }
@@ -2238,7 +2243,7 @@ static void player_state_03(void)
         g_playerEntity.move_speed_current = s_deathFallTable[(g_playerEntity.id & 1) * 2];
         g_playerEntity.unk_bf = 0;
         g_playerEntity.attackAnim = 4;
-        Play3DSnd(3, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);  // death scream
+        Play3DSnd(3, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));  // death scream
         g_playerEntity.isBeingAttackedFlag = 1;
         g_playerEntity.unk_8c = 0;
         g_playerEntity.attackDirection = 0xB4;
@@ -2407,8 +2412,8 @@ int ChkPlReachEntity(int obj)
     g_svecScratch.x = g_svecScratch.x + (short)g_playerEntity.scaMatrixData.localMatrix.t[0];
     g_svecScratch.z = g_svecScratch.z + (short)g_playerEntity.scaMatrixData.localMatrix.t[2];
 
-    short extX = *(short*)(obj + 0x8a);
-    short extZ = *(short*)(obj + 0x8e);
+    short extX = *P<short>(obj + 0x8a);
+    short extZ = *P<short>(obj + 0x8e);
 
     // The offset is (probe - objectCentre + ext), NOT (objectCentre - ext +
     // probe): 0x00474a8c/0x00474a8f both SUB the object position out of the
@@ -2418,11 +2423,11 @@ int ChkPlReachEntity(int obj)
     // silently disabling climbing and, through update_room_objects' hold
     // counter, pushing as well.
     if ((unsigned int)(extX * 2) <
-        (unsigned int)((int)extX - *(int*)(obj + 0x34) + (int)g_svecScratch.x)) {
+        (unsigned int)((int)extX - *P<int>(obj + 0x34) + (int)g_svecScratch.x)) {
         return 0;
     }
     if ((unsigned int)(extZ * 2) <
-        (unsigned int)((int)g_svecScratch.z - *(int*)(obj + 0x3c) + (int)extZ)) {
+        (unsigned int)((int)g_svecScratch.z - *P<int>(obj + 0x3c) + (int)extZ)) {
         return 0;
     }
     if (abs(g_svecScratch.z) < abs(g_svecScratch.x)) {
@@ -2460,7 +2465,7 @@ static int is_point_in_action_zone(VECTOR* pos, unsigned short* zone); // 0x0041
 int check_climb_object(void)
 {
     if ((g_main_state_flags & MSF_DOOR_TRANSITION) == 0) {
-        void** p = &g_omodel_table[(unsigned char)g_omodelCount];
+        Ptr32<void>* p = &g_omodel_table[(unsigned char)g_omodelCount];
         unsigned char* obj;
         do {
             // Original compares the raw byte address against &table + 1; on a
@@ -2472,7 +2477,7 @@ int check_climb_object(void)
             p--;
 
             if ((obj[0] & 0x40) == 0) continue;
-            if (ChkPlReachEntity((int)obj) == 0) continue;
+            if (ChkPlReachEntity(O(obj)) == 0) continue;
 
             int angleDiff = ((unsigned int)g_playerEntity.directionAngle + 0x800U & 0xfff) -
                             (int)*(short*)(obj + 0x74);
@@ -2481,13 +2486,13 @@ int check_climb_object(void)
 
             g_main_state_flags |= MSF_DOOR_TRANSITION;
             g_playerEntity.zoneFlags &= 0xef;
-            DAT_00ae9ef0 = (unsigned int)obj;
+            DAT_00ae9ef0 = O(obj);
             break;
         } while (true);
     } else {
         // Mid-climb: cancel when the player has turned away from the object.
         int angleDiff = (int)g_playerEntity.directionAngle -
-                        (int)*(short*)(DAT_00ae9ef0 + 0x74);
+                        (int)*P<short>(DAT_00ae9ef0 + 0x74);
         unsigned short diff = abs16(angleDiff);
         if (299 < diff && diff < 0xed5) {
             return 0;
@@ -2534,13 +2539,13 @@ int check_action_object(void)
                 if ((flags & 1) != 0 && (flags & 0x80) != 0) {
                     if ((flags & 0x40) == 0) {
                         if (is_point_in_action_zone((VECTOR*)&g_playerPosScratch,
-                                                    *(unsigned short**)(entry + 8)) != 0) {
+                                                    P<unsigned short>(*(uint32_t*)(entry + 8))) != 0) {
                             g_fwdPosActionId = (unsigned char)(index + 1);
                             return ((int(*)(unsigned char*))room_check_actions[*entry])(entry);
                         }
                     } else {
                         if (is_point_in_action_zone((VECTOR*)g_playerEntity.scaMatrixData.localMatrix.t,
-                                                    *(unsigned short**)(entry + 8)) != 0) {
+                                                    P<unsigned short>(*(uint32_t*)(entry + 8))) != 0) {
                             g_entPosActionId = (unsigned char)(index + 1);
                             return ((int(*)(unsigned char*))room_check_actions[*entry])(entry);
                         }
@@ -2956,13 +2961,13 @@ static void player_door_open_sequence(void)      // 0x00457390
         if ((g_main_state_flags & MSF_DOOR_TRANSITION) == 0) {
             // 0x004577f6: plain door - one latch sound.
             if (frameDelta == -0xc) {
-                Play3DSnd(2, 0x2d, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                Play3DSnd(2, 0x2d, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
                 g_playerEntity.move_speed_current++;
             }
         } else {
             // 0x00457521: climb/vault - a longer cue sequence.
             if (frameDelta == -0xc) {
-                Play3DSnd(2, 0x23, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                Play3DSnd(2, 0x23, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
                 g_playerEntity.move_speed_current++;
             }
             if (g_playerEntity.move_speed_current == 3) {
@@ -2970,7 +2975,7 @@ static void player_door_open_sequence(void)      // 0x00457390
             }
             if ((g_playerEntity.move_speed_current == 7) &&
                 (g_playerEntity.animation_frame_id == 0x35)) {
-                Play3DSnd(2, 0x23, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                Play3DSnd(2, 0x23, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             }
             if (((g_playerEntity.zoneFlags & 0x10) != 0) &&
                 (g_playerEntity.move_speed_current == 2)) {
@@ -3521,14 +3526,14 @@ static const unsigned char g_ladderStepFrames[64] = {
 static void set_screen_effect_struct(int effect, unsigned short p2, short p3,
                                      unsigned short p4, short p5)
 {
-    *(short*)(effect + 0x58) = -p3;
-    *(unsigned short*)(effect + 0x5c) = p4;
-    *(unsigned short*)(effect + 0x60) = p2;
-    *(unsigned short*)(effect + 0x64) = p4;
-    *(short*)(effect + 0x68) = -p3;
-    *(short*)(effect + 0x6c) = -p5;
-    *(unsigned short*)(effect + 0x70) = p2;
-    *(short*)(effect + 0x74) = -p5;
+    *P<short>(effect + 0x58) = -p3;
+    *P<unsigned short>(effect + 0x5c) = p4;
+    *P<unsigned short>(effect + 0x60) = p2;
+    *P<unsigned short>(effect + 0x64) = p4;
+    *P<short>(effect + 0x68) = -p3;
+    *P<short>(effect + 0x6c) = -p5;
+    *P<unsigned short>(effect + 0x70) = p2;
+    *P<short>(effect + 0x74) = -p5;
 }
 
 // ============================================================================
@@ -3615,8 +3620,8 @@ static void player_behavior_10_push(void)
             // DAT_00ae9ee8, the object update_room_objects is pushing - NOT
             // DAT_00ae9ef0, which is check_climb_object's separate scratch.
             unsigned char sndId = (unsigned char)(
-                0x17 - ((*(unsigned char*)(DAT_00ae9ee8 + 1) & 0x40) == 0));
-            Play3DSnd(2, sndId, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                0x17 - ((*P<unsigned char>(DAT_00ae9ee8 + 1) & 0x40) == 0));
+            Play3DSnd(2, sndId, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             return;
         }
         break;
@@ -3703,7 +3708,7 @@ static void player_behavior_0b_ladder(void)
         g_playerEntity.action_state = 4;
         g_playerEntity.move_speed_current = 0;
         g_playerEntity.unk_8c = 3;
-        set_screen_effect_struct((int)DAT_00be63c8, 800, 700, 700, 700);
+        set_screen_effect_struct(O(DAT_00be63c8), 800, 700, 700, 700);
         // fall through
     case 4:
         {
@@ -3712,7 +3717,7 @@ static void player_behavior_0b_ladder(void)
                 // step-sound frames on the plain climb
                 if (g_ladderStepFrames[g_playerEntity.move_speed_current] ==
                     g_playerEntity.animation_frame_id) {
-                    Play3DSnd(2, 0x23, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                    Play3DSnd(2, 0x23, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
                     g_playerEntity.move_speed_current++;
                 }
                 if (g_playerEntity.animation_frame_id != 0x32) {
@@ -3735,7 +3740,7 @@ static void player_behavior_0b_ladder(void)
                 }
                 sndId = 0x17;
             }
-            Play3DSnd(2, sndId, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(2, sndId, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
 ladder_step_done:
             g_playerEntity.action_state += Joint_move(
                 0, g_playerEntity.jointMoveData2, g_playerEntity.jointMoveData3, 0x400);
@@ -3766,7 +3771,7 @@ ladder_step_done:
         g_playerEntity.position.y = (short)g_playerEntity.scaMatrixData.localMatrix.t[1];
         g_playerEntity.scaMatrixData.localMatrix.t[2] += g_scaled_down_dist;
         g_playerEntity.position.z = (short)g_playerEntity.scaMatrixData.localMatrix.t[2];
-        set_screen_effect_struct((int)DAT_00be63c8, 500, 500, 700, 700);
+        set_screen_effect_struct(O(DAT_00be63c8), 500, 500, 700, 700);
         g_playerEntity.pushVelocity.x = 0;
         g_playerEntity.posY = (unsigned short)g_playerEntity.scaMatrixData.localMatrix.t[1];
         g_playerEntity.pushVelocity.z = 0;
@@ -3999,7 +4004,7 @@ unsigned char weapon_autoaim_check(void)
     if (itemId == ITEM_FLAMETHROWER) return qty; // flamethrower can have 255 ammo
     if ((qty & 0x7f) != 0) return qty & 0x7f; // limit ammo to 127
 
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_INF_R_LAUNCHER) != 0 && itemId == 10) {
+    if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_INF_R_LAUNCHER) != 0 && itemId == 10) {
         slot[1] = 4;
         return 4;
     }
@@ -4102,13 +4107,13 @@ static unsigned int player_find_aim_target(void)
 {
     unsigned char idx = 0;
     Entity* ent = g_EnemiesList;
-    while ((Entity*)g_playerEntity.unk_b8 != ent) {   // find the current lock
+    while (P<Entity>(g_playerEntity.unk_b8) != ent) {   // find the current lock
         idx++;
         ent = &g_EnemiesList[idx];
     }
 
     unsigned char next = (unsigned char)(idx + 1);
-    ent = (Entity*)(g_playerEntity.unk_b8 + 0x18c);   // first candidate: after the lock
+    ent = P<Entity>(g_playerEntity.unk_b8 + 0x18c);   // first candidate: after the lock
     char count = g_enemy_count;
     if (next == 30) {
         next = 0;
@@ -4134,7 +4139,7 @@ static unsigned int player_find_aim_target(void)
             delta.z = ent->scaMatrixData.localMatrix.t[2]
                     - g_playerEntity.scaMatrixData.localMatrix.t[2];
             if (player_aim_cone_test(&delta) == 0) {
-                g_playerEntity.unk_b8 = (unsigned int)ent;
+                g_playerEntity.unk_b8 = O(ent);
                 return 1;
             }
         }
@@ -4195,18 +4200,18 @@ static unsigned int player_reticle_enemy(void)
     }
 
     if (nearestIdx == 0) {
-        g_playerEntity.unk_b8 = (unsigned int)g_EnemiesList;
+        g_playerEntity.unk_b8 = O(g_EnemiesList);
         return 0;
     }
     if (g_playerEntity.equippedWeaponId == 1) {
-        g_playerEntity.unk_b8 = (unsigned int)(&g_EnemiesList[nearestIdx - 1]);
+        g_playerEntity.unk_b8 = O(&g_EnemiesList[nearestIdx - 1]);
         return 1;
     }
     if (standingIdx != 0) {
-        g_playerEntity.unk_b8 = (unsigned int)(&g_EnemiesList[standingIdx - 1]);
+        g_playerEntity.unk_b8 = O(&g_EnemiesList[standingIdx - 1]);
     }
     if (lowIdx != 0) {
-        g_playerEntity.unk_b8 = (unsigned int)(&g_EnemiesList[lowIdx - 1]);
+        g_playerEntity.unk_b8 = O(&g_EnemiesList[lowIdx - 1]);
     }
     return 1;
 }
@@ -4280,14 +4285,14 @@ static void weapon_lockon_effect(void)
     g_playerPosScratch.x = (g_playerPosScratch.x / 8 - (rand() & 0xff)) + v[0] + 0x80;
     g_playerPosScratch.y = (g_playerPosScratch.y / 8 - (rand() & 0xff)) + v[1] + 0x80;
     g_playerPosScratch.z = (g_playerPosScratch.z / 8 - (rand() & 0xff)) + v[2] + 0x80;
-    Effect_CreateBillboard(0x05, 0x12, 0, (void*)g_deadMoveValue, &g_playerPosScratch, 0);
+    Effect_CreateBillboard(0x05, 0x12, 0, P<void>(g_deadMoveValue), &g_playerPosScratch, 0);
 
     if (isShotgun) {
         for (int i = 0; i < 3; i++) {
             g_playerPosScratch.x += 0x100 - (rand() & 0x1ff);
             g_playerPosScratch.y += 0x100 - (rand() & 0x1ff);
             g_playerPosScratch.z += 0x100 - (rand() & 0x1ff);
-            Effect_CreateBillboard(0x05, 0x12, 0, (void*)g_deadMoveValue, &g_playerPosScratch, 0);
+            Effect_CreateBillboard(0x05, 0x12, 0, P<void>(g_deadMoveValue), &g_playerPosScratch, 0);
         }
     }
 }
@@ -4337,13 +4342,13 @@ static void player_behavior_12_gun_aim(void)
         }
         if (g_playerEntity.weaponAimState == 3) {
             g_animFrameIdSave = (unsigned int)(g_playerEntity.id & 1) * 0x20 + 0xf0;
-            if ((short)turn_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
+            if ((short)turn_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
                 g_animFrameIdSave = ((g_playerEntity.id & 1) + 6) * 0x20;
             }
             if ((g_playerEntity.id & 1) == 0 && g_playerEntity.equippedWeaponId == 2) {
                 g_animFrameIdSave += 0x20;
             }
-            entity_rotate_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34),
+            entity_rotate_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34),
                                         (unsigned short)g_animFrameIdSave);
         }
     }
@@ -4560,7 +4565,7 @@ static void player_behavior_13_gun_hold_input(void)
             if (!dc_is_infinite_colt_python(
                     *(unsigned char*)((unsigned char*)g_ItemSlotsPointer
                                       + g_EquippedItemId * 2 - 2))) {
-                Play3DSnd(1, 9, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                Play3DSnd(1, 9, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             }
             if (weapon_fire_check() != 0 && g_playerEntity.equippedWeaponId < 6) {
                 g_playerEntity.action_behavior = 0x18;   // 0x00458ec0 - not yet transcribed
@@ -4683,9 +4688,9 @@ static void player_behavior_14_autoaim_fire(void)
             apply_weapon_damage(g_weaponFireData[weaponIdx].weaponId);
         }
         Play3DSnd(1, g_weaponFireData[weaponIdx].sfx1, 0,
-                  (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                  O(&g_playerEntity.scaMatrixData.localMatrix.t));
         Play3DSnd(1, g_weaponFireData[weaponIdx].sfx2, 0,
-                  (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                  O(&g_playerEntity.scaMatrixData.localMatrix.t));
     }
 
     // ---- big muzzle flash
@@ -4758,7 +4763,7 @@ static void player_behavior_14_autoaim_fire(void)
     // ---- shotgun shell-rack sound two frames before the end
     if ((unsigned char)(g_weaponFireEndFrame[weaponIdx] - g_playerEntity.animation_frame_id) == 2
         && weaponIdx == 1) {
-        Play3DSnd(1, 0x0b, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(1, 0x0b, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
     }
 
     // ---- shotgun: released fire direction -> neutral hold
@@ -4821,7 +4826,7 @@ static void player_behavior_14_autoaim_holdfire(void)
     }
 
     if (weapon_autoaim_check() == 0) {
-        Play3DSnd(1, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(1, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         g_playerEntity.action_behavior = 0x13;
         g_playerEntity.action_state = 0;
         return;
@@ -4831,8 +4836,8 @@ static void player_behavior_14_autoaim_holdfire(void)
     if (g_playerEntity.equippedWeaponId < 0x6f) {
         // normal weapons: click every 15 frames, small flash every 4, ammo--
         if (frame % 0xf == 0) {
-            Play3DSnd(1, 3, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
-            Play3DSnd(1, 4, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(1, 3, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
+            Play3DSnd(1, 4, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         }
         if ((frame & 3) == 0) {
             g_playerPosScratch.x = 0x21c;
@@ -4858,9 +4863,9 @@ static void player_behavior_14_autoaim_holdfire(void)
                                    &g_playerPosScratch, 0);
             apply_weapon_damage(g_weaponFireData[idx].weaponId);
             Play3DSnd(1, g_weaponFireData[idx].sfx1, 0,
-                      (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                      O(&g_playerEntity.scaMatrixData.localMatrix.t));
             Play3DSnd(1, g_weaponFireData[idx].sfx2, 0,
-                      (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                      O(&g_playerEntity.scaMatrixData.localMatrix.t));
         }
         if (frame % g_weaponFireIntervals[1] == 0) {
             g_playerPosScratch.x = g_weaponMuzzleFlash[idx].x;
@@ -4976,7 +4981,7 @@ static void player_behavior_14_autoaim(void)
         // The DC's copy (PS1 0x8003fc6c) drops the empty click while the
         // magnum is the ADVANCED-unlocked infinite one.
         if (slot[-1] == 0 && !dc_is_infinite_colt_python(slot[-2])) {
-            Play3DSnd(1, 9, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(1, 9, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         }
         return;
     }
@@ -5033,7 +5038,7 @@ static void player_behavior_14_autoaim(void)
         }
         g_playerEntity.unk_bf = 0;
         g_playerEntity.unk_8c = 3;
-        Play3DSnd(1, 6, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(1, 6, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         player_behavior_14_autoaim_reverse();
         return;
     case 9:
@@ -5232,7 +5237,7 @@ static void fire_beretta_fx(int frame, int* muzzlePos)
     }
     if (frame == 0x11 && g_playerEntity.unk_bf == 1) {
         fire_consume_ammo_stack();
-        Play3DSnd(1, 5, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(1, 5, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
     }
 }
 
@@ -5249,7 +5254,7 @@ static void fire_weapon_fx(void)
     case ITEM_SHOTGUN: {   // 0x00459040
         if ((frame == 0xf || frame == 0x19 || frame == 0x23)
             && g_playerEntity.unk_bf == 1) {
-            Play3DSnd(1, 9, 5, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(1, 9, 5, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             if (frame == 0xf) {
                 fire_consume_ammo_stack();
             }
@@ -5275,14 +5280,14 @@ static void fire_weapon_fx(void)
         }
         if (frame == 0x1c && g_playerEntity.unk_bf == 1) {
             fire_consume_ammo_stack();
-            Play3DSnd(1, 9, 0xa, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(1, 9, 0xa, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         }
         break;
     }
     default: {  // 0x00459120 (item ids 6..9)
         if (frame == 0x12 && g_playerEntity.unk_bf == 1) {
             fire_consume_ammo_stack();
-            Play3DSnd(1, 5, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+            Play3DSnd(1, 5, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         }
         break;
     }
@@ -5355,7 +5360,7 @@ static void player_behavior_19_fire_click(void)
     if (g_playerEntity.action_state == 0) {
         g_playerEntity.action_state = 1;
         g_playerEntity.attackDirection = 0xf;
-        Play3DSnd(1, 9, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(1, 9, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
         if ((g_main_state_flags2 & MSF2_EFFECT_ZONE) != 0) {
             PlayEntitySnd(0);
         }
@@ -5428,12 +5433,12 @@ state1_body:
 
 turn_tail:
     g_animFrameIdSave = (unsigned int)(g_playerEntity.id & 1) * 0x20 + 0xf0;
-    if ((short)turn_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
+    if ((short)turn_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
         g_animFrameIdSave = ((g_playerEntity.id & 1) + 6) * 0x20;
     }
-    entity_rotate_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34),
+    entity_rotate_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34),
                                 (unsigned short)g_animFrameIdSave);
-    if ((short)turn_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34), 0x20) == 0) {
+    if ((short)turn_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34), 0x20) == 0) {
         g_playerEntity.action_behavior = 0x13;
         g_playerEntity.action_state = 0;
     }
@@ -5466,10 +5471,10 @@ static void player_behavior_12_knife_aim(void)
         }
         if (g_playerEntity.weaponAimState == 3) {
             g_animFrameIdSave = (unsigned int)(g_playerEntity.id & 1) * 0x20 + 0xf0;
-            if ((short)turn_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
+            if ((short)turn_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
                 g_animFrameIdSave = ((g_playerEntity.id & 1) + 6) * 0x20;
             }
-            entity_rotate_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34),
+            entity_rotate_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34),
                                         (unsigned short)g_animFrameIdSave);
         }
     }
@@ -5594,7 +5599,7 @@ static void player_behavior_14_knife_swing(void)
 
     // Swing whistle at frame 7
     if (g_playerEntity.animation_frame_id == 7 && (g_playerEntity.unk_bf & 1) != 0) {
-        Play3DSnd(1, 0, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(1, 0, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
     }
 
     // Flash + sound effects, only above the covers-table height
@@ -5603,9 +5608,9 @@ static void player_behavior_14_knife_swing(void)
                   - *(int*)((char*)g_omodel_table[0] + 0x38)) {
         if (g_playerEntity.attackAnim == 7) {
             if (g_playerEntity.animation_frame_id < 3) {
-                g_playerPosScratch.y = *(int*)((char*)g_deadMoveValue + 0x18);
-                g_playerPosScratch.z = *(int*)((char*)g_deadMoveValue + 0x1c);
-                g_playerPosScratch.pad = *(int*)((char*)g_deadMoveValue + 0x20);
+                g_playerPosScratch.y = *(int*)(P<char>(g_deadMoveValue) + 0x18);
+                g_playerPosScratch.z = *(int*)(P<char>(g_deadMoveValue) + 0x1c);
+                g_playerPosScratch.pad = *(int*)(P<char>(g_deadMoveValue) + 0x20);
                 g_playerPosScratch.x = 0x96;
                 Effect_CreateBillboard(0x17, 8, 0, &g_playerEntity.jointsStructs[0xe].world,
                                        &g_playerPosScratch, 0);
@@ -5615,15 +5620,15 @@ static void player_behavior_14_knife_swing(void)
             }
         } else {
             if ((g_playerEntity.animation_frame_id & 1) == 0) {
-                g_playerPosScratch.y = *(int*)((char*)g_deadMoveValue + 0x18);
-                g_playerPosScratch.z = *(int*)((char*)g_deadMoveValue + 0x1c);
-                g_playerPosScratch.pad = *(int*)((char*)g_deadMoveValue + 0x20);
+                g_playerPosScratch.y = *(int*)(P<char>(g_deadMoveValue) + 0x18);
+                g_playerPosScratch.z = *(int*)(P<char>(g_deadMoveValue) + 0x1c);
+                g_playerPosScratch.pad = *(int*)(P<char>(g_deadMoveValue) + 0x20);
                 g_playerPosScratch.x = 0x96;
                 Effect_CreateBillboard(0x17, 8, 0, &g_playerEntity.jointsStructs[0xe].world,
                                        &g_playerPosScratch, 0);
             }
             if (g_playerEntity.animation_frame_id == 0 && g_playerEntity.unk_bf == 0) {
-                Play3DSnd(1, 2, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+                Play3DSnd(1, 2, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
             }
         }
     }
@@ -5735,12 +5740,12 @@ static void player_behavior_16_knife_turn(void)
 
     // LAB_00459afa: steer toward the target until aligned
     g_animFrameIdSave = (unsigned int)(g_playerEntity.id & 1) * 0x20 + 0xf0;
-    if ((short)turn_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
+    if ((short)turn_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34), 0x200) == 0) {
         g_animFrameIdSave = ((g_playerEntity.id & 1) + 6) * 0x20;
     }
-    entity_rotate_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34),
+    entity_rotate_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34),
                                 (unsigned short)g_animFrameIdSave);
-    if ((short)turn_toward_target((VECTOR*)(g_playerEntity.unk_b8 + 0x34), 0x20) == 0) {
+    if ((short)turn_toward_target(P<VECTOR>(g_playerEntity.unk_b8 + 0x34), 0x20) == 0) {
         g_playerEntity.action_behavior = 0x13;
         g_playerEntity.action_state    = 0;
     }
@@ -5963,29 +5968,29 @@ static void player_scd_behavior_00(void)
         return;
     case 2:
         LoadEquippedWeaponAnimation(g_playerEntity.equippedWeaponId, 0xe,
-                                    (unsigned int)(unsigned int*)g_animationBuffer,
-                                    (unsigned int)(unsigned int*)g_animObjectBuffer);
+                                    O(g_animationBuffer),
+                                    O(g_animObjectBuffer));
         g_playerEntity.action_state = 6;
         Joint_move(0, g_playerEntity.animHeader, g_playerEntity.animBase, 0x400);
         return;
     case 3:
         LoadEquippedWeaponAnimation(g_playerEntity.equippedWeaponId, 0xe,
-                                    (unsigned int)(unsigned int*)g_animationBuffer,
-                                    (unsigned int)(unsigned int*)g_animObjectBuffer);
+                                    O(g_animationBuffer),
+                                    O(g_animObjectBuffer));
         g_playerEntity.action_state = 6;
         Joint_move(0, g_playerEntity.jointMoveData0, g_playerEntity.jointMoveData1, 0x400);
         return;
     case 4:
         LoadEquippedWeaponAnimation(g_playerEntity.equippedWeaponId, 0xe,
-                                    (unsigned int)(unsigned int*)g_animationBuffer,
-                                    (unsigned int)(unsigned int*)g_animObjectBuffer);
+                                    O(g_animationBuffer),
+                                    O(g_animObjectBuffer));
         g_playerEntity.action_state = 6;
         Joint_move(0, g_playerEntity.jointMoveData2, g_playerEntity.jointMoveData3, 0x400);
         return;
     case 5:
         LoadEquippedWeaponAnimation(g_playerEntity.equippedWeaponId, 0xe,
-                                    (unsigned int)(unsigned int*)g_animationBuffer,
-                                    (unsigned int)(unsigned int*)g_animObjectBuffer);
+                                    O(g_animationBuffer),
+                                    O(g_animObjectBuffer));
         g_playerEntity.action_state = 6;
         Joint_move(0, g_playerEntity.emdScratchPtr1, g_playerEntity.emdScratchPtr2, 0x400);
         return;
@@ -6089,7 +6094,7 @@ static void player_scd_behavior_01(void)
     case 5:
         // Raise the completion flag the script is waiting on, then loop back to
         // state 0 when unk_e0 bit 4 asks for a repeat.
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         g_playerEntity.unk_de = 0;
         if ((g_playerEntity.unk_e0 & 0x10) != 0) {
             g_playerEntity.action_state = 0;
@@ -6144,7 +6149,7 @@ static void player_scd_behavior_05(void)
     int dz = g_playerEntity.scaMatrixData.localMatrix.t[2] - (int)g_playerEntity.unk_c8;
     int dx = g_playerEntity.scaMatrixData.localMatrix.t[0] - (int)g_playerEntity.unk_c6;
     if (SquareRoot0(dz * dz + dx * dx) < 100) {
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         if ((g_playerEntity.healthStatusFlags & 0x80) == 0) {
             // 0x0044dc35: MOV dword ptr [EAX+0x84],1 - back to state 1 with
             // animFrameId, action_behavior and action_state all cleared
@@ -6175,7 +6180,7 @@ static void player_scd_behavior_07(void)
             g_playerEntity.jointMoveData1, 0x400);
     }
     else if (st == 2) {
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
     }
     g_playerEntity.directionAngle += (short)g_playerEntity.unk_de;
 }
@@ -6193,7 +6198,7 @@ static void player_scd_behavior_08(void)
     }
     else if (st != 1) {
         if (st == 2) {
-            Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+            Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         }
         return;
     }
@@ -6221,7 +6226,7 @@ static void player_scd_behavior_09(void)
         g_playerEntity.animFrameId     = 0;
         g_playerEntity.action_behavior = 0;
         g_playerEntity.action_state    = 0;
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         return;
     }
     g_playerEntity.action_state += (unsigned char)Joint_move(
@@ -6299,7 +6304,7 @@ static void player_scd_behavior_02(void)
             int dz = g_playerEntity.scaMatrixData.localMatrix.t[2] - (int)g_playerEntity.unk_c8;
             int dx = g_playerEntity.scaMatrixData.localMatrix.t[0] - (int)g_playerEntity.unk_c6;
             if (SquareRoot0(dz * dz + dx * dx) < 0x96) {
-                Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+                Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
                 if ((g_playerEntity.healthStatusFlags & 0x80) == 0) {
                     g_playerEntity.animationId     = 1;
                     g_playerEntity.animFrameId     = 0;
@@ -6373,7 +6378,7 @@ static void player_scd_behavior_03(void)
                 if ((g_playerEntity.healthStatusFlags & 0x80) == 0) {
                     g_playerEntity.action_state = 4;
                 } else {
-                    Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+                    Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
                 }
                 return;
             }
@@ -6406,7 +6411,7 @@ static void player_scd_behavior_03(void)
         g_playerEntity.animFrameId     = 0;
         g_playerEntity.action_behavior = 0;
         g_playerEntity.action_state    = 0;
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         return;
     }
 }
@@ -6475,7 +6480,7 @@ static void player_scd_behavior_04(void)
     int dz = g_playerEntity.scaMatrixData.localMatrix.t[2] - (int)g_playerEntity.unk_c8;
     int dx = g_playerEntity.scaMatrixData.localMatrix.t[0] - (int)g_playerEntity.unk_c6;
     if (SquareRoot0(dz * dz + dx * dx) < 100) {
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         if ((g_playerEntity.healthStatusFlags & 0x80) == 0) {
             g_playerEntity.animationId     = 1;
             g_playerEntity.animFrameId     = 0;
@@ -6506,7 +6511,7 @@ static void player_scd_behavior_06(void)
         g_playerEntity.animFrameId     = 0;
         g_playerEntity.action_behavior = 0;
         g_playerEntity.action_state    = 0;
-        Flg_on((int)g_SysFlags, g_playerEntity.scd_anim_param);
+        Flg_on(O(g_SysFlags), g_playerEntity.scd_anim_param);
         return;
     }
 
@@ -6615,7 +6620,7 @@ void update_player_anim(void)
     if ((g_playerEntity.animationId != 5) && (g_playerEntity.action_behavior != 0x11)) {
         HandleEnemyPlayerCollisions();
         check_room_collision((VECTOR*)g_playerEntity.scaMatrixData.localMatrix.t,
-                             *(short*)(g_playerEntity.Sca_info + 10));
+                             *P<short>(g_playerEntity.Sca_info + 10));
     }
 
     g_playerEntity.scaMatrixData.field_00 = 0;
@@ -6628,8 +6633,8 @@ void update_player_anim(void)
     if ((((g_playerEntity.zoneFlags & 0x7f) != 0) &&
          (((unsigned char)g_playerEntity.unk_e0 & 0x40) == 0)) ||
         ((g_stageId == STAGE_GUARDHOUSE) && (g_roomId == ROOM_WATER_TANK_ENTRY))) {
-        player_update_shadow_sprite((int)g_playerEntity.scaMatrixData.localMatrix.t,
-                                    (int)&g_playerEntity.pushVelocity,
+        player_update_shadow_sprite(O(g_playerEntity.scaMatrixData.localMatrix.t),
+                                    O(&g_playerEntity.pushVelocity),
                                     (int)g_playerEntity.posY,
                                     (int)g_playerEntity.directionAngle);
     }
@@ -6639,9 +6644,9 @@ void update_player_anim(void)
     // except the rooms that actually have a mirror.
     if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
         unsigned char lit = mirror_point_visible(
-            (void*)((int)g_RdtPointer[1].lights + (unsigned int)g_roomCameraId * 0x2c - 4),
+            (void*)((char*)g_RdtPointer[1].lights + (unsigned int)g_roomCameraId * 0x2c - 4),
             (unsigned char)((g_main_state_flags & MSF_MIRROR_PLANE_X) != 0),
-            (int)g_playerEntity.scaMatrixData.localMatrix.t);
+            O(g_playerEntity.scaMatrixData.localMatrix.t));
         if (lit != 0) {
             entity_draw_mirror_reflection();
         }
@@ -6709,7 +6714,7 @@ static void door_locked_message(unsigned int msgIndex)
 // sleep, then StMask - not a fade. This is why the in-game door cut is instant.
 static void door_begin_transition(unsigned char* record)
 {
-    g_pendingDoorRecord = (int)record;          // the room the transition will load
+    g_pendingDoorRecord = O(record);          // the room the transition will load
     g_main_state_flags |= MSF_GAMEPLAY_ACTIVE;
     g_message_flags = 0;
 
@@ -6741,7 +6746,7 @@ int door_try_enter(unsigned char* entry)
         return 0;
     }
 
-    unsigned char* record = *(unsigned char**)(entry + 8);
+    unsigned char* record = P<unsigned char>(*(uint32_t*)(entry + 8));
     unsigned char  lock   = record[0xc];
 
     // 0x0041b41a: some doors are barred for one of the two characters.
@@ -6751,7 +6756,7 @@ int door_try_enter(unsigned char* entry)
     }
 
     // 0x0041b441: unlocked outright, or its lock flag is already raised.
-    if ((lock & 0x80) == 0 || Flg_ck((int)g_LocksFlags, lock & 0x3f) != 0) {
+    if ((lock & 0x80) == 0 || Flg_ck(O(g_LocksFlags), lock & 0x3f) != 0) {
         door_begin_transition(record);
         return 0;
     }
@@ -6762,7 +6767,7 @@ int door_try_enter(unsigned char* entry)
     if (need == ITEM_SWORD_KEY && (g_playerEntity.id & 3) == 1) {
         // 0x0041b474: Jill substitutes the lockpick for this key, but only once
         // she has it (g_ScenarioFlags bit SCENARIO_FLAG_HAS_LOCKPICK).
-        if (Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_HAS_LOCKPICK) == 0) {
+        if (Flg_ck(O(&g_ScenarioFlags), SCENARIO_FLAG_HAS_LOCKPICK) == 0) {
             door_locked_message(0xd);
             return 0;
         }
@@ -6771,7 +6776,7 @@ int door_try_enter(unsigned char* entry)
         // 0x0041b4a5: opens only from the other side.
         set_message_display(0xd4, 0xff);
         play_sfx(2, 0x21, 0);
-        Flg_on((int)g_LocksFlags, record[0xc] & 0x3f);
+        Flg_on(O(g_LocksFlags), record[0xc] & 0x3f);
         return 0;
     } else if (need == 0xff) {
         door_locked_message(0xb);
@@ -6803,7 +6808,7 @@ int door_try_enter(unsigned char* entry)
         sfxId = 0x22;
     }
     play_sfx(2, sfxId, 0);
-    Flg_on((int)g_LocksFlags, record[0xc] & 0x3f);
+    Flg_on(O(g_LocksFlags), record[0xc] & 0x3f);
     return 0;
 }
 
@@ -6835,7 +6840,7 @@ int check_door(unsigned char* entry)
     short*         appr  = (short*)(ent + 0xC4);   // PlayerEntity::attackDirection
     unsigned char* afid  = ent + 0x85;             // PlayerEntity::animFrameId
 
-    unsigned short* record = *(unsigned short**)(entry + 8);
+    unsigned short* record = P<unsigned short>(*(uint32_t*)(entry + 8));
     int playerX = ENTITY->scaMatrixData.localMatrix.t[0];
     short angle = (short)ENTITY->angle;
 
@@ -6901,7 +6906,7 @@ int include_key(unsigned char* entry)
 {
     if (g_EquippedItemId != 0 &&
         ((unsigned char*)g_ItemSlotsPointer)[-2 + (unsigned int)g_EquippedItemId * 2] ==
-            *(unsigned char*)(*(unsigned char**)(entry + 8) + 8)) {
+            *(unsigned char*)(P<unsigned char>(*(uint32_t*)(entry + 8)) + 8)) {
         return 0;
     }
     g_pRoomActionEntry = entry;
@@ -6942,7 +6947,7 @@ int check_door_side(unsigned char* entry)
     short*         appr = (short*)(ent + 0xC4);   // PlayerEntity::attackDirection
     unsigned char* afid = ent + 0x85;             // PlayerEntity::animFrameId
 
-    unsigned short* record = *(unsigned short**)(entry + 8);
+    unsigned short* record = P<unsigned short>(*(uint32_t*)(entry + 8));
     int playerZ = ENTITY->scaMatrixData.localMatrix.t[2];
     short angle  = (short)ENTITY->angle;
 
@@ -7142,13 +7147,13 @@ int check_desk(unsigned char* entry)
         // fields of the event-table entry at index eventIdx
         // (ITEMS_FLAGS = g_RoomActionTable+6).
         unsigned short itemFlagIdx = *(unsigned short*)((unsigned char*)g_RoomActionTable + 6 + (unsigned int)eventIdx * 0xc);
-        if (Flg_ck((int)g_roomItemsFlags, itemFlagIdx) != 0) {
+        if (Flg_ck(O(g_roomItemsFlags), itemFlagIdx) != 0) {
             if ((g_playerEntity.id & 3) == 3) {
                 set_message_display(0xd7, 0xff);
                 return 0;
             }
-            if (Flg_ck((int)g_LocksFlags, *(unsigned short*)(entry + 2)) == 0) {
-                if ((get_item_slot(ITEM_DESK_KEY) < 0) && (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_HAS_LOCKPICK) == 0)) {
+            if (Flg_ck(O(g_LocksFlags), *(unsigned short*)(entry + 2)) == 0) {
+                if ((get_item_slot(ITEM_DESK_KEY) < 0) && (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_HAS_LOCKPICK) == 0)) {
                     set_message_display(0xd8, 0xff);
                     return 0;
                 }
@@ -7166,11 +7171,11 @@ int check_desk(unsigned char* entry)
             g_desk_check_state = 35;
             // Walk the camera-zone list to the new camera (same as cmd_current_cut_set).
             unsigned short camId = *(unsigned short*)((char*)g_RdtPointer->cam_switch_zones + 2);
-            unsigned int zonePtr = (unsigned int)g_RdtPointer->cam_switch_zones;
+            unsigned char* zonePtr = g_RdtPointer->cam_switch_zones;
             while (camId != g_roomCameraId) {
                 g_CurrentRdtDataTypePtr = (void*)(zonePtr + 0x14);
                 camId = *(unsigned short*)(zonePtr + 0x16);
-                zonePtr = (unsigned int)g_CurrentRdtDataTypePtr;
+                zonePtr = (unsigned char*)g_CurrentRdtDataTypePtr;
             }
             g_message_flags = (unsigned short)g_message_flags & 0xffba;
             g_CurrentRdtDataTypePtr = (void*)zonePtr;
@@ -7184,7 +7189,7 @@ int check_desk(unsigned char* entry)
 // MAP INDEX (itemId - ITEM_MAP_FIRST); map_area_known reads the bits back.
 static void set_room_item_seen_flag(int mapIndex)
 {
-    Flg_on((int)g_RoomFlags, mapIndex + ROOM_FLAG_MAP_BASE);
+    Flg_on(O(g_RoomFlags), mapIndex + ROOM_FLAG_MAP_BASE);
 }
 
 // ============================================================================
@@ -7198,9 +7203,9 @@ int pickup_key_event(unsigned char* entry)
 {
     *entry = 0;
     ((unsigned char*)g_item_model_table[*(unsigned short*)(entry + 4)])[0] = 0;
-    FUN_00473f10((int*)&g_roomItemsFlags, *(unsigned char*)(*(unsigned char**)(entry + 8) + 0x14));
-    set_room_item_seen_flag(ITEM_TO_MAP_INDEX(*(unsigned char*)(*(unsigned char**)(entry + 8) + 8)));
-    g_pickedItemId = *(unsigned char*)(*(unsigned char**)(entry + 8) + 8);
+    FUN_00473f10((int*)&g_roomItemsFlags, *(unsigned char*)(P<unsigned char>(*(uint32_t*)(entry + 8)) + 0x14));
+    set_room_item_seen_flag(ITEM_TO_MAP_INDEX(*(unsigned char*)(P<unsigned char>(*(uint32_t*)(entry + 8)) + 8)));
+    g_pickedItemId = *(unsigned char*)(P<unsigned char>(*(uint32_t*)(entry + 8)) + 8);
     return 0;
 }
 
@@ -7226,7 +7231,7 @@ int check_typewriter(unsigned char* entry)
             return 0;
         }
         if ((g_playerEntity.id == 1) || (g_playerEntity.id == 5)) {
-            if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+            if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                 g_pRoomActionEntry = entry;
                 *(unsigned short*)(entry + 2) = (unsigned short)ribbonSlot;
                 g_typewriter_state = 1;
@@ -7248,7 +7253,7 @@ int check_typewriter(unsigned char* entry)
 // ============================================================================
 int stairs_height_update(unsigned char* entry)
 {
-    unsigned short* zone = *(unsigned short**)(entry + 8);
+    unsigned short* zone = P<unsigned short>(*(uint32_t*)(entry + 8));
     int local4;
     switch (*(unsigned short*)(entry + 2)) {
     case 0:  local4 = g_playerEntity.scaMatrixData.localMatrix.t[0] - (unsigned int)zone[0]; break;
@@ -7305,13 +7310,13 @@ void update_player_position(PlayerEntity* ent, int mask)
             bool hit = false;
             if ((flags & 0x40) == 0) {
                 if (is_point_in_action_zone((VECTOR*)&g_playerPosScratch,
-                                            *(unsigned short**)(entry + 8)) != 0) {
+                                            P<unsigned short>(*(uint32_t*)(entry + 8))) != 0) {
                     g_fwdPosActionId = (unsigned char)(index + 1);
                     hit = true;
                 }
             } else {
                 if (is_point_in_action_zone((VECTOR*)ent->scaMatrixData.localMatrix.t,
-                                            *(unsigned short**)(entry + 8)) != 0) {
+                                            P<unsigned short>(*(uint32_t*)(entry + 8))) != 0) {
                     g_entPosActionId = (unsigned char)(index + 1);
                     hit = true;
                 }

@@ -571,8 +571,8 @@ short entity_swerve_around_obstacle(short angleStep, char blocked,
 // ============================================================================
 void SetEntityScaHitData(Entity* ent)
 {
-    short* srcVol = *(short**)((char*)ent + 4);
-    short* dstVol = *(short**)((char*)ent + 8);
+    short* srcVol = P<short>(*(uint32_t*)((char*)ent + 4));
+    short* dstVol = P<short>(*(uint32_t*)((char*)ent + 8));
 
     g_svecScratch.y = ent->angle;
     g_svecScratch.z = 0;
@@ -624,13 +624,13 @@ unsigned int ResolveEntityScaCollision(Entity* entA, Entity* entB)
     // AFTER each volume pair is processed, so a record is always walked at
     // least once - the player/zombie records carry their single volume in the
     // same 16 bytes as the terminator.
-    short* volAWorld = *(short**)((char*)entA + 8);
-    short* volALocal = *(short**)((char*)entA + 4);
+    short* volAWorld = P<short>(*(uint32_t*)((char*)entA + 8));
+    short* volALocal = P<short>(*(uint32_t*)((char*)entA + 4));
     unsigned char hitFlag = 0;
 
     for (;;) {
-        short* volBWorld = *(short**)((char*)entB + 8);
-        short* volBLocal = *(short**)((char*)entB + 4);
+        short* volBWorld = P<short>(*(uint32_t*)((char*)entB + 8));
+        short* volBLocal = P<short>(*(uint32_t*)((char*)entB + 4));
 
         for (;;) {
             int dx = ((int)volBWorld[0] - (int)volAWorld[0])
@@ -754,8 +754,9 @@ unsigned int HandleEnemyPlayerCollisions(void)
 // billboards at impact points, plays impact SFX, and decrements the
 // speed parameter. Called from zombie_update for the hand joint.
 // ============================================================================
-void blood_splatter_physics(int jointData, short gravityStep)
+void blood_splatter_physics(int jointDataSlot, short gravityStep)
 {
+    unsigned char* jointData = P<unsigned char>((uint32_t)jointDataSlot);
     if (*(int*)(jointData + 0x5C) >= -100 && (*(unsigned char*)(jointData + 3) & 0x1F) >= 6)
         return;
 
@@ -866,8 +867,9 @@ void snap_player_to_grab_position(void* player)
 // at +0x70, effect type at +3, and frame match at +0x72. Also applies to
 // the weapon-part joint if g_main_state_flags has bit 0 set.
 // ============================================================================
-void joint_setup_attack_effect(int joint, unsigned char effectType, unsigned short timer, unsigned short frameMatch)
+void joint_setup_attack_effect(int jointSlot, unsigned char effectType, unsigned short timer, unsigned short frameMatch)
 {
+    unsigned char* joint = P<unsigned char>((uint32_t)jointSlot);
     if ((*(unsigned char*)(joint + 2) & 0x80) != 0) return;
 
     int sizeVal = 0x28;
@@ -882,15 +884,17 @@ void joint_setup_attack_effect(int joint, unsigned char effectType, unsigned sho
     }
 
     // Apply effect to the main joint
-    joint_enable_special_effect(joint, sizeB, sizeVal, sizeC);
+    joint_enable_special_effect(jointSlot, sizeB, sizeVal, sizeC);
     *(unsigned short*)(joint + 0x70) = timer;
     *(unsigned char*)(joint + 3) = effectType;
     *(unsigned short*)(joint + 0x72) = frameMatch;
 
     // Also apply to weapon-part joint if active
     if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
-        int weaponJoint = (*(int*)((char*)ENTITY + 0xAC) - *(int*)&ENTITY->jointsStructs) + joint;
-        joint_enable_special_effect(weaponJoint, sizeB, sizeVal, sizeC);
+        // Slot arithmetic: (mirror array - joint array) + this joint.
+        int weaponJointSlot = (*(int*)((char*)ENTITY + 0xAC) - *(int*)&ENTITY->jointsStructs) + jointSlot;
+        unsigned char* weaponJoint = P<unsigned char>((uint32_t)weaponJointSlot);
+        joint_enable_special_effect(weaponJointSlot, sizeB, sizeVal, sizeC);
         *(unsigned char*)(weaponJoint + 3) = effectType;
         *(unsigned short*)(weaponJoint + 0x70) = timer;
         *(unsigned short*)(weaponJoint + 0x72) = frameMatch;
@@ -1495,16 +1499,18 @@ char reduce_attack_time_by_btn_press(void)
 // geometry (port: PathTrail.cpp). That pipeline is now ported, so both halves
 // run.
 // ============================================================================
-void joint_enable_special_effect(int joint, unsigned char a, int b, unsigned char c)
+void joint_enable_special_effect(int jointSlot, unsigned char a, int b, unsigned char c)
 {
-    unsigned char* flags = (unsigned char*)joint;
+    unsigned char* joint = P<unsigned char>((uint32_t)jointSlot);
+    unsigned char* flags = joint;
     if ((*flags & 1) != 0) {
         unsigned char f = *flags & 0xFE;
         *flags = f;
         *flags = f | 0x28;
-        g_playerDisplacement = *(int*)(*(int*)(joint + 0x14) + 0x14) * 2;
+        // +0x14 anim_slot_ptr and +0x18 anim_object are 4-byte slots.
+        g_playerDisplacement = *(int*)(P<unsigned char>(*(uint32_t*)(joint + 0x14)) + 0x14) * 2;
         extern void FUN_004855d0(void*, int, int, int);
-        FUN_004855d0(*(void**)(joint + 0x18), a, (int)b, (int)c);
+        FUN_004855d0(P<void>(*(uint32_t*)(joint + 0x18)), a, (int)b, (int)c);
     }
 }
 
@@ -1601,7 +1607,7 @@ void entity_build_mirror_joints(void)
 
     unsigned char* src = (unsigned char*)ENTITY->jointsStructs
                          + (unsigned int)count * 0x7c - 0x7c;
-    unsigned char* dst = (unsigned char*)ENTITY->weaponJointsPtr
+    unsigned char* dst = P<unsigned char>(ENTITY->weaponJointsPtr)
                          + (unsigned int)count * 0x7c - 0x7c;
 
     do {
@@ -1618,7 +1624,7 @@ void entity_build_mirror_joints(void)
                 (void*)((char*)g_RdtPointer + 0x9c
                         + (unsigned int)g_roomCameraId * 0x2c),
                 (unsigned char)((g_main_state_flags & MSF_MIRROR_PLANE_X) != 0),
-                (int)d->world.t);
+                (int)O(d->world.t));
 
             if (visible != 0) {
                 d->flags |= 0x01;
@@ -1666,7 +1672,7 @@ void entity_draw_mirror_reflection(void)
 
     // 0x0048bdaa-0x0048bdcd: swap in the mirrored joints.
     g_tempVar = (void*)ENTITY->jointsStructs;
-    ENTITY->jointsStructs = (JointStruct*)ENTITY->weaponJointsPtr;
+    ENTITY->jointsStructs = P<JointStruct>(ENTITY->weaponJointsPtr);
 
     int* camera = (int*)((char*)g_RdtPointer + 0x9c
                          + (unsigned int)g_roomCameraId * 0x2c);
@@ -1789,9 +1795,9 @@ void update_entities(void)
             // the reflected camera.
             if ((g_main_state_flags & MSF_MIRROR_ENABLE) != 0) {
                 unsigned char lightCheck = mirror_point_visible(
-                    (void*)((int)g_RdtPointer[1].lights + (unsigned int)g_roomCameraId * 44 - 4),
+                    (void*)((char*)g_RdtPointer[1].lights + (unsigned int)g_roomCameraId * 44 - 4),
                     (unsigned char)((g_main_state_flags & MSF_MIRROR_PLANE_X) != 0),
-                    (int)ENTITY->scaMatrixData.localMatrix.t);
+                    (int)O(ENTITY->scaMatrixData.localMatrix.t));
                 if (lightCheck != 0) {
                     entity_draw_mirror_reflection();
                 }

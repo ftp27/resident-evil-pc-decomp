@@ -197,8 +197,8 @@ int CMarniBits::Release() {
 
     // If owns data, free pixel and palette buffers
     if (m_dataSource != 0 && m_ownsPalette != 0) {
-        free(m_pPixelData);
-        free(m_pPalette);
+        operator_delete(m_pPixelData);
+        operator_delete(m_pPalette);
     }
 
     // Zero all fields (same pattern as constructor)
@@ -257,7 +257,7 @@ int CMarniBits::Lock(void** outData, DWORD* outPitch) {
         // (offset 0x08), NOT m_pitch (offset 0x34). Callers like
         // CheckTextureRecreation and TextureLoader use this to get the CLUT
         // palette pointer, not the row pitch.
-        *outPitch = (DWORD)(ULONG_PTR)m_pPalette;
+        *outPitch = (DWORD)m_pPalette;   // slot value (platform/ptr32.h)
     }
     m_locked = 1;
     return 1;
@@ -1218,7 +1218,7 @@ int CMarniBits::CreateWork(int width, int height, int bitDepth, DWORD paletteFla
             paletteSize = (paletteFlags & 0xFFFFFFF8) << 5;
         } else {
             MarniDebugPrint("unsupported palette bit depth: %d\n", bitDepth);
-            free(m_pPixelData);
+            operator_delete(m_pPixelData);
             m_pPixelData = NULL;
             return 0;
         }
@@ -1226,7 +1226,7 @@ int CMarniBits::CreateWork(int width, int height, int bitDepth, DWORD paletteFla
         m_pPalette = operator_new(paletteSize);
         if (m_pPalette == NULL) {
             printf("palette alloc failed: MarniBits::CreateWork\n");
-            free(m_pPixelData);
+            operator_delete(m_pPixelData);
             m_pPixelData = NULL;
             return 0;
         }
@@ -1351,7 +1351,7 @@ int CMarniBits::SaveBitmapToFile(const char* filename) {
     DWORD bmpSize = m_width * m_height * 3 + 0x3A;
     BYTE* buffer = (BYTE*)operator_new(bmpSize);
     if (!buffer) {
-        if (captured) { free(m_pPixelData); m_pPixelData = NULL; }
+        if (captured) { operator_delete(m_pPixelData); m_pPixelData = NULL; }
         printf("allocation failed: MarniBits::FileOut\n");
         return 0;
     }
@@ -1420,11 +1420,11 @@ int CMarniBits::SaveBitmapToFile(const char* filename) {
     // Write to file
     plat_file_write(filename, buffer, bmpSize);
 
-    free(buffer);
+    operator_delete(buffer);
 
     // Clean up: if we captured from D3D11, free the temporary pixel data
     if (captured) {
-        free(m_pPixelData);
+        operator_delete(m_pPixelData);
         m_pPixelData    = NULL;
         m_width         = 0;
         m_height        = 0;

@@ -1185,9 +1185,9 @@ DWORD         g_scaJillData[4] = {
 // 0x004d4540 - SCA data pointer table (index = (characterId & 1) * 2)
 // [0]: Chris, [1]: table2, [2]: Jill, [3]: NULL sentinel
 DWORD         g_scaDataTable[4] = {
-    (DWORD)g_scaChrisData,
-    (DWORD)g_scaData2,
-    (DWORD)g_scaJillData,
+    O(g_scaChrisData),
+    O(g_scaData2),
+    O(g_scaJillData),
     0x00000000
 };
 
@@ -1863,7 +1863,7 @@ char           g_pakStringBuf[512] = {};
 // 0xA4-byte record carved from the RDT VB region by room_set (count = RDT
 // omodel_slot_count) and filled by cmd_omodel_set; walked by
 // update_room_objects / check_climb_object and targetable from SCD scripts.
-void*          g_omodel_table[8] = {};
+Ptr32<void>    g_omodel_table[8] = {};
 
 // 0x00d21360 - Item model record table. One 0xA4-byte record per RDT item_models
 // pair (count = RDT item_count), carved from the VB region by room_set and filled
@@ -1871,7 +1871,7 @@ void*          g_omodel_table[8] = {};
 // the one lying on the floor, or the one a desk close-up reveals. Byte 0 bit 0 is
 // "currently drawn" (renderer pass 1); pickup clears it and frees the sparkle
 // billboard at +0x86. Also an entity target for event scripts.
-void*          g_item_model_table[8] = {};
+Ptr32<void>    g_item_model_table[8] = {};
 
 // 0x00ae9ef4 - Count of object models loaded by cmd_omodel_set in current room
 int            g_omodelCount = 0;
@@ -2021,6 +2021,12 @@ static unsigned int g_randState = 1;
 extern "C" void re1_srand(unsigned int seed)
 {
     g_randState = seed;
+}
+
+// Current generator state, for test-run state dumps (docs/TESTING.md).
+extern "C" unsigned int re1_rand_state(void)
+{
+    return g_randState;
 }
 
 extern "C" int re1_rand(void)

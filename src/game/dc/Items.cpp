@@ -48,5 +48,5 @@ int dc_is_infinite_colt_python(unsigned char itemId)
     // changes nothing for a DC session and keeps Mode=OG exactly as it was.
     return g_bDcMode
         && itemId == (unsigned char)ITEM_COLT_PYTHON_MAG
-        && Flg_ck((int)g_ScenarioFlags, DC_SCENARIO_FLAG_INF_COLT_PYTHON) != 0;
+        && Flg_ck(O(g_ScenarioFlags), DC_SCENARIO_FLAG_INF_COLT_PYTHON) != 0;
 }

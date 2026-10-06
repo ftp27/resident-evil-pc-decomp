@@ -20,15 +20,15 @@ void ObjectList_Cleanup(void)
                 i = i + 1;
 
                 // Call vtable[9] (DeleteObjectHandle) on countPtr[0x15]
-                void** d3dVtable = *(void***)g_pMarniDirect3D;
-                ((void(*)(void*))d3dVtable[9])((void*)countPtr[0x15]);
+                void** d3dVtable = *(Ptr32<void*>*)g_pMarniDirect3D;
+                ((void(*)(void*))d3dVtable[9])(P<void>(countPtr[0x15]));
                 countPtr[0x15] = 0;
 
                 // Call Release (vtable[0]) on the entry. Original 0x0048707f:
                 // mov ecx, edi (this = the entry); call [vtable]. The port's
                 // adapters are __stdcall with self as the first stack argument,
                 // so self must be basePtr (the entry), not the vtable.
-                void** funcPtr = (void**)*basePtr;
+                void** funcPtr = P<void*>(*basePtr);
                 if (funcPtr) {
                     ((void (__stdcall*)(void*))*funcPtr)(basePtr);
                 }
@@ -52,7 +52,7 @@ int VideoDriver_ReleaseResources(void* obj, void* context)
     if (context == NULL) {
         return 0;
     }
-    void** ctxVtable = *(void***)context;
+    void** ctxVtable = *(Ptr32<void*>*)context;
     if (ctxVtable == NULL) {
         return 0;
     }
@@ -97,7 +97,7 @@ int Direct3DTIM_Create(void* pagePtr, void* context)
     }
 
     if (*(int*)((BYTE*)pagePtr + 0x340) != 0) {
-        void** vtable = *(void***)context;
+        void** vtable = *(Ptr32<void*>*)context;
         typedef DWORD (*CreateTextureFn)(void*, BYTE*, unsigned int, void*);
         CreateTextureFn createTex = (CreateTextureFn)vtable[6];
 

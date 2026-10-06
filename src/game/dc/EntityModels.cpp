@@ -68,7 +68,7 @@ unsigned char dc_emd_advanced_index(unsigned char modelIndex)
     // outfit and OUTFIT_B (which leaves the index at DC_EMD_INDEX_COSTUME) the
     // OG alternate. See the flag comment in EntityModels.h.
     if (modelIndex == DC_EMD_INDEX_COSTUME
-        && Flg_ck((int)g_ScenarioFlags, DC_SCENARIO_FLAG_OUTFIT_A) != 0) {
+        && Flg_ck(O(g_ScenarioFlags), DC_SCENARIO_FLAG_OUTFIT_A) != 0) {
         modelIndex = (unsigned char)(g_playerEntity.id & 1);
     }
 

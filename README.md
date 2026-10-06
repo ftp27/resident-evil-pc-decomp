@@ -146,6 +146,11 @@ drive an attract-demo run headlessly.
 For the sanitizer build (ASan/UBSan) and the rest of the porting notes see
 `docs/LINUX_PORT.md`.
 
+Scripted input runs (`--script`, `--record`, `--fast`) drive the game
+deterministically from a file of controller input and check its state; the
+scenarios in `tests/scenarios/` run with `bash tests/run_scenarios.sh`. See
+`docs/TESTING.md`.
+
 ### Packaging a portable bundle
 
 `build/linux/residentevil` is linked against the build host's ffmpeg, so it only

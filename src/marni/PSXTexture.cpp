@@ -385,7 +385,7 @@ int PSXTexture::SetAddress(void* pixelData, void* clutData)
         return 0;
     }
     m_pPixelData = pixelData;
-    m_Pitch = (DWORD)clutData;  // Original stores CLUT data pointer here
+    m_Pitch = O(clutData);  // Original stores CLUT data pointer here
     m_DataSource = 0;
     return 1;
 }

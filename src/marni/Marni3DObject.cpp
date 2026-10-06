@@ -65,8 +65,8 @@ int CDirect3DObject::Release()
         Unlock();
     }
     if (m_flag10 != 0 && m_flag18 != 0) {
-        free(m_pVertexBuffer);
-        free(m_pIndexBuffer);
+        operator_delete(m_pVertexBuffer);
+        operator_delete(m_pIndexBuffer);
     }
     m_pVertexBuffer   = 0;
     m_pIndexBuffer    = 0;
@@ -431,7 +431,7 @@ static void* g_CMarniViewport2VTable[8] = {
 void MarniViewport2_InitEntry(void* entry)
 {
     DWORD* e = (DWORD*)entry;
-    e[0] = (DWORD)g_CMarniViewport2VTable;   // 0x004af0f8
+    e[0] = O(g_CMarniViewport2VTable);       // 0x004af0f8
     for (int i = 1; i < 14; i++) e[i] = 0;   // +0x04 .. +0x34
     e[7] = 1;                                // m_unknown1C (+0x1C)
 }
@@ -468,7 +468,7 @@ CMarniDirect3DTMD::CMarniDirect3DTMD()
     for (int i = 0; i < 16; i++) {
         DWORD* elem = embeddedBase + (i * 19);  // 0x4C / 4 = 19 DWORDs
         // FUN_004272e0 base init pattern (CMarniViewport2_vtable at 0x004af0f8)
-        elem[0]  = (DWORD)g_CMarniViewport2VTable;   // vtable
+        elem[0]  = O(g_CMarniViewport2VTable);       // vtable
         elem[1]  = 0;   // m_pVertexBuffer
         elem[2]  = 0;   // m_pIndexBuffer
         elem[3]  = 0;   // m_bHasBuffers
@@ -507,7 +507,7 @@ CMarniDirect3DTMD::~CMarniDirect3DTMD()
     DWORD* embeddedBase = (DWORD*)this;
     for (int i = 0; i < 16; i++) {
         DWORD* elem = embeddedBase + (i * 19);  // 0x4C bytes stride
-        void** eVtable = (void**)elem[0];
+        void** eVtable = P<void*>(elem[0]);
         if (eVtable != 0) {
             // Call Release (vtable[0]) on embedded element
             ((int (__stdcall *)(void*))eVtable[0])(elem);
@@ -522,7 +522,7 @@ CMarniDirect3DTMD::~CMarniDirect3DTMD()
 int CMarniDirect3DTMD::Create(void* d3dContext, void* materialContext, void* param3)
 {
     // 0x00415650 - decompiled faithfully from Ghidra
-    void** d3dVtable = *(void***)d3dContext;
+    void** d3dVtable = P<void*>(*(uint32_t*)d3dContext);   // vtable is a 32-bit slot
 
     // Store material context pointer
     m_pD3DContext = d3dContext;
@@ -668,7 +668,7 @@ int CMarniDirect3DTMD::Create(void* d3dContext, void* materialContext, void* par
 int CMarniDirect3DTMD::Transform(void* d3dContext, void* depth, void* matrix, int doubleBuffer)
 {
     // 0x00415520
-    void** d3dVtable = *(void***)d3dContext;
+    void** d3dVtable = P<void*>(*(uint32_t*)d3dContext);   // vtable is a 32-bit slot
     int*   ctxFields = (int*)d3dContext;
 
     if (m_initialized == 0) {
@@ -729,7 +729,7 @@ int CMarniDirect3DTMD::Destroy(void* d3dContext)
         return 0;
     }
 
-    void** d3dVtable = *(void***)d3dContext;
+    void** d3dVtable = P<void*>(*(uint32_t*)d3dContext);   // vtable is a 32-bit slot
 
     DWORD objCount = m_objectCount;
     DWORD* handles = m_objectHandles;
@@ -768,7 +768,7 @@ int CMarniDirect3DTMD::CleanupObjects(void* param)
         DWORD* elem = embeddedBase + (i * 19);  // 19 DWORDs = 0x4C stride
 
         // Call vtable[0] = Release on the embedded element
-        void** eVtable = (void**)elem[0];
+        void** eVtable = P<void*>(elem[0]);
         if (eVtable != 0) {
             ((int (__stdcall *)(void*))eVtable[0])(elem);
         }
@@ -851,8 +851,8 @@ int CMarniViewport2::Release()
         Unlock();
     }
     if ((p[4] != 0) && (p[6] != 0)) {  // m_flag10 && m_flag18
-        free(m_pVertexBuffer);
-        free(m_pIndexBuffer);
+        operator_delete(m_pVertexBuffer);
+        operator_delete(m_pIndexBuffer);
     }
     p[1]  = 0;   // m_pVertexBuffer
     p[2]  = 0;   // m_pIndexBuffer
@@ -892,7 +892,7 @@ int CMarniViewport2::CreateWork(int vtxCount, int polyCount, int polyType)
 
     m_pVertexBuffer = operator_new(vtxCount * 0x2C);  // 44 bytes per vertex
     if (m_pVertexBuffer == 0) {
-        free(m_pIndexBuffer);
+        operator_delete(m_pIndexBuffer);
         m_pIndexBuffer = 0;
         return 0;
     }
@@ -1580,7 +1580,7 @@ static void PSXObject_InitSlotElements(BYTE* slot)
     for (int i = 0; i < 16; i++) {
         DWORD* elem = (DWORD*)(slot + i * 0x4C);
         if (elem[0] == 0) {
-            elem[0]  = (DWORD)g_CMarniViewport2VTable;  // 0x004af0f8
+            elem[0]  = O(g_CMarniViewport2VTable);      // 0x004af0f8
             elem[1]  = 0;   // m_pVertexBuffer
             elem[2]  = 0;   // m_pIndexBuffer
             elem[3]  = 0;   // m_bHasBuffers
@@ -1661,7 +1661,7 @@ static unsigned int* PSXObject_FindPacket(unsigned int* pkt, int* kind)
            (((unsigned int)kind[2] & 0x4000000) != 0 &&
             (((short)(pkt[1] >> 0x10) != *(short*)(kind + 1)) ||
              (((unsigned short)(pkt[2] >> 0x10) & 0x1F) != *(unsigned short*)(kind + 4))))) {
-        pkt = (unsigned int*)((int)pkt + ((*pkt & 0xFF00) >> 6) + 4);
+        pkt = (unsigned int*)((unsigned char*)pkt + ((*pkt & 0xFF00) >> 6) + 4);
     }
     return pkt;
 }
@@ -1713,7 +1713,7 @@ static int PSXObject_EnumKind(int maxKinds, int* table, unsigned int* pkt, int n
                 return 0;
             }
             processed = processed + 1;
-            pkt = (unsigned int*)((int)pkt + ((*pkt & 0xFF00) >> 6) + 4);
+            pkt = (unsigned int*)((unsigned char*)pkt + ((*pkt & 0xFF00) >> 6) + 4);
         } while (processed < numPackets);
     }
     return kindCount;
@@ -1852,7 +1852,7 @@ static int PSXObject_Resize(BYTE* slot)
 }
 
 // TMD vertex/normal readers (8-byte short4 entries)
-static void PSXObjReadVertex(PSXObjVtx* v, int vertBase, unsigned int idx)
+static void PSXObjReadVertex(PSXObjVtx* v, unsigned char* vertBase, unsigned int idx)
 {
     short* p = (short*)(vertBase + idx * 8);
     v->x = (float)(int)p[0];
@@ -1861,7 +1861,7 @@ static void PSXObjReadVertex(PSXObjVtx* v, int vertBase, unsigned int idx)
 }
 
 // 0x25010607 reads positions without negating Y
-static void PSXObjReadVertexRawY(PSXObjVtx* v, int vertBase, unsigned int idx)
+static void PSXObjReadVertexRawY(PSXObjVtx* v, unsigned char* vertBase, unsigned int idx)
 {
     short* p = (short*)(vertBase + idx * 8);
     v->x = (float)(int)p[0];
@@ -1869,7 +1869,7 @@ static void PSXObjReadVertexRawY(PSXObjVtx* v, int vertBase, unsigned int idx)
     v->z = (float)(int)p[2];
 }
 
-static void PSXObjReadNormal(PSXObjVtx* v, int normBase, unsigned int idx)
+static void PSXObjReadNormal(PSXObjVtx* v, unsigned char* normBase, unsigned int idx)
 {
     short* p = (short*)(normBase + idx * 8);
     v->nx = (float)(int)p[0] * 0.00024414063f;
@@ -1902,18 +1902,18 @@ int PSXObject_Store(CMarniDirect3DTMD* self, int* tmdHdr, int objIndex,
     }
 
     int* objEntry = tmdHdr + objIndex * 7 + 3;
-    int primPtr, vertBase, normBase;
+    unsigned char *primPtr, *vertBase, *normBase;
     if ((*(BYTE*)(tmdHdr + 1) & 1) == 0) {
         // Offset mode: table entries hold header-relative offsets
-        primPtr  = (int)(((unsigned)(tmdHdr[objIndex * 7 + 7] + 0xC) & 0xFFFFFFFC) + (int)tmdHdr);
-        vertBase = (int)(((unsigned)(*objEntry + 0xC) & 0xFFFFFFFC) + (int)tmdHdr);
-        normBase = (int)(((unsigned)(objEntry[2] + 0xC) & 0xFFFFFFFC) + (int)tmdHdr);
+        primPtr  = (unsigned char*)tmdHdr + ((unsigned)(tmdHdr[objIndex * 7 + 7] + 0xC) & 0xFFFFFFFC);
+        vertBase = (unsigned char*)tmdHdr + ((unsigned)(*objEntry + 0xC) & 0xFFFFFFFC);
+        normBase = (unsigned char*)tmdHdr + ((unsigned)(objEntry[2] + 0xC) & 0xFFFFFFFC);
     }
     else {
         // Absolute mode: table entries hold direct pointers
-        primPtr  = objEntry[4];
-        vertBase = *objEntry;
-        normBase = objEntry[2];
+        primPtr  = P<unsigned char>(objEntry[4]);
+        vertBase = P<unsigned char>(*objEntry);
+        normBase = P<unsigned char>(objEntry[2]);
     }
 
     // Enumerate distinct primitive kinds (max 100 entries of 5 DWORDs)
@@ -1964,7 +1964,7 @@ int PSXObject_Store(CMarniDirect3DTMD* self, int* tmdHdr, int objIndex,
         CMarniViewport2* elem = (CMarniViewport2*)slot;
 
         while (true) {
-            int pktCursor = primPtr;
+            unsigned char* pktCursor = primPtr;
             int count = *kind;
             int polyType, vtxTotal;
             if (kind[3] == 0) {
@@ -2215,7 +2215,7 @@ int PSXObject_Store(CMarniDirect3DTMD* self, int* tmdHdr, int objIndex,
                         return 0;
                     }
 
-                    pktCursor = (int)pkt + ((*pkt & 0xFF00) >> 6) + 4;
+                    pktCursor = (unsigned char*)pkt + ((*pkt & 0xFF00) >> 6) + 4;
                     if (type == 0x3C00080C) {
                         vertIdx += 4;       // quad: 4 vertices per poly (iStack_7dc)
                     }

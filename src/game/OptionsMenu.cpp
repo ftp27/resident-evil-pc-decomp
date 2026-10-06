@@ -395,7 +395,8 @@ done:
 // ============================================================================
 void options_map_key_to_print_index(int param_1)
 {
-    int idx = *(int*)((unsigned char*)param_1 + 4);
+    unsigned char* entry = P<unsigned char>(param_1);
+    int idx = *(int*)(entry + 4);
     unsigned char ch;
     switch (idx) {
     case 0:  ch = 0x10; break;
@@ -424,8 +425,8 @@ void options_map_key_to_print_index(int param_1)
         }
         break;
     }
-    *(unsigned char*)(param_1 + 2) = ch;
-    *(unsigned char*)(param_1 + 1) = ch;
+    *(unsigned char*)(entry + 2) = ch;
+    *(unsigned char*)(entry + 1) = ch;
 }
 
 
@@ -797,15 +798,16 @@ void options_render_entity(int param_1)
     MATRIX* pJoint;
     MATRIX localMatrix;
     unsigned char jointIdx;
+    unsigned char* ent = P<unsigned char>(param_1);
 
-    g_animFrameIdSave = (unsigned int)(((*(unsigned char*)(param_1 + 3) & 0x7f) == 0));
+    g_animFrameIdSave = (unsigned int)(((*(unsigned char*)(ent + 3) & 0x7f) == 0));
 
-    jointIdx = *(char*)(param_1 + 0x8d) - 1;
-    pJoint = (MATRIX*)((unsigned int)jointIdx * 0x7c + *(int*)(param_1 + 0x98));
+    jointIdx = *(char*)(ent + 0x8d) - 1;
+    pJoint = (MATRIX*)(P<unsigned char>(*(int*)(ent + 0x98)) + (unsigned int)jointIdx * 0x7c);
 
     // Not in the original: guard against being called before the player model
     // has been loaded, which would walk a null joint array.
-    if (*(int*)(param_1 + 0x98) == 0 || *(unsigned char*)(param_1 + 0x8d) == 0) {
+    if (*(int*)(ent + 0x98) == 0 || *(unsigned char*)(ent + 0x8d) == 0) {
         return;
     }
 
@@ -879,7 +881,7 @@ void options_menu_render(void)
 
         do {
             KeyBindEntry* next = (KeyBindEntry*)(pEntry + 0x14);
-            options_map_key_to_print_index((int)pEntry);
+            options_map_key_to_print_index((int)O(pEntry));
             sprintf(PRINT_TEXT_BUFFER, s_fmt_c, (int)(char)pEntry[1]);
             PrintText8x14(0x91, (short)(*pY + 1), 0, 0);
             pEntry = (unsigned char*)next;
@@ -887,12 +889,12 @@ void options_menu_render(void)
         } while (pEntry < (unsigned char*)&s_keyBindDisplay[12]); // entries 9,10,11
 
         // Accept key (entry 16) at Y[3]
-        options_map_key_to_print_index((int)&s_keyBindDisplay[16]);
+        options_map_key_to_print_index((int)O(&s_keyBindDisplay[16]));
         sprintf(PRINT_TEXT_BUFFER, s_fmt_c, (int)s_keyBindDisplay[16].displayChar);
         PrintText8x14(0x91, (short)(s_optKeyLabelY[3] + 1), 0, 0);
 
         // Cancel key (entry 17) at Y[4]
-        options_map_key_to_print_index((int)&s_keyBindDisplay[17]);
+        options_map_key_to_print_index((int)O(&s_keyBindDisplay[17]));
         sprintf(PRINT_TEXT_BUFFER, s_fmt_c, (int)s_keyBindDisplay[17].displayChar);
         PrintText8x14(0x91, (short)(s_optKeyLabelY[4] + 1), 0, 0);
 
@@ -1017,7 +1019,7 @@ void options_menu_render(void)
     Joint_move(0, g_playerEntity.jointMoveData0, g_playerEntity.jointMoveData1, 0x400);
     EntityComputeJointWorldMatrices(g_playerEntity.unk_ca);
     EntityApplyLookAtRotation();
-    options_render_entity((int)&g_playerEntity);
+    options_render_entity((int)O(&g_playerEntity));
     options_render_cursor();
 }
 
@@ -1671,7 +1673,7 @@ doJointMove:
 updateRender:
     EntityComputeJointWorldMatrices(g_playerEntity.unk_ca);
     EntityApplyLookAtRotation();
-    options_render_entity((int)&g_playerEntity);
+    options_render_entity((int)O(&g_playerEntity));
     return 1;
 }
 
@@ -1993,7 +1995,7 @@ unsigned int options_key_config_input(void)
     i = 0;
     do {
         next = (KeyBindEntry*)(pEntry + 0x14);
-        options_map_key_to_print_index((int)pEntry);
+        options_map_key_to_print_index((int)O(pEntry));
         sprintf(PRINT_TEXT_BUFFER, s_fmt_c, (int)(char)pEntry[1]);
         PrintText8x14(0x91, s_optKeyLabelY[i / 4] + s_optJoyLabelYOffset + 1,
             (unsigned char)s_optCursorHighlight[i / 4], 0);
@@ -2069,7 +2071,7 @@ unsigned int options_key_config_input(void)
 keyConfigRender:
     EntityComputeJointWorldMatrices(g_playerEntity.unk_ca);
     EntityApplyLookAtRotation();
-    options_render_entity((int)&g_playerEntity);
+    options_render_entity((int)O(&g_playerEntity));
     return 1;
 }
 
@@ -2678,8 +2680,8 @@ void options_menu(void)
     // Set up player entity for options display
     g_EquippedItemId = 1;
     g_playerEntity.equippedWeaponId = 2;
-    LoadEquippedWeaponAnimation(2, 0xe, (unsigned int)g_animationBuffer,
-                                (unsigned int)g_animObjectBuffer);
+    LoadEquippedWeaponAnimation(2, 0xe, (unsigned int)O(g_animationBuffer),
+                                (unsigned int)O(g_animObjectBuffer));
     SetSubpixelOffset(0xa0, 0x78);
 
     ENTITY = (Entity*)&g_playerEntity;
@@ -2895,7 +2897,7 @@ afterKeyConfig:
                 g_EquippedItemId = savedEquippedItemId;
                 menu_update_equipped_weapon();
                 LoadEquippedWeaponAnimation(g_playerEntity.equippedWeaponId, 0xe,
-                    (unsigned int)g_animationBuffer, (unsigned int)g_animObjectBuffer);
+                    (unsigned int)O(g_animationBuffer), (unsigned int)O(g_animObjectBuffer));
                 g_playerEntity.unk_8c = 0;
                 g_playerEntity.animation_frame_id = 0;
                 g_playerEntity.unk_bf = 0;

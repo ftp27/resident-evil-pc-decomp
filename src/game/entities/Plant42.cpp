@@ -135,12 +135,12 @@ static inline unsigned int& p42_dist(void) { return eu(ENTITY, 0x17c); }
 
 static inline Entity* plant42_body(void)
 {
-    return reinterpret_cast<Entity*>(static_cast<uintptr_t>(ENTITY->scd_target_ptr));
+    return P<Entity>(ENTITY->scd_target_ptr);
 }
 
 static inline Entity* plant42_roots(void)
 {
-    return reinterpret_cast<Entity*>(static_cast<uintptr_t>(eu(ENTITY, 0x178)));
+    return P<Entity>(eu(ENTITY, 0x178));
 }
 
 // Joint N's world matrix / translation. Joints are 0x7C bytes, world at +0x44,
@@ -148,8 +148,8 @@ static inline Entity* plant42_roots(void)
 static inline MATRIX* jw(int n)  { return reinterpret_cast<MATRIX*>((char*)ENTITY->jointsStructs + n * 0x7c + 0x44); }
 static inline int*    jwt(int n) { return reinterpret_cast<int*>((char*)ENTITY->jointsStructs + n * 0x7c + 0x58); }
 
-static inline int player_sound_pos(void) { return (int)&g_playerEntity.scaMatrixData.localMatrix.t[0]; }
-static inline int joint_sound_pos(int n) { return (int)jwt(n); }
+static inline int player_sound_pos(void) { return O(&g_playerEntity.scaMatrixData.localMatrix.t[0]); }
+static inline int joint_sound_pos(int n) { return O(jwt(n)); }
 
 // ---------------------------------------------------------------------------
 // Small GTE helpers the original inlines from libgte (0x0040a990 / 0x0040a530
@@ -208,20 +208,21 @@ static unsigned int plant42_joint_move(char reverse, unsigned int animHeader,
     unsigned char* timing = &ENTITY->timing_control;
     if (*timing != 0) *timing = (unsigned char)(*timing - 1);
 
-    g_playerDisplacement = (int)(*(short*)(animHeader + 6) / 2);
+    g_playerDisplacement = (int)(*P<short>(animHeader + 6) / 2);
 
-    unsigned short* animSlot = (unsigned short*)(animBase + (unsigned int)ENTITY->animationId * 4);
-    unsigned short* frameEntry = (unsigned short*)((animSlot[1] & 0xFFFFFFFC) +
+    unsigned short* animSlot = P<unsigned short>(animBase + (unsigned int)ENTITY->animationId * 4);
+    unsigned short* frameEntry = P<unsigned short>((animSlot[1] & 0xFFFFFFFC) +
         (unsigned int)ENTITY->animation_frame_id * 4 + animBase);
     if (reverse != 0) {
+        // Signed (see Joint_move): an unsigned negative step would move the
+        // pointer 4 G elements forward on a 64-bit host.
         frameEntry = frameEntry +
-            ((unsigned int)*animSlot + (unsigned int)ENTITY->animation_frame_id * (unsigned int)-2) * 2 +
-            (unsigned int)-2;
+            ((int)*animSlot - (int)ENTITY->animation_frame_id * 2) * 2 - 2;
     }
 
-    short headerStride = *(short*)(animHeader + 2);
+    short headerStride = *P<short>(animHeader + 2);
     short aligned = (short)(((int)headerStride + ((int)headerStride >> 31 & 3)) >> 2);
-    short* animData = (short*)(animHeader + (int)aligned * 4 +
+    short* animData = P<short>(animHeader + (int)aligned * 4 +
         (unsigned int)*frameEntry * g_playerDisplacement * 2);
 
     unsigned char* joint = (unsigned char*)ENTITY->jointsStructs;
@@ -449,7 +450,7 @@ static void plant42_sweep_hit(void)
     }
 
     Play3DSnd(2, soundId, 0, soundPos);
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+    if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
         g_playerEntity.health -= 0x10;
     else
         g_playerEntity.health -= 0x19;
@@ -649,7 +650,7 @@ static void plant42_behavior_spit(void)
             ENTITY->angle_z -= p42_step();
             p42_step() += 0x18;
         }
-        g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+        g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
         if (10 < ENTITY->animation_frame_id && g_playerEntity.isBeingAttackedFlag == 0 &&
             FUN_0048ae00(jw(15), &g_playerPosScratch, 0x4b0,
                          &g_playerEntity.scaMatrixData.localMatrix.t[0]) != 0 &&
@@ -657,7 +658,7 @@ static void plant42_behavior_spit(void)
             g_playerEntity.isBeingAttackedFlag = 1;
             *(unsigned int*)&g_playerEntity.animationId = 0x00640002;
             p42_step() -= 8;
-            if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+            if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
                 g_playerEntity.health -= 8;
             else
                 g_playerEntity.health -= 15;
@@ -913,7 +914,7 @@ static void plant42_behavior_hold(void)
         g_playerEntity.animFrameId = 8;
         g_playerEntity.action_behavior = 2;
         g_playerEntity.action_state = 0;
-        if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
+        if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0)
             g_playerEntity.health -= 0x14;
         else
             g_playerEntity.health -= 0x28;
@@ -1191,7 +1192,7 @@ static void plant42_behavior_kill(void)
             JointApplyColorTint(headJoint, 0x30, 0x80820, (void*)0x00606060);
             JointApplyColorTint(headJoint, 0x30, 0x80820, (void*)0x00606060);
             JointStruct* pj = g_playerEntity.jointsStructs;
-            g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
             Effect_CreateBillboard(0, 3, 0, &pj[0].world, &g_playerPosScratch, 0);
             Effect_CreateBillboard(0, 3, 0, &pj[2].world, &g_playerPosScratch, 0);
             Effect_CreateBillboard(0, 0, 0, &pj[1].world, &g_playerPosScratch, 0);
@@ -1409,7 +1410,7 @@ static void plant42_behavior_scd_flinch(void)
     case 1:
         if ((ENTITY->hit_state & 7) != 0) ENTITY->angle_z -= 8;
         if ((ENTITY->behavior_flags & 0x40) != 0 && (ENTITY->animation_frame_id & 7) == 0) {
-            g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
             g_animFrameIdSave = (unsigned int)(rand() % 5);
             Effect_CreateBillboard(0x0e, 3, 0, jw((int)g_animFrameIdSave), &g_playerPosScratch, 0);
             Effect_CreateBillboard(9, 0, 0, jw((int)g_animFrameIdSave), &g_playerPosScratch, 0);
@@ -1420,7 +1421,7 @@ static void plant42_behavior_scd_flinch(void)
     case 2:
         if ((ENTITY->hit_state & 7) != 0) ENTITY->angle_z += 8;
         if ((ENTITY->behavior_flags & 0x40) != 0 && (ENTITY->animation_frame_id & 7) == 0) {
-            g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
             g_animFrameIdSave = (unsigned int)(rand() % 5);
             Effect_CreateBillboard(0x0e, 3, 0, jw((int)g_animFrameIdSave), &g_playerPosScratch, 0);
             Effect_CreateBillboard(9, 0, 0, jw((int)g_animFrameIdSave), &g_playerPosScratch, 0);
@@ -1468,9 +1469,9 @@ static void plant42_behavior_death(void)
         eub(ENTITY, 0x16c) = (unsigned char)((rand() & 1) * -0x40 + 0x20);
         eb(ENTITY, 0x16d)  = (signed char)((char)rand() * -0x80 + 0x40);
         if ((ENTITY->behavior_flags & 1) == 0) {
-            Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+            Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
             Snd_em(7);
-            g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
             Effect_CreateBillboard(0, 0x1b, 0, &ENTITY->scaMatrixData.localMatrix, &g_playerPosScratch, 0);
         }
         Play3DSnd(2, 9, 0, joint_sound_pos(9));
@@ -1518,7 +1519,7 @@ static void plant42_behavior_death(void)
                 }
                 if (eub(ENTITY, 0x183) == 4) {
                     Play3DSnd(2, 8, 0, joint_sound_pos(10));
-                    g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+                    g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
                     Effect_CreateBillboard(0, 0x1b, 0, &ENTITY->scaMatrixData.localMatrix, &g_playerPosScratch, 0);
                     g_playerPosScratch.y = -400;
                     if ((ENTITY->behavior_flags & 0x40) == 0) {
@@ -1657,7 +1658,7 @@ static void plant42_ambient_effects(void)
 // The "last vine down" payoff, shared by 0x00465310 and plant42_die.
 static void plant42_award_kill(void)
 {
-    Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_PLANT42_DEAD);
+    Flg_on(O(g_ScenarioFlags), SCENARIO_FLAG_PLANT42_DEAD);
     if ((g_playerEntity.id & 1) != 0)
         g_message_flags |= 0x100;
     for (int i = 5; ; --i) {
@@ -1729,7 +1730,7 @@ static void plant42_damage_react(void)
     if ((rand() & 1) != 0) ENTITY->action_behavior = 1;
 
     if ((ENTITY->hit_state & 0x78) == 8) {
-        VECTOR* dead = reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+        VECTOR* dead = P<VECTOR>(g_deadMoveValue + 0x14);
         g_playerPosScratch.x = dead->x;
         g_playerPosScratch.z = dead->z;
         g_playerPosScratch.pad = dead->pad;
@@ -1737,7 +1738,7 @@ static void plant42_damage_react(void)
         Effect_CreateBillboard(0, 0x18, 0, &g_playerEntity.jointsStructs[0x0e].world,
                                &g_playerPosScratch, 0);
     } else if (body == NULL || (body->hit_state & 7) == 0) {
-        g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+        g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
         // `joints + (rand()&7)*0x7c + 0x3a8` - 0x3a8 is joint 7's world matrix,
         // so the spray comes off one of joints 7..14.
         g_playerDisplacement = (int)(rand() & 7);
@@ -1750,7 +1751,7 @@ static void plant42_damage_react(void)
         g_playerPosScratch.y = ENTITY->scaMatrixData.localMatrix.t[1] + 0x1194;
         g_playerPosScratch.z = (g_playerPosScratch.z >> 1) + ENTITY->scaMatrixData.localMatrix.t[2];
         Effect_CreateBillboard(0, 0x18, 0,
-                               reinterpret_cast<void*>(static_cast<uintptr_t>(g_deadMoveValue)),
+                               P<void>(g_deadMoveValue),
                                &g_playerPosScratch, 0);
     }
 
@@ -1817,7 +1818,7 @@ static void plant42_scd_state(void)
         g_playerDisplacement = step;
         ENTITY->angle += (short)step;
         if (g_playerDisplacement == 0)
-            Flg_on((int)g_SysFlags, ENTITY->scd_anim_param);
+            Flg_on(O(g_SysFlags), ENTITY->scd_anim_param);
         plant42_behavior_idle();
         break;
     }
@@ -1856,7 +1857,7 @@ static void plant42_scd_state(void)
         eub(ENTITY, 0x177) = (unsigned char)(fxTimer - 1);
         if (fxTimer == 1) {
             Entity* body = plant42_body();
-            g_playerPosScratch = *reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            g_playerPosScratch = *P<VECTOR>(g_deadMoveValue + 0x14);
             g_animFrameIdSave = (unsigned int)(rand() % 5);
             g_playerPosScratch.y = (rand() & 0xfff) + 0x200;
             if (body != NULL && -2000 < body->scaMatrixData.localMatrix.t[1])
@@ -1869,7 +1870,7 @@ static void plant42_scd_state(void)
             }
             eub(ENTITY, 0x177) = 0x0d;
             if (body != NULL) {
-                Play3DSnd(2, 0x1e, 0, (int)&body->scaMatrixData.localMatrix.t[0]);
+                Play3DSnd(2, 0x1e, 0, O(&body->scaMatrixData.localMatrix.t[0]));
                 if (-300 < body->scaMatrixData.localMatrix.t[1]) eub(ENTITY, 0x177) = 0;
             }
         }
@@ -1937,7 +1938,7 @@ static void plant42_body_shrivel(void)
         if (c == 0) scd_model_tint_apply(0, -1, 0, 0, 0x200, 8);
         BillboardAdjSize(&ENTITY->pushVelocity, (short)-16, (short)-16);
         if ((ENTITY->behavior_flags & 0x40) == 0 && ENTITY->blend_counter % 0x1e == 0) {
-            VECTOR* dead = reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            VECTOR* dead = P<VECTOR>(g_deadMoveValue + 0x14);
             g_playerPosScratch.x = dead->x;
             g_playerPosScratch.z = dead->z;
             g_playerPosScratch.pad = dead->pad;
@@ -1957,7 +1958,7 @@ static void plant42_body_shrivel(void)
         ENTITY->blend_counter = (unsigned char)(ENTITY->blend_counter - 1);
         BillboardAdjSize(&ENTITY->pushVelocity, 0x10, 0x10);
         if ((ENTITY->behavior_flags & 0x40) == 0 && ENTITY->blend_counter % 0x1e == 0) {
-            VECTOR* dead = reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+            VECTOR* dead = P<VECTOR>(g_deadMoveValue + 0x14);
             g_playerPosScratch.x = dead->x;
             g_playerPosScratch.z = dead->z;
             g_playerPosScratch.pad = dead->pad;
@@ -1967,7 +1968,7 @@ static void plant42_body_shrivel(void)
     }
 
     if ((rand() & 0x1f) == 0) {
-        VECTOR* dead = reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14);
+        VECTOR* dead = P<VECTOR>(g_deadMoveValue + 0x14);
         g_playerPosScratch.x = dead->x;
         g_playerPosScratch.z = dead->z;
         g_playerPosScratch.pad = dead->pad;
@@ -2016,7 +2017,7 @@ static void plant42_body_fall(void)
         ei(ENTITY, 0x16c) += 0x9dc;
         ei(ENTITY, 0x174) += 0x9dc;
         if ((ENTITY->behavior_flags & 0x40) == 0) {
-            g_playerPosScratch.pad = reinterpret_cast<VECTOR*>(static_cast<uintptr_t>(g_deadMoveValue) + 0x14)->pad;
+            g_playerPosScratch.pad = P<VECTOR>(g_deadMoveValue + 0x14)->pad;
             g_playerPosScratch.x = 600;  g_playerPosScratch.z = 600;  g_playerPosScratch.y = -200;
             Effect_CreateBillboard(9, 0x11, 0,      &ENTITY->scaMatrixData.localMatrix, &g_playerPosScratch, 0x28);
             g_playerPosScratch.x = -600; g_playerPosScratch.z = 600;
@@ -2028,7 +2029,7 @@ static void plant42_body_fall(void)
             g_playerPosScratch.x = 0; g_playerPosScratch.y = -600; g_playerPosScratch.z = 0;
             Effect_CreateBillboard(0, 0x1b, 0,      &ENTITY->scaMatrixData.localMatrix, &g_playerPosScratch, 0x3c);
         }
-        int soundPos = (int)&ENTITY->scaMatrixData.localMatrix.t[0];
+        int soundPos = O(&ENTITY->scaMatrixData.localMatrix.t[0]);
         Play3DSnd(2, 8, 0, soundPos);
         Play3DSnd(2, 0, 0, soundPos);
         Play3DSnd(2, 0, 0, soundPos);
@@ -2131,10 +2132,10 @@ static void plant42_render_copies(void)
     // parent handed it BEFORE the struct copy, so a live body reads
     // body+0xB8 == body and a live root ball reads roots+0x178 == roots.
     // Reloaded buffer contents will not satisfy that.
-    if (eu(body, 0xb8) != (unsigned int)(uintptr_t)body ||
-        eu(roots, 0x178) != (unsigned int)(uintptr_t)roots) return;
-    if (!plant42_pool_pointer((const void*)(uintptr_t)body->unk_18, 0xB4) ||
-        !plant42_pool_pointer((const void*)(uintptr_t)roots->unk_18, 0xB4)) return;
+    if (eu(body, 0xb8) != O(body) ||
+        eu(roots, 0x178) != O(roots)) return;
+    if (!plant42_pool_pointer(P<const void>(body->unk_18), 0xB4) ||
+        !plant42_pool_pointer(P<const void>(roots->unk_18), 0xB4)) return;
 
     void* spriteSlot = (void*)((char*)&g_spriteAnimSlots[2] + (unsigned int)g_spriteAnimActive * 0x14);
 
@@ -2151,17 +2152,17 @@ static void plant42_render_copies(void)
         }
     }
     ScaleMatrixCols(&body->scaMatrixData.localMatrix, reinterpret_cast<VECTOR*>((char*)body + 0x16c));
-    ApplyLVAndMul0Matrix(reinterpret_cast<void*>(static_cast<uintptr_t>(g_RoomCameraDataCopy)),
+    ApplyLVAndMul0Matrix(P<void>(g_RoomCameraDataCopy),
                          &body->scaMatrixData.localMatrix, &g_matrixScratch);
 
     MATRIX lightMatrix = (g_deadMoveValue != 0)
-        ? *reinterpret_cast<MATRIX*>(static_cast<uintptr_t>(g_deadMoveValue))
+        ? *P<MATRIX>(g_deadMoveValue)
         : g_identityMatrixData;
     lightMatrix.t[0] = body->scaMatrixData.localMatrix.t[0];
     lightMatrix.t[1] = body->scaMatrixData.localMatrix.t[1];
     lightMatrix.t[2] = body->scaMatrixData.localMatrix.t[2];
     if (g_lightMatrixPtr != 0)
-        MulMatrix0(reinterpret_cast<MATRIX*>(static_cast<uintptr_t>(g_lightMatrixPtr)),
+        MulMatrix0(P<MATRIX>(g_lightMatrixPtr),
                    &lightMatrix, &lightMatrix);
     SetLightMatrix(&lightMatrix);
     SetRotAndTransMatrix(&g_matrixScratch);
@@ -2185,7 +2186,7 @@ static void plant42_render_copies(void)
         default: break;
         }
     }
-    ApplyLVAndMul0Matrix(reinterpret_cast<void*>(static_cast<uintptr_t>(g_RoomCameraDataCopy)),
+    ApplyLVAndMul0Matrix(P<void>(g_RoomCameraDataCopy),
                          &roots->scaMatrixData.localMatrix, &g_matrixScratch);
     SetRotAndTransMatrix(&g_matrixScratch);
     FUN_00483250(0, 0, 0, (int)roots->unk_18, 0, 4, spriteSlot);
@@ -2204,10 +2205,10 @@ static void plant42_clone_entity(unsigned char count, int animSlotBytes,
     g_playerDisplacement = (int)(*(unsigned int*)((char*)ENTITY->jointsStructs + 0x14) +
                                  (unsigned int)jointIndex * 0x1c);
 
-    *out = (unsigned int)(uintptr_t)g_loadDataDestPointer;
+    *out = O(g_loadDataDestPointer);
     g_loadDataDestPointer = (char*)g_loadDataDestPointer + (unsigned int)count * 0x18c;
 
-    Entity* copy = reinterpret_cast<Entity*>(static_cast<uintptr_t>(*out));
+    Entity* copy = P<Entity>(*out);
     MATRIX savedLocal = ENTITY->scaMatrixData.localMatrix;
 
     unsigned char remaining = count;
@@ -2216,11 +2217,11 @@ static void plant42_clone_entity(unsigned char count, int animSlotBytes,
         copy->scaMatrixData.localMatrix = savedLocal;
         ew(copy, 0x74) = (short)(ew(copy, 0x74) + (short)((unsigned short)remaining * 0x100));
         copy->modelLoadBuffer = (unsigned int)g_playerDisplacement;
-        copy->unk_18 = (unsigned int)(uintptr_t)g_loadDataDestPointer;
-        SetAnimSlot(reinterpret_cast<AnimSlot*>(static_cast<uintptr_t>(copy->modelLoadBuffer)),
-                    (int)&copy->unk_0c, 0);
-        g_loadDataDestPointer = CreateAnimObject((int)&copy->unk_0c,
-            reinterpret_cast<unsigned int*>(static_cast<uintptr_t>(copy->unk_18)));
+        copy->unk_18 = O(g_loadDataDestPointer);
+        SetAnimSlot(P<AnimSlot>(copy->modelLoadBuffer),
+                    O(&copy->unk_0c), 0);
+        g_loadDataDestPointer = CreateAnimObject(O(&copy->unk_0c),
+            P<unsigned int>(copy->unk_18));
         copy->state = 0;
         copy->action_state = (unsigned char)((rand() & 3) == 0);
         copy = reinterpret_cast<Entity*>((char*)copy + 0x18c);
@@ -2251,7 +2252,7 @@ void plant42_init(void)
     ENTITY->timing_control = 0;
     ENTITY->animationId = 2;
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x40);
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)s_plant42ScaInfo[0];
+    ENTITY->Sca_info = O(s_plant42ScaInfo[0]);
     p42_step() = 0;
     eub(ENTITY, 0x176) = 0;
     eub(ENTITY, 0x177) = 0;
@@ -2259,11 +2260,11 @@ void plant42_init(void)
 
     if ((ENTITY->behavior_flags & 1) == 0) {
         ENTITY->hit_state = 1;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)s_plant42ScaInfo[2];
+        ENTITY->Sca_info = O(s_plant42ScaInfo[2]);
         if (ENTITY->pSca_hit_data != 0) {
-            *(short*)(ENTITY->pSca_hit_data + 6) = 0;
-            *(short*)(ENTITY->pSca_hit_data + 8) = 0;
-            *(short*)(ENTITY->pSca_hit_data + 10) = 0;
+            *P<short>(ENTITY->pSca_hit_data + 6) = 0;
+            *P<short>(ENTITY->pSca_hit_data + 8) = 0;
+            *P<short>(ENTITY->pSca_hit_data + 10) = 0;
         }
 
         // ---- flower body ----
@@ -2313,7 +2314,7 @@ void plant42_init(void)
         // Every vine shares one body: the hit counter at body+0x70 is the
         // plant's real health pool.
         for (int i = 0; i < g_enemy_count; ++i)
-            g_EnemiesList[i].scd_target_ptr = (unsigned int)(uintptr_t)body;
+            g_EnemiesList[i].scd_target_ptr = O(body);
         g_playerDisplacement = 0;
 
         // ---- root ball ----
@@ -2385,7 +2386,7 @@ void plant42_update(void)
         // Keep the SCA hit box glued to the head joint. Missing entirely from
         // the old port, so the plant's hurt box never left the origin.
         if (ENTITY->jointsStructs != NULL && ENTITY->pSca_hit_data != 0) {
-            short* hit = (short*)ENTITY->pSca_hit_data;
+            short* hit = P<short>(ENTITY->pSca_hit_data);
             hit[0] = (short)((short)jwt(14)[0] - (short)ENTITY->scaMatrixData.localMatrix.t[0]);
             hit[1] = (short)((short)jwt(14)[1] - (short)ENTITY->scaMatrixData.localMatrix.t[1]);
             hit[2] = (short)((short)jwt(14)[2] - (short)ENTITY->scaMatrixData.localMatrix.t[2]);

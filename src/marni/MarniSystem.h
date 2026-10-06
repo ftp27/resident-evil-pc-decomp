@@ -29,10 +29,13 @@
 // All D3D11 ownership now lives inside the MarniDX* m_pDX member — there is
 // not a single ID3D11*/DXGI type visible from this header.
 // ============================================================================
+// 4-byte packing: the 0x21DC size is not a multiple of 8, which a 64-bit
+// host would otherwise round up to because of m_pDX.
+#pragma pack(push, 4)
 class CMarniDirect3D {
 public:
     // VTable pointer at offset 0x00
-    void** vtable;
+    Ptr32<void*> vtable;
 
     // Known-access fields (must keep exact offsets and names)
     // ---
@@ -86,7 +89,9 @@ public:
     // allocation in InitializeMarniSystem). The leading members sum to
     // 0x334; 0x21DC - 0x334 = 0x1EA8 (7848 bytes). Verified by static_assert
     // in MarniSystem.cpp.
-    BYTE   m_pad_endfix[0x1EA8];
+    // m_pDX is the one native-width pointer past the fixed-offset fields; the
+    // padding absorbs its extra bytes on 64-bit hosts.
+    BYTE   m_pad_endfix[0x1EA8 - (sizeof(MarniDX*) - 4)];
 
     // ---- C'tor / d'tor (keep same signatures as before) ----------------
     CMarniDirect3D(HWND hWnd, int width, int height, int modeID, int adapterID);
@@ -107,6 +112,7 @@ public:
     // [10] SetTexture          (0x00448300)
     // [11] ResetTextures       (0x00448380)
 };
+#pragma pack(pop)
 
 // ============================================================================
 // Global Marni system functions (unchanged ABI)

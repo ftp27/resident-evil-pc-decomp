@@ -219,7 +219,7 @@ void* const adder_behavior_jumptable[7] = {
 // ---------------------------------------------------------------------------
 void adder_seed_effect_pos(void)
 {
-    const int* seed = (const int*)((char*)g_deadMoveValue + 0x14);
+    const int* seed = (const int*)(P<char>(g_deadMoveValue) + 0x14);
     g_playerPosScratch.x   = seed[0];
     g_playerPosScratch.y   = seed[1];
     g_playerPosScratch.z   = seed[2];
@@ -264,7 +264,7 @@ void adder_state_init(void)
     ENTITY->animationId        = 0;
     Joint_move(0, ENTITY->animHeader, ENTITY->animBase, 0x40);
 
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)adder_sca_info_table[0];
+    ENTITY->Sca_info = O(adder_sca_info_table[0]);
     AD_TILT   = 0x3000;
     AD_STUCK  = 0;
     AD_ACTIVE = 1;
@@ -707,7 +707,7 @@ void adder_behavior_bite(void)
         g_playerEntity.isBeingAttackedFlag = 1;
         g_playerEntity.action_behavior     = 100;
         g_playerEntity.health = (short)(g_playerEntity.health - 6);
-        Play3DSnd(3, 0, 0, (int)g_playerEntity.scaMatrixData.localMatrix.t);
+        Play3DSnd(3, 0, 0, O(g_playerEntity.scaMatrixData.localMatrix.t));
 
         g_playerPosScratch.x = 0;
         g_playerPosScratch.y = -520;
@@ -876,14 +876,14 @@ void adder_death_writhe(void)
             g_animFrameIdSave = 10;
             for (;;) {
                 joint_setup_attack_effect(
-                    (int)(intptr_t)&joints[g_animFrameIdSave], 8, 5, 3);
+                    O(&joints[g_animFrameIdSave]), 8, 5, 3);
                 unsigned int i = g_animFrameIdSave;
                 g_animFrameIdSave = g_animFrameIdSave - 1;
                 if (i == 0) break;
             }
             BillboardSetSize(&ENTITY->pushVelocity, 0, 0);
             ENTITY->action_behavior = 4;
-            Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+            Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
             return;
         }
 
@@ -904,7 +904,7 @@ void adder_death_writhe(void)
             return;
         }
         ENTITY->action_behavior = 4;
-        Flg_on((int)g_EnemiesFlags, ENTITY->death_event_id);
+        Flg_on(O(g_EnemiesFlags), ENTITY->death_event_id);
         return;
     }
 
@@ -1044,7 +1044,7 @@ void adder_update(void)
             HandleEnemyPlayerCollisions();
             AD_COLL = (unsigned short)check_room_collision(
                 (VECTOR*)&ENTITY->scaMatrixData.localMatrix.t[0],
-                *(short*)((char*)(uintptr_t)ENTITY->Sca_info + 10));
+                *(short*)(P<char>(ENTITY->Sca_info) + 10));
         }
     }
 

@@ -239,15 +239,15 @@ static int      s_effectPos[3];             // 0x004d6d40 - the bonus billboard 
 // ============================================================================
 static void ending_select_id(void)
 {
-    if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_PARTNER_ALIVE) == 0) {
-        if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_SECOND_SURVIVOR) != 0) {
+    if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_PARTNER_ALIVE) == 0) {
+        if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_SECOND_SURVIVOR) != 0) {
             s_endingId = ((g_playerEntity.id & 3) == CHAR_CHRIS) ? 6 : 7;
             return;
         }
         s_endingId = ((g_playerEntity.id & 3) == CHAR_CHRIS) ? 4 : 5;
         return;
     }
-    if (Flg_ck((int)g_ScenarioFlags2, SCENARIO2_FLAG_SECOND_SURVIVOR) != 0) {
+    if (Flg_ck((int)O(g_ScenarioFlags2), SCENARIO2_FLAG_SECOND_SURVIVOR) != 0) {
         s_endingId = 3;
         return;
     }
@@ -726,8 +726,8 @@ static void ending_epilogue_build(void)
 
     // Sca chain: root -> spin -> leaf, the leaf being what the compose walks.
     InitScaMatrix(0, &s_scaRoot);
-    InitScaMatrix((int)&s_scaRoot, &s_scaSpin);
-    InitScaMatrix((int)&s_scaSpin, &s_scaLeaf);
+    InitScaMatrix((int)O(&s_scaRoot), &s_scaSpin);
+    InitScaMatrix((int)O(&s_scaSpin), &s_scaLeaf);
 
     s_camera[0] = 12000;   // from
     s_camera[1] = 0;
@@ -886,7 +886,7 @@ void ending_state(void)
         bgPath = ((g_playerEntity.id & 3) == CHAR_CHRIS)
                      ? GAME_DATA_ROOT "data\\clis01.pix"
                      : GAME_DATA_ROOT "data\\jill01.pix";
-    } else if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
+    } else if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
         bgPath = ((g_playerEntity.id & 3) == CHAR_CHRIS)
                      ? GAME_DATA_ROOT "data\\clis01.pix"
                      : GAME_DATA_ROOT "data\\jill01.pix";
@@ -940,7 +940,7 @@ void ending_state(void)
 
     // The congratulations movie: 24/25/26 per character when the plate group
     // is 1, else 27. Flag 0x7E is "has infinite rocket launcher".
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_INF_R_LAUNCHER) != 0) {
+    if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_INF_R_LAUNCHER) != 0) {
         s_fmvCharId = 2;
     } else {
         s_fmvCharId = (unsigned char)(g_playerEntity.id & 3);
@@ -958,7 +958,7 @@ void ending_state(void)
     // DC ending has no cleared-once congratulations-FMV swap (see the backdrop
     // note above).
     if (!g_bDcMode &&
-        Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
+        Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) != 0) {
         g_selectedFmvId = 26;
     }
 
@@ -1053,7 +1053,7 @@ void ending_state(void)
     s_underTimeLimit = (g_gameTimerSnapshot < 0x69780) ? 1 : 0;
 
     s_grantRocket = 0;
-    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_INF_R_LAUNCHER) != 0) s_grantRocket = 1;
+    if (Flg_ck((int)O(g_ScenarioFlags), SCENARIO_FLAG_INF_R_LAUNCHER) != 0) s_grantRocket = 1;
     if (g_SavesCounter == 1) s_grantRocket = 1;
 
     LoadFile(GAME_DATA_ROOT "data\\bio_card.dat", g_BioCardData, 0x20);
@@ -1088,7 +1088,7 @@ void ending_state(void)
     if ((s_effectsEnabled != 0) || (s_grantRocket != 0)) {
         // The no-save run and the carried-over unlock both hand out the
         // inf. rocket launcher (item 0x0a) and raise its permanent flag.
-        Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_INF_R_LAUNCHER);
+        Flg_on((int)O(g_ScenarioFlags), SCENARIO_FLAG_INF_R_LAUNCHER);
         g_ItemsSlots[slot].Id = ITEM_ROCKET_LAUNCHER;
         g_ItemsSlots[slot].qty = 1;
         g_TotalHeldItems++;
@@ -1115,7 +1115,7 @@ void ending_state(void)
     // Colt Python Magnum
     if (g_bDcMode && g_DcDifficulty >= DC_DIFFICULTY_ADVANCED
         && (s_endingId == 6 || s_endingId == 7)) {
-        Flg_on((int)g_ScenarioFlags, DC_SCENARIO_FLAG_INF_COLT_PYTHON);
+        Flg_on((int)O(g_ScenarioFlags), DC_SCENARIO_FLAG_INF_COLT_PYTHON);
         g_ItemsSlots[slot].Id = ITEM_COLT_PYTHON_MAG;
         g_ItemsSlots[slot].qty = 1;
         g_TotalHeldItems++;
@@ -1123,11 +1123,11 @@ void ending_state(void)
     }
     (void)slot;
 
-    Flg_on((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH);
+    Flg_on((int)O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH);
 
     setSomeColor(128, 128, 128);
     g_SpecialRoomLightState = (short)0xFFFF;
-    LoadSaveGameState(0, (int)s_saveScratch, 0, 1, 1);
+    LoadSaveGameState(0, (int)O(s_saveScratch), 0, 1, 1);
 
     g_main_state_flags = (g_main_state_flags & ~MSF_SCREEN_MODE_MASK) | MSF_SCREEN_STANDALONE;
     cleanup_texture_slot(0xC);

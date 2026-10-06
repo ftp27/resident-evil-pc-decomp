@@ -174,7 +174,7 @@ static unsigned char weapon_hit_detect_knife(short range, Entity* enemy)
     int dist_x = *(int*)&enemy->scaMatrixData.localMatrix.t[0] - knifeMtx.t[0];
     int dist_z = *(int*)&enemy->scaMatrixData.localMatrix.t[2] - knifeMtx.t[2];
 
-    unsigned int effectiveRange = (unsigned int)*(short*)(*(int*)((char*)enemy + 4) + 10) + range;
+    unsigned int effectiveRange = (unsigned int)*P<short>(*(int*)((char*)enemy + 4) + 10) + range;
     unsigned char enemyId = *(unsigned char*)((char*)enemy + 1);
 
     // Zombies — skip if player aiming down
@@ -216,7 +216,7 @@ static unsigned char weapon_hit_detect_knife(short range, Entity* enemy)
 // ============================================================================
 static unsigned char weapon_hit_detect_gun(short range, Entity* enemy)
 {
-    short enemyRadius = *(short*)(*(int*)((char*)enemy + 4) + 10);
+    short enemyRadius = *P<short>(*(int*)((char*)enemy + 4) + 10);
     unsigned char enemyId = *(unsigned char*)((char*)enemy + 1);
 
     // Zombies — skip if aiming down and NOT shotgun (weapon index 2)
@@ -289,7 +289,7 @@ static unsigned char weapon_hit_detect_projectile(short range, Entity* enemy)
 
     // `XOR EDI,EDI; MOV DI, word [EAX+0xa]` - the radius is ZERO-extended.
     unsigned int effectiveRange =
-        (unsigned int)*(unsigned short*)(*(int*)((char*)enemy + 4) + 10) + range;
+        (unsigned int)*P<unsigned short>(*(int*)((char*)enemy + 4) + 10) + range;
 
     if (*(unsigned char*)((char*)enemy + 1) == ENEMY_BLACK_TIGER)
         effectiveRange -= 1000;
@@ -411,7 +411,7 @@ unsigned char apply_weapon_damage(unsigned int weapon_id)
             damage = rec->dmg;              // STANDARD and ADVANCED* share this column
         }
         hitState = rec->hit;
-    } else if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+    } else if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
         hitState = rec->hit;                                // first-playthrough hit-state @ +10
         damage = rec->dmg;                                  // first-playthrough damage @ +6
     } else {
@@ -1196,8 +1196,8 @@ static void enemy_hit_reaction_zombie(Entity* enemy)
             // outside the zombie entirely - the wrong head-explosion effects.
             Entity* savedEntity = ENTITY;
             ENTITY = enemy;
-            Flg_on((int)g_EnemiesFlags, enemy->death_event_id);
-            joint_setup_attack_effect((int)((char*)enemy->jointsStructs + 0xf8), 30, 2, 3);
+            Flg_on(O(g_EnemiesFlags), enemy->death_event_id);
+            joint_setup_attack_effect(O((char*)enemy->jointsStructs + 0xf8), 30, 2, 3);
             Snd_em(6);                 // head-explosion sound
             ENTITY = savedEntity;
             g_playerPosScratch.x = 100;
@@ -1252,7 +1252,7 @@ static void weapon_post_hit_knife(Entity* enemy)
 {
     short offset[6] = { 153, 0, 0, -380, 0, 0 };   // per-character blood offset
 
-    Play3DSnd(1, 1, 0, (int)&g_playerEntity.scaMatrixData.localMatrix.t);
+    Play3DSnd(1, 1, 0, O(&g_playerEntity.scaMatrixData.localMatrix.t));
     enemy_hit_reaction_dispatch(enemy);
 
     if (g_collPushDepthZHi != 1) {
@@ -1382,14 +1382,14 @@ static void weapon_post_hit_blood2(Entity* enemy)
                     ENTITY = enemy;
                     for (int i = 5; i >= 0; i--) {
                         joint_setup_attack_effect(
-                            (int)((char*)joints + g_enemyHitJointLists[g_weaponHitEnemyType][i] * 0x7c),
+                            O((char*)joints + g_enemyHitJointLists[g_weaponHitEnemyType][i] * 0x7c),
                             0x1e, 2, 3);
                     }
                 } else {
                     // spurts on the top 5 joints
                     ENTITY = enemy;
                     for (int i = enemy->jointCount - 1; (int)(enemy->jointCount - 5) <= i; i--) {
-                        joint_setup_attack_effect((int)((char*)joints + i * 0x7c), 0x1e, 2, 3);
+                        joint_setup_attack_effect(O((char*)joints + i * 0x7c), 0x1e, 2, 3);
                     }
                 }
             }

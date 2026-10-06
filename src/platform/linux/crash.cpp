@@ -39,6 +39,18 @@ const char* SignalName(int sig)
 
 void OnFatalSignal(int sig)
 {
+    // Back to the default disposition first: if the unwind below faults too
+    // (backtrace() walking a task's ucontext stack can), the process dies
+    // instead of re-entering this handler forever.
+    signal(SIGSEGV, SIG_DFL);
+    signal(SIGBUS,  SIG_DFL);
+    signal(SIGILL,  SIG_DFL);
+    signal(SIGFPE,  SIG_DFL);
+    signal(SIGABRT, SIG_DFL);
+    // And a watchdog: a corrupt task stack can also make the unwind loop
+    // without faulting. SIGALRM's default action ends the process.
+    alarm(3);
+
     const int fd = OpenLog();
     if (fd >= 0) {
         char buf[128];
@@ -54,9 +66,8 @@ void OnFatalSignal(int sig)
         close(fd);
     }
 
-    // Restore the default disposition and re-raise so the exit status and any
-    // core dump behave normally.
-    signal(sig, SIG_DFL);
+    // Re-raise under the default disposition so the exit status and any core
+    // dump behave normally.
     raise(sig);
 }
 

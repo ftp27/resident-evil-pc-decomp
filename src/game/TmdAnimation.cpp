@@ -48,9 +48,9 @@ void ResolveAnimPointers(unsigned char* data)
     pbVar2 = basePtr;
     if (iVar1 > 0) {
         do {
-            *(unsigned char**)pbVar2 = basePtr + *(int*)pbVar2;
-            *(unsigned char**)(pbVar2 + 8) = basePtr + *(int*)(pbVar2 + 8);
-            *(unsigned char**)(pbVar2 + 0x10) = basePtr + *(int*)(pbVar2 + 0x10);
+            *(uint32_t*)pbVar2 = O(basePtr + *(int*)pbVar2);
+            *(uint32_t*)(pbVar2 + 8) = O(basePtr + *(int*)(pbVar2 + 8));
+            *(uint32_t*)(pbVar2 + 0x10) = O(basePtr + *(int*)(pbVar2 + 0x10));
             iVar1--;
             pbVar2 += 0x1c;
         } while (iVar1 != 0);
@@ -63,7 +63,7 @@ void ResolveAnimPointers(unsigned char* data)
 // ============================================================================
 void SetAnimSlot(AnimSlot* slots, int slotPtr, int index)
 {
-    *(int*)(slotPtr + 8) = (int)&slots[index];
+    *(int*)(P<unsigned char>(slotPtr) + 8) = O(&slots[index]);
     g_animSlotIndex = index;
 }
 
@@ -163,7 +163,7 @@ void SetupTextureBank(DWORD** param_1, int param_2)
 
     int matCount = *(int*)(dstTex + 0x340);
     if (matCount != 0) {
-        void** vtable = *(void***)g_pMarniDirect3D;
+        void** vtable = P<void*>(*(uint32_t*)g_pMarniDirect3D);   // vtable slot
         typedef DWORD (*CreateTextureFn)(void*, void*, int, int);
         CreateTextureFn createTex = (CreateTextureFn)vtable[6];
 
@@ -186,8 +186,8 @@ void SetupTextureBank(DWORD** param_1, int param_2)
 unsigned int CheckTmdTransparency(int param_1)
 {
     unsigned int count = 0;
-    unsigned int* objData = *(unsigned int**)(param_1 + 0x10);
-    unsigned int objCount = *(unsigned int*)(param_1 + 0x14);
+    unsigned int* objData = P<unsigned int>(*(uint32_t*)(P<unsigned char>(param_1) + 0x10));
+    unsigned int objCount = *(unsigned int*)(P<unsigned char>(param_1) + 0x14);
 
     for (unsigned int i = 0; i < objCount; i++) {
         if ((*objData & 0x2000000) != 0) {
@@ -214,8 +214,8 @@ static const int g_TmdBlendModeTable[4] = { 0x80, 0x00, 0x80, 0xD0 };
 // ============================================================================
 int GetTmdBlendMode(int param_1)
 {
-    unsigned int* objData = *(unsigned int**)(param_1 + 0x10);
-    unsigned int objCount = *(unsigned int*)(param_1 + 0x14);
+    unsigned int* objData = P<unsigned int>(*(uint32_t*)(P<unsigned char>(param_1) + 0x10));
+    unsigned int objCount = *(unsigned int*)(P<unsigned char>(param_1) + 0x14);
 
     for (unsigned int i = 0; i < objCount; i++) {
         if ((*objData & 0x2000000) != 0) {
@@ -253,14 +253,14 @@ unsigned int FixClutVertexData(BYTE* texPtr)
             // FUN_00483eb0: vtable[4] = CMarniBits::Lock, vtable[5] = CMarniBits::Unlock
             // Original passes matEntry as this (ECX) for __thiscall. The decomp
             // vtable wrappers are __cdecl with self as the first argument.
-            int* vtable = *(int**)matEntry;
+            void** vtable = P<void*>(*(uint32_t*)matEntry);   // CMarniBits vtable slot
             void* outData = NULL;    // receives m_pPixelData (offset 0x04)
             DWORD clutPtr = 0;       // receives m_pPalette  (offset 0x08)
             typedef int (*LockFn)(void* self, void** outData, DWORD* outPitch);
             typedef int (*UnlockFn)(void* self);
             int result = ((LockFn)vtable[4])(matEntry, &outData, &clutPtr);
             if (result != 0) {
-                short* ptr = (short*)(ULONG_PTR)clutPtr;
+                short* ptr = P<short>(clutPtr);
                 for (int j = 0; j < 256; j++) {
                     if (*ptr == (short)0x8000) {
                         *ptr = (short)0x8001;
@@ -296,14 +296,14 @@ unsigned int CheckTextureRecreation(BYTE* texPtr)
             // FUN_00483f40: vtable[4] = CMarniBits::Lock, vtable[5] = CMarniBits::Unlock
             // Original passes matEntry as this (ECX) for __thiscall. The decomp
             // vtable wrappers are __cdecl with self as the first argument.
-            int* vtable = *(int**)matEntry;
+            void** vtable = P<void*>(*(uint32_t*)matEntry);   // CMarniBits vtable slot
             void* outData = NULL;    // receives m_pPixelData (offset 0x04)
             DWORD clutPtr = 0;       // receives m_pPalette  (offset 0x08)
             typedef int (*LockFn)(void* self, void** outData, DWORD* outPitch);
             typedef int (*UnlockFn)(void* self);
             int result = ((LockFn)vtable[4])(matEntry, &outData, &clutPtr);
             if (result != 0) {
-                short* ptr = (short*)(ULONG_PTR)clutPtr;
+                short* ptr = P<short>(clutPtr);
                 for (int j = 0; j < 256; j++) {
                     if (*ptr == 0) {
                         found = 1;
@@ -333,12 +333,14 @@ unsigned int CheckTextureRecreation(BYTE* texPtr)
 BYTE* CreateTmdObjectInternal(int depth, int tmdDataPtr, int animObjPtr)
 {
     bool hasTransparency = false;
+    // tmdDataPtr / animObjPtr are 32-bit slot values (see platform/ptr32.h).
+    unsigned char* animObj = P<unsigned char>(animObjPtr);
 
     // Check if this object is already cached. The index comes from the
     // animation object's own +8 field, which a fresh object has not written
     // yet - the original indexes the table with it unmasked (ASan caught a
     // read 4 bytes before g_tmdObjectSlotAnimPtrs), so range-check it.
-    int slotIndex = *(int*)(animObjPtr + 8);
+    int slotIndex = *(int*)(animObj + 8);
     if (slotIndex >= 0 && slotIndex < 251 &&
         g_objectDeletePtr && g_objectDeletePtr[slotIndex] == animObjPtr) {
         return (BYTE*)&g_tmdObjectBuffer[slotIndex * 0x1594];
@@ -366,7 +368,7 @@ slotFound:
 
     // Save the original header fields and patch the header for
     // PSXObject::Store (magic 0x41, absolute-pointer mode, 1 object)
-    DWORD* hdrPtr = (DWORD*)(tmdDataPtr - 0xC);
+    DWORD* hdrPtr = (DWORD*)(P<unsigned char>(tmdDataPtr) - 0xC);
     DWORD saved0 = hdrPtr[0];
     DWORD saved1 = hdrPtr[1];
     DWORD saved2 = hdrPtr[2];
@@ -411,16 +413,16 @@ slotFound:
                     for (DWORD o = 0; o < objCount; o++) {
                         if (objEntry[0] == (DWORD)matPtr[0] && objEntry[1] == (DWORD)matPtr[1]) {
                             // --- Material match found ---
-                            *(DWORD*)(animObjPtr + 0x14) = 0;
+                            *(DWORD*)(animObj + 0x14) = 0;
 
                             // Transparency / blend mode
                             if (CheckTmdTransparency(tmdDataPtr) != 0 && DAT_004d2bdc == 0) {
                                 if (GetTmdBlendMode(tmdDataPtr) == 0) {
-                                    *(DWORD*)(animObjPtr + 0x14) = 0;
+                                    *(DWORD*)(animObj + 0x14) = 0;
                                 } else {
-                                    *(DWORD*)(animObjPtr + 0x14) = 0x3F000000; // 0.5f
+                                    *(DWORD*)(animObj + 0x14) = 0x3F000000; // 0.5f
                                     if (DAT_004d2be0 >= 0 && DAT_004d2be0 < 0x100 && DAT_004d2be0 == 0x30) {
-                                        *(DWORD*)(animObjPtr + 0x14) = 0x3E4CCCCD; // 0.2f
+                                        *(DWORD*)(animObj + 0x14) = 0x3E4CCCCD; // 0.2f
                                     }
                                 }
                                 hasTransparency = true;
@@ -433,7 +435,7 @@ slotFound:
                                         FixClutVertexData(pagePtr);
 
                                         // Create D3D texture handles for each material
-                                        void** vtable = *(void***)g_pMarniDirect3D;
+                                        void** vtable = P<void*>(*(uint32_t*)g_pMarniDirect3D);   // vtable slot
                                         typedef DWORD (*CreateTextureFn)(void*, BYTE*, int, int);
                                         CreateTextureFn createTex = (CreateTextureFn)vtable[6];
 
@@ -481,7 +483,7 @@ slotFound:
                                         // = 0.5f). (float)0x3F000000 converts the DWORD
                                         // VALUE (1056964608.0f), which trips the draw's
                                         // a>0 && a<=1 guard and leaves the water opaque.
-                                        *alpha = *(float*)(animObjPtr + 0x14);
+                                        *alpha = *(float*)(animObj + 0x14);
                                         flags += 0x21;
                                         alpha += 0x21;
                                     }
@@ -493,7 +495,7 @@ slotFound:
                             if (freeSlot == g_objectDeleteFlag) {
                                 g_objectDeleteFlag++;
                             }
-                            *(int*)(animObjPtr + 8) = freeSlot;
+                            *(int*)(animObj + 8) = freeSlot;
                             return objSlot;
                         }
                         objEntry += 0x13;   // 0x4C / 4
@@ -514,11 +516,11 @@ slotFound:
 // ============================================================================
 void AsyncCreateTmdCallback(void)
 {
-    g_asyncTmdResult = (DWORD)CreateTmdObjectInternal(
+    g_asyncTmdResult = O(CreateTmdObjectInternal(
         (int)g_asyncTmdDepth,
         (int)g_asyncTmdDataPtr,
         (int)g_asyncTmdObjectPtr
-    );
+    ));
 }
 
 // ============================================================================
@@ -561,9 +563,9 @@ void ComplexTmdObjectSetup(int* param_1)
     }
 
     // Get TMD data from the animation object
-    int* tmdData = (int*)*param_1;
-    int vertexBase = *tmdData;                                // [ESI+0x00] vertex data base
-    unsigned int* objTable = (unsigned int*)tmdData[4];       // [ESI+0x10] object table
+    int* tmdData = P<int>(*param_1);
+    unsigned char* vertexBase = P<unsigned char>(*tmdData);  // [ESI+0x00] vertex data base
+    unsigned int* objTable = P<unsigned int>(tmdData[4]);    // [ESI+0x10] object table
     int objCount = tmdData[5];                                // [ESI+0x14] object count
 
     // Resolve texture bank
@@ -603,7 +605,7 @@ void ComplexTmdObjectSetup(int* param_1)
             // Textured triangle primitive - process for D3D rendering
 
             // Release existing D3D handle
-            void** d3dVtable = *(void***)g_pMarniDirect3D;
+            void** d3dVtable = P<void*>(*(uint32_t*)g_pMarniDirect3D);   // vtable slot
             typedef void (*DeleteHandleFn)(void*, DWORD);
             DeleteHandleFn deleteHandle = (DeleteHandleFn)d3dVtable[9];
             deleteHandle(g_pMarniDirect3D, *d3dHandle);
@@ -613,7 +615,7 @@ void ComplexTmdObjectSetup(int* param_1)
             // the CMarniViewport2 entry (this = the entry at *ptrArray, ECX in
             // the original, e.g. 0x00486aba) — the vtable methods read the
             // entry's buffers/flags, so self MUST be ptrArray, not funcPtrs.
-            void** funcPtrs = (void**)*ptrArray;
+            void** funcPtrs = P<void*>(*ptrArray);
 
             // Call Release/reset [vtable[0]] (0x00486aba: ecx = entry)
             typedef void (__stdcall *ReleaseFn)(void*);
@@ -791,9 +793,9 @@ void ComplexTmdObjectSetup(int* param_1)
 // ============================================================================
 unsigned int* CreateAnimObject(int slotPtr, unsigned int* param2)
 {
-    *(unsigned int**)(slotPtr + 0xc) = param2;
-    AnimSlot* slot = *(AnimSlot**)(slotPtr + 8);
-    *param2 = (unsigned int)slot;
+    *(uint32_t*)(P<unsigned char>(slotPtr) + 0xc) = O(param2);
+    AnimSlot* slot = P<AnimSlot>(*(uint32_t*)(P<unsigned char>(slotPtr) + 8));
+    *param2 = O(slot);
     unsigned int uVar1 = FindMinClutDepth(slot);
     param2[1] = uVar1;
     param2[2] = 0xFFFFFFFF;
@@ -809,7 +811,7 @@ unsigned int* CreateAnimObject(int slotPtr, unsigned int* param2)
     }
 
     param2[8] = 0;
-    unsigned int uVar2 = AsyncCreateTmdObject(param2[1], *param2, (unsigned int)param2);
+    unsigned int uVar2 = AsyncCreateTmdObject(param2[1], *param2, O(param2));
     param2[8] = uVar2;
     return param2 + 0x2d;
 }
@@ -834,7 +836,7 @@ unsigned int ProcessTmdTextures(char param1, unsigned int* param2, int param3, i
     unsigned int* cursor = param2 + 3;
 
     while (iVar3 != 0) {
-        unsigned int* puVar2 = (unsigned int*)cursor[4];
+        unsigned int* puVar2 = P<unsigned int>(cursor[4]);
         for (int iVar4 = cursor[5]; iVar4 != 0; iVar4--) {
             if ((*puVar2 & 0x4000000) != 0) {
                 if (param1 == 0) {
@@ -915,7 +917,7 @@ void ParseTmdTextureHeader(void* data, TmdTextureHeader* header)
     header->field_14 = *src++;
     header->field_16 = *src++;
 
-    header->ptr_10 = (int)((BYTE*)data + 0x10);
+    header->ptr_10 = O((BYTE*)data + 0x10);
 
     DWORD offset = d[1] & 0xFFFFFFFC;
     src = (short*)((BYTE*)data + offset + 8);
@@ -924,7 +926,7 @@ void ParseTmdTextureHeader(void* data, TmdTextureHeader* header)
     header->field_08 = *src++;
     header->field_0A = *src++;
 
-    header->dataPtr = (int)((BYTE*)data + offset + 0x10);
+    header->dataPtr = O((BYTE*)data + offset + 0x10);
 }
 
 // ============================================================================
@@ -934,7 +936,7 @@ void ParseTmdTextureHeader(void* data, TmdTextureHeader* header)
 // ============================================================================
 void TmdProcessingCallback(void)
 {
-    BYTE* tmdData = (BYTE*)g_tmdAsyncData;
+    BYTE* tmdData = P<BYTE>(g_tmdAsyncData);
     TmdTextureHeader header;
 
     ParseTmdTextureHeader(tmdData + 4, &header);
@@ -1005,9 +1007,9 @@ void ProcessTmdAsync(unsigned int param1)
 // ============================================================================
 void reverse_anim_frame_data(int param_1)
 {
-    AnimSlot* slot = *(AnimSlot**)(param_1 + 8);
+    AnimSlot* slot = P<AnimSlot>(*(uint32_t*)(P<unsigned char>(param_1) + 8));
     unsigned short count = slot->entryCount;
-    int baseAddr = count * 0x1c + (int)slot->data2;
+    unsigned char* baseAddr = count * 0x1c + (unsigned char*)slot->data2;
 
     short* pRot = (short*)(baseAddr - 0x14);
     int* pTiming = (int*)(baseAddr - 8);
@@ -1022,8 +1024,8 @@ void reverse_anim_frame_data(int param_1)
         pTiming[1] = tmpTiming;
 
         count = count - 1;
-        pRot = (short*)((int)pRot - 0x1c);
-        pTiming = (int*)((int)pTiming - 0x1c);
+        pRot = (short*)((unsigned char*)pRot - 0x1c);
+        pTiming = (int*)((unsigned char*)pTiming - 0x1c);
     } while (count != 0);
 }
 
@@ -1035,8 +1037,8 @@ void reverse_anim_frame_data(int param_1)
 void SetupEntityJointAnimation(void)
 {
     // 0x0048bef0: Save load data pointer to entity weapon joints ptr
-    ENTITY->weaponJointsPtr = (unsigned int)g_loadDataDestPointer;
-    int jointBase = (int)g_loadDataDestPointer;
+    ENTITY->weaponJointsPtr = O(g_loadDataDestPointer);
+    unsigned char* jointBase = (unsigned char*)g_loadDataDestPointer;
 
     // 0x0048bf05: Advance load pointer past joint data
     unsigned char jointCount = ENTITY->jointCount;
@@ -1044,17 +1046,17 @@ void SetupEntityJointAnimation(void)
 
     // 0x0048bf1e: Copy animation slot data
     JointStruct* joints = ENTITY->jointsStructs;
-    int* animSlotSrc = (int*)joints->anim_slot_ptr;
-    int animEnd = *animSlotSrc;
-    memcpy(g_loadDataDestPointer, animSlotSrc, animEnd - (int)animSlotSrc);
+    int* animSlotSrc = P<int>(joints->anim_slot_ptr);
+    int animEnd = *animSlotSrc;   // slot value of the end of the slot data
+    memcpy(g_loadDataDestPointer, animSlotSrc, animEnd - (int)O(animSlotSrc));
 
     // 0x0048bf37: Copy joint structs
-    memcpy((void*)jointBase, joints, (unsigned int)jointCount * 0x7c);
+    memcpy(jointBase, joints, (unsigned int)jointCount * 0x7c);
 
     // 0x0048bf4d: Set up new animation slot base
-    DAT_00be0e00 = (int)g_loadDataDestPointer;
-    *(int*)(jointBase + 0x14) = (int)g_loadDataDestPointer;
-    g_loadDataDestPointer = (char*)g_loadDataDestPointer + (animEnd - (int)animSlotSrc & 0xFFFFFFFCU);
+    DAT_00be0e00 = O(g_loadDataDestPointer);
+    *(int*)(jointBase + 0x14) = O(g_loadDataDestPointer);
+    g_loadDataDestPointer = (char*)g_loadDataDestPointer + (animEnd - (int)O(animSlotSrc) & 0xFFFFFFFCU);
 
     // 0x0048bf6c: Save new and original anim slot pointers for delta fixup
     int newAnimSlotPtr = *(int*)(jointBase + 0x14);
@@ -1065,16 +1067,16 @@ void SetupEntityJointAnimation(void)
     if (jointCount != 0) {
         unsigned char nextJ;
         do {
-            int animFieldAddr = jointBase + 0x0c;
+            int animFieldAddr = O(jointBase + 0x0c);
             nextJ = j + 1;
 
-            SetAnimSlot((AnimSlot*)DAT_00be0e00, animFieldAddr, j);
+            SetAnimSlot(P<AnimSlot>(DAT_00be0e00), animFieldAddr, j);
 
             // Point data_ptr to &scale_flag
-            *(int*)(jointBase + 0x10) = jointBase + 0x20;
+            *(int*)(jointBase + 0x10) = O(jointBase + 0x20);
 
             // Fix up animation data pointer with relocation delta
-            int* fixupPtr = (int*)(*(int*)(jointBase + 0x14) + 0x10);
+            int* fixupPtr = (int*)(P<unsigned char>(*(int*)(jointBase + 0x14)) + 0x10);
             *fixupPtr = *fixupPtr + (newAnimSlotPtr - (int)origAnimSlotPtr);
 
             reverse_anim_frame_data(animFieldAddr);

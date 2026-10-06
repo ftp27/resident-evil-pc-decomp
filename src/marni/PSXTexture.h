@@ -21,11 +21,11 @@ public:
     // ========================================================================
 
     // CMarniBits header (offset 0x00 - 0x0B)
-    void*  vtable;                    // 0x00 (4 bytes)
-    void*  m_pPixelData;              // 0x04 (4 bytes)
+    Ptr32<void> vtable;               // 0x00 (4 bytes)
+    Ptr32<void> m_pPixelData;         // 0x04 (4 bytes)
     union {
         DWORD  m_Pitch;               // 0x08 — pitch while locked
-        WORD*  m_pCLUTData;           // 0x08 — CMarniBits::m_pPalette: CLUT pointer after Store
+        Ptr32<WORD> m_pCLUTData;      // 0x08 — CMarniBits::m_pPalette: CLUT pointer after Store
     };
 
     BYTE   pad_0C[4];                 // 0x0C-0x0F — CMarniBits m_locked + part of pixel format gap

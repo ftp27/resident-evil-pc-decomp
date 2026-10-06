@@ -139,7 +139,7 @@ static inline unsigned int&   eu (void* e, unsigned o) { return *reinterpret_cas
 #define WS_DEATH_EV   (*(unsigned char*)  ((char*)ENTITY + 0x163))
 #define WS_WAY_X      (*(short*)          ((char*)ENTITY + 0x166))
 #define WS_WAY_Z      (*(short*)          ((char*)ENTITY + 0x168))
-#define WS_WEB_OUT    (*(void**)          ((char*)ENTITY + 0xB8))
+#define WS_WEB_OUT    (*(Ptr32<void>*)    ((char*)ENTITY + 0xB8))
 
 // The player's pose the spider reacts to (being knocked down / grabbed).
 #define PLAYER_DOWN   (g_playerEntity.action_behavior == 0x14 && g_playerEntity.action_state == 0)
@@ -268,10 +268,10 @@ void ws_clone_entity(unsigned char count, int /*animSlotBytes*/,
     g_playerDisplacement = (int)(*(unsigned int*)((char*)ENTITY->jointsStructs + 0x14) +
                                  (unsigned int)jointIndex * 0x1c);
 
-    *out = (unsigned int)(uintptr_t)g_loadDataDestPointer;
+    *out = O(g_loadDataDestPointer);
     g_loadDataDestPointer = (char*)g_loadDataDestPointer + (unsigned int)count * 0x18c;
 
-    Entity* copy = reinterpret_cast<Entity*>(static_cast<uintptr_t>(*out));
+    Entity* copy = P<Entity>(*out);
     MATRIX savedLocal = ENTITY->scaMatrixData.localMatrix;
 
     unsigned char remaining = count;
@@ -280,11 +280,11 @@ void ws_clone_entity(unsigned char count, int /*animSlotBytes*/,
         copy->scaMatrixData.localMatrix = savedLocal;
         ew(copy, 0x74) = (short)(ew(copy, 0x74) + (short)((unsigned short)remaining * 0x100));
         copy->modelLoadBuffer = (unsigned int)g_playerDisplacement;
-        copy->unk_18 = (unsigned int)(uintptr_t)g_loadDataDestPointer;
-        SetAnimSlot(reinterpret_cast<AnimSlot*>(static_cast<uintptr_t>(copy->modelLoadBuffer)),
-                    (int)&copy->unk_0c, 0);
-        g_loadDataDestPointer = CreateAnimObject((int)&copy->unk_0c,
-            reinterpret_cast<unsigned int*>(static_cast<uintptr_t>(copy->unk_18)));
+        copy->unk_18 = O(g_loadDataDestPointer);
+        SetAnimSlot(P<AnimSlot>(copy->modelLoadBuffer),
+                    O(&copy->unk_0c), 0);
+        g_loadDataDestPointer = CreateAnimObject(O(&copy->unk_0c),
+            P<unsigned int>(copy->unk_18));
         copy->state = 0;
         copy->action_state = (unsigned char)((rand() & 3) == 0);
         copy = reinterpret_cast<Entity*>((char*)copy + 0x18c);
@@ -356,7 +356,7 @@ void wsp_state0(void)
         ENTITY->health = -1;
     }
 
-    ENTITY->Sca_info = (unsigned int)(uintptr_t)ws_sca_info_big;
+    ENTITY->Sca_info = O(ws_sca_info_big);
     ENTITY->status_flags = (unsigned char)(ENTITY->status_flags & 0x1F);
     WS_TILT = (short)((ENTITY->behavior_flags & 4) * 0xaaa);   // always 0 after the clamp to 2
 
@@ -490,11 +490,11 @@ void wsp_state5(void) { }
 // ============================================================================
 void ws_leg_reach(unsigned char part, int scale)
 {
-    int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+    int joints = O(ENTITY->jointsStructs);
 
     RotMatrix(reinterpret_cast<SVECTOR*>((char*)ENTITY + 0x72),
               reinterpret_cast<MATRIX*>((char*)ENTITY + 0x20));
-    ApplyLVAndMul0Matrix((char*)ENTITY + 0x20, (void*)(joints + 0x24), &g_matrixScratch);
+    ApplyLVAndMul0Matrix((char*)ENTITY + 0x20, P<void>(joints + 0x24), &g_matrixScratch);
 
     if (scale != 0) {
         g_playerPosScratch.x = scale;
@@ -507,20 +507,20 @@ void ws_leg_reach(unsigned char part, int scale)
     // eight joints apart, so `part` selects a leg pair.
     int tip = joints + (int)part * 0x3e0 + 0x1f0;
 
-    if ((*(unsigned char*)(tip - 0x7c) & 1) == 0) {
+    if ((*P<unsigned char>(tip - 0x7c) & 1) == 0) {
         WS_SPEED = 0;
         return;
     }
 
     unsigned char b = 2;
     do {
-        ApplyLVAndMulMatrix(&g_matrixScratch, (MATRIX*)(tip - (int)b * 0x7c + 0xa0));
+        ApplyLVAndMulMatrix(&g_matrixScratch, P<MATRIX>(tip - (int)b * 0x7c + 0xa0));
         b--;
     } while (b != 0);
 
-    g_matrixScratch.t[0] = g_matrixScratch.t[0] - *(int*)(tip + 0x58);
+    g_matrixScratch.t[0] = g_matrixScratch.t[0] - *P<int>(tip + 0x58);
     g_matrixScratch.t[1] = 0;
-    g_matrixScratch.t[2] = g_matrixScratch.t[2] - *(int*)(tip + 0x60);
+    g_matrixScratch.t[2] = g_matrixScratch.t[2] - *P<int>(tip + 0x60);
 
     FUN_0040a380((VECTOR*)g_matrixScratch.t, &g_playerPosScratch);
     WS_SPEED = (short)SquareRoot0(g_playerPosScratch.z + g_playerPosScratch.x);
@@ -951,7 +951,7 @@ void ws_behaviour_lunge(void)
             unsigned int facing = is_facing_toward_entity(&g_playerEntity) & 0xFF;
             eub(ENTITY, 0x87) = 6;
             Snd_em(4);
-            if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+            if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                 g_playerEntity.health = (short)(g_playerEntity.health - 10);
             } else {
                 g_playerEntity.health = (short)(g_playerEntity.health - 0x12);
@@ -1138,7 +1138,7 @@ void ws_web_build(void)
             } while (i != 0);
 
             if (g_entity_bkp == 0) {
-                int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+                int joints = O(ENTITY->jointsStructs);
                 ws_web_joints_used[WS_WEBIDX & 7] = chosen;
                 joint_setup_attack_effect(joints + (unsigned int)chosen * 0x7c, 0x1e, 0x14, 3);
                 joint_setup_attack_effect(joints +
@@ -1147,10 +1147,10 @@ void ws_web_build(void)
                 g_playerPosScratch.y = 0;
                 g_playerPosScratch.z = 0;
                 Effect_CreateBillboard(0, 8, 0,
-                    (void*)(joints + (unsigned int)(unsigned char)ws_web_joints[pick] * 0x7c + 0xc0),
+                    P<void>(joints + (unsigned int)(unsigned char)ws_web_joints[pick] * 0x7c + 0xc0),
                     &g_playerPosScratch, 0);
                 Effect_CreateBillboard(0, 8, 0,
-                    (void*)(joints + (unsigned int)(unsigned char)ws_web_joints[pick] * 0x7c + 0x44),
+                    P<void>(joints + (unsigned int)(unsigned char)ws_web_joints[pick] * 0x7c + 0x44),
                     &g_playerPosScratch, 0);
                 Snd_em(5);
                 WS_WEBIDX = (short)(WS_WEBIDX + 1);
@@ -1189,23 +1189,23 @@ void ws_web_shoot_a(void)
         eub(ENTITY, 0xbf) = 0;
         euw(ENTITY, 0xc4) = 0x1e;
         WS_BLEND = 3;
-        int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+        int joints = O(ENTITY->jointsStructs);
         joint_setup_attack_effect(joints, 0x1e, 0x1e, 3);
         joint_setup_attack_effect(joints + 0x934, 0x1e, 0x1e, 3);
         g_playerPosScratch.x = 0;
         g_playerPosScratch.y = 0;
         g_playerPosScratch.z = 0;
-        Effect_CreateBillboard(0, 8, 0, (void*)(joints + 0x44), &g_playerPosScratch, 0);
-        Effect_CreateBillboard(0, 8, 0, (void*)(joints + 0x978), &g_playerPosScratch, 0);
-        Flg_on((int)g_EnemiesFlags, WS_DEATH_EV);
+        Effect_CreateBillboard(0, 8, 0, P<void>(joints + 0x44), &g_playerPosScratch, 0);
+        Effect_CreateBillboard(0, 8, 0, P<void>(joints + 0x978), &g_playerPosScratch, 0);
+        Flg_on(O(g_EnemiesFlags), WS_DEATH_EV);
         Snd_em(5);
         unsigned int j = 8;
         do {
-            unsigned char* p = (unsigned char*)(joints + 0x7c + j * 0xf8);
+            unsigned char* p = P<unsigned char>(joints + 0x7c + j * 0xf8);
             unsigned char v = *p;
             if (v != 0 && (v & 0x20) == 0) {
                 *p = (unsigned char)(v | 0xc);
-                *(unsigned char*)(joints + 0xf8 + j * 0xf8) |= 0x10;
+                *P<unsigned char>(joints + 0xf8 + j * 0xf8) |= 0x10;
             }
             j--;
         } while (j != 0);
@@ -1223,7 +1223,7 @@ void ws_web_shoot_a(void)
         eub(ENTITY, 0x00) |= 8;
         euw(ENTITY, 0xc2) = 0;
         euw(ENTITY, 0xc4) = 0x5a;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)ws_sca_info_small;
+        ENTITY->Sca_info = O(ws_sca_info_small);
         // fall through
     case 3:
         BillboardAdjSize(&ENTITY->pushVelocity, 3, 3);
@@ -1237,7 +1237,7 @@ void ws_web_shoot_a(void)
     default:
         return;
     case 6:
-        Flg_on((int)g_EnemiesFlags, WS_DEATH_EV);
+        Flg_on(O(g_EnemiesFlags), WS_DEATH_EV);
         ws_update_webs((char)((WS_HITSTATE >> 2 & 0xFE) + 8));
         return;
     }
@@ -1255,21 +1255,21 @@ void ws_web_shoot_b(void)
     unsigned char sub = eub(ENTITY, 0x87);
     if (sub == 1 || sub == 3) {
         if ((WS_HITSTATE & 2) != 0) {
-            int joints = (int)(uintptr_t)ENTITY->jointsStructs;
+            int joints = O(ENTITY->jointsStructs);
             joint_setup_attack_effect(joints, 0x1e, 0x1e, 3);
             joint_setup_attack_effect(joints + 0x934, 0x1e, 0x1e, 3);
             g_playerPosScratch.x = 0;
             g_playerPosScratch.y = 0;
             g_playerPosScratch.z = 0;
-            Effect_CreateBillboard(0, 8, 0, (void*)(joints + 0x44), &g_playerPosScratch, 0);
-            Effect_CreateBillboard(0, 8, 0, (void*)(joints + 0x978), &g_playerPosScratch, 0);
+            Effect_CreateBillboard(0, 8, 0, P<void>(joints + 0x44), &g_playerPosScratch, 0);
+            Effect_CreateBillboard(0, 8, 0, P<void>(joints + 0x978), &g_playerPosScratch, 0);
             g_animFrameIdSave = 8;
             do {
-                unsigned char* p = (unsigned char*)(joints + 0x7c + g_animFrameIdSave * 0xf8);
+                unsigned char* p = P<unsigned char>(joints + 0x7c + g_animFrameIdSave * 0xf8);
                 unsigned char v = *p;
                 if (v != 0 && (v & 0x20) == 0) {
                     *p = (unsigned char)(v | 0xc);
-                    *(unsigned char*)(joints + 0xf8 + g_animFrameIdSave * 0xf8) |= 0x10;
+                    *P<unsigned char>(joints + 0xf8 + g_animFrameIdSave * 0xf8) |= 0x10;
                 }
                 g_animFrameIdSave--;
             } while (g_animFrameIdSave != 0);
@@ -1292,7 +1292,7 @@ void ws_web_shoot_b(void)
         eub(ENTITY, 0x8c) = 3;
         eub(ENTITY, 0x8a) = 0;
         eub(ENTITY, 0xbd) = 4;
-        Flg_on((int)g_EnemiesFlags, WS_DEATH_EV);
+        Flg_on(O(g_EnemiesFlags), WS_DEATH_EV);
         // fall through
     }
     case 1:
@@ -1333,12 +1333,12 @@ void ws_web_shoot_b(void)
         euw(ENTITY, 0xc2) = 0;
         eub(ENTITY, 0x00) |= 2;
         eub(ENTITY, 0x00) |= 8;
-        ENTITY->Sca_info = (unsigned int)(uintptr_t)ws_sca_info_small;
+        ENTITY->Sca_info = O(ws_sca_info_small);
         goto ws_shoot_b_dangle;
     case 5:
         goto ws_shoot_b_dangle;
     case 6:
-        Flg_on((int)g_EnemiesFlags, WS_DEATH_EV);
+        Flg_on(O(g_EnemiesFlags), WS_DEATH_EV);
         ws_update_webs((char)((WS_HITSTATE >> 2 & 0xFE) + 4));
         return;
     default:
@@ -1466,7 +1466,7 @@ void ws_update_webs(char count)
                     Effect_CreateBillboard(0, 0, 0, (void*)((char*)ENTITY + 0x20),
                                            &g_playerPosScratch, 0);
                     ew(ENTITY, 0xc2) = (short)(ew(ENTITY, 0xc2) - 0x3c);
-                    if (Flg_ck((int)g_ScenarioFlags, SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
+                    if (Flg_ck(O(g_ScenarioFlags), SCENARIO_FLAG_SECOND_PLAYTHROUGH) == 0) {
                         g_playerEntity.health = (short)(g_playerEntity.health - 2);
                     } else {
                         g_playerEntity.health = (short)(g_playerEntity.health - 3);
@@ -1487,7 +1487,7 @@ void ws_update_webs(char count)
         }
 
         check_room_collision((VECTOR*)((char*)ENTITY + 0x34),
-                             *(short*)(*(int*)((char*)ENTITY + 4) + 10));
+                             *P<short>(*(int*)((char*)ENTITY + 4) + 10));
         ew(ENTITY, 0x6c) = (short)(*(int*)((char*)ENTITY + 0x34));
         ew(ENTITY, 0x6e) = (short)(*(int*)((char*)ENTITY + 0x38));
         ew(ENTITY, 0x70) = (short)(*(int*)((char*)ENTITY + 0x3c));
@@ -1532,7 +1532,7 @@ void web_spinner_update(void)
             euw(ENTITY, 0x170) = (unsigned short)ResolveEntityScaCollision((Entity*)&g_playerEntity, ENTITY);
             HandleEnemyPlayerCollisions();
             euw(ENTITY, 0x176) = (unsigned short)check_room_collision(
-                (VECTOR*)((char*)ENTITY + 0x34), *(short*)(*(int*)((char*)ENTITY + 4) + 10));
+                (VECTOR*)((char*)ENTITY + 0x34), *P<short>(*(int*)((char*)ENTITY + 4) + 10));
         }
         if ((g_message_flags & 4) != 0) goto wsp_switch_zone;
         if (eub(ENTITY, 0x84) == 3 && eub(ENTITY, 0x87) == 6) {

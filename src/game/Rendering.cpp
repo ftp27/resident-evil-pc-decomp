@@ -1203,7 +1203,7 @@ unsigned char* message_item_name_lookup(unsigned char itemId)
     unsigned char bVar2 = itemId - 1;
     unsigned char* puVar3 = (unsigned char*)names[bVar2];
     if ((bVar2 < 0x4d) && ((bVar2 = g_ItemImageLookupTable[(unsigned int)bVar2 * 4 + 6], (bVar2 & 0x80) == 0))) {
-        if (Flg_ck((int)g_itemExaminedFlags, (unsigned int)bVar2) == 0) {
+        if (Flg_ck(O(g_itemExaminedFlags), (unsigned int)bVar2) == 0) {
             puVar3 = (unsigned char*)unknown[bVar2];
         }
     }
@@ -1360,7 +1360,7 @@ msg_next_char:
 // ============================================================================
 static void handle_message_post_action(void)
 {
-    g_MessageCurrentPtr = (unsigned char*)((int)g_MessageCurrentPtr + 1);
+    g_MessageCurrentPtr = (unsigned char*)((unsigned char*)g_MessageCurrentPtr + 1);
     unsigned char* pbVar2 = g_MessageCurrentPtr;
     int iVar5 = (unsigned int)(g_menu_choice_id & 1) * (unsigned int)*g_MessageCurrentPtr;
     g_MessageCurrentPtr = g_MessageCurrentPtr + iVar5 + 1;
@@ -1952,7 +1952,7 @@ static void FUN_00484c40(void)
     if (*(DWORD*)(page + 0x348) == 1) return;
 
     // 0x00484c86: load the TIM image + CLUT into the page
-    ((PSXTexture*)page)->Store((int*)tmdData, 1);
+    ((PSXTexture*)page)->Store(P<int>(tmdData), 1);
 
     // 0x00484c8d-0x00484cfb: per-material transparent-colour cleanup. Every
     // palette entry with 5551 bit 15 set has its index zeroed out of the pixel
@@ -1960,7 +1960,7 @@ static void FUN_00484c40(void)
     int matCount = *(DWORD*)(page + 0x340);     // m_NumCLUTs
     for (int i = 0; i < matCount; i++) {
         BYTE* mat = page + i * 0x68;
-        int* vtable = *(int**)mat;
+        void** vtable = P<void*>(*(uint32_t*)mat);   // CMarniBits vtable slot
         void* pixelData = NULL;
         DWORD clutPtr = 0;
         typedef int (*LockFn)(void* self, void** outData, DWORD* outClut);
@@ -1969,7 +1969,7 @@ static void FUN_00484c40(void)
         // (+0x04), outClut = m_pPalette (+0x08, the CLUT heap copy).
         // The original ignores the result; the guard is port-only defence.
         if (((LockFn)vtable[4])(mat, &pixelData, &clutPtr) != 0) {
-            BYTE* clut = (BYTE*)(ULONG_PTR)clutPtr;
+            BYTE* clut = P<BYTE>(clutPtr);   // m_pPalette slot value
             BYTE* px = (BYTE*)pixelData;
             int size = *(DWORD*)(mat + 0x2c) * *(DWORD*)(mat + 0x30);
             for (int clutIdx = 0; clutIdx < 0x100; clutIdx++) {
@@ -1992,7 +1992,7 @@ static void FUN_00484c40(void)
         *(DWORD*)(mat + 0x58) = depth + 0x1e0;
         *(DWORD*)(mat + 0x5c) = (bank & 0xf) << 6;
         *(DWORD*)(mat + 0x60) = (bank & 0x10) << 4;
-        void** d3dVtable = *(void***)g_pMarniDirect3D;
+        void** d3dVtable = *(Ptr32<void*>*)g_pMarniDirect3D;
         typedef DWORD (*CreateTextureFn)(void*, BYTE*, int, int);
         CreateTextureFn createTex = (CreateTextureFn)d3dVtable[6];
         DWORD handle = createTex(g_pMarniDirect3D, mat, 0x21, 0);
@@ -2005,7 +2005,7 @@ static void FUN_00484c40(void)
 // (0x00484dc0)
 static void FUN_00484dc0(void)
 {
-    int* tmdHdr = (int*)DAT_00aae740;
+    int* tmdHdr = P<int>(DAT_00aae740);
     int bank = DAT_00aad6ec;
 
     CMarniDirect3DTMD* tmd = (CMarniDirect3DTMD*)g_renderStateTMD;

@@ -103,6 +103,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\platform\ptr32.cpp" />
     <ClCompile Include="src\platform\win32\main.cpp" />
     <ClCompile Include="src\platform\win32\window_proc.cpp" />
     <ClCompile Include="src\platform\win32\platform.cpp" />

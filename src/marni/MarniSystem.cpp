@@ -102,7 +102,7 @@ static CMarniDirect3D* MarniDirect3D_Construct(CMarniDirect3D* pThis,
     // Original base ctor (0x0044efc0): field_0x8/0xc (logical resolution) are
     // initialized to the same width/height as the physical surface (0x10/0x14);
     // SetVideoResolution later toggles ONLY the logical pair.
-    pThis->m_hWnd         = (DWORD)hWnd;
+    pThis->m_hWnd         = (DWORD)(uintptr_t)hWnd;   // informational only, never read back
     pThis->m_logicalWidth = (DWORD)width;
     pThis->m_logicalHeight= (DWORD)height;
     pThis->m_width        = (DWORD)width;
@@ -157,14 +157,24 @@ static CMarniDirect3D* MarniDirect3D_Construct(CMarniDirect3D* pThis,
 // ============================================================================
 // Memory operators (unchanged from original: 0x00433370, 0x004333e0)
 // ============================================================================
+// On 64-bit hosts the results live in 32-bit slots, so they come from the
+// image-resident heap (platform/ptr32.h).
 void* operator_new(size_t size)
 {
+#if RE1_PTR32_NATIVE
     return malloc(size);
+#else
+    return ptr32_alloc(size);
+#endif
 }
 
 void operator_delete(void* ptr)
 {
+#if RE1_PTR32_NATIVE
     if (ptr) free(ptr);
+#else
+    ptr32_free(ptr);
+#endif
 }
 
 // ============================================================================

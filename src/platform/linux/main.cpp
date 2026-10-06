@@ -15,6 +15,7 @@
 
 #include "Globals.h"
 #include "platform/platform.h"
+#include "platform/linux/testmode.h"
 #include "system/AssetPath.h"
 #include "system/ConfigFile.h"
 #include "marni/MarniDX.h"
@@ -35,10 +36,6 @@ int main(int argc, char** argv)
     // Crash diagnostics and the single-instance guard, in the game root like
     // their Windows counterparts (WinMain does the same, in this order).
     crashlog_install();
-    if (!plat_single_instance_check()) {
-        fprintf(stderr, "[RE1] RESIDENT EVIL is already running.\n");
-        return 3;
-    }
 
     // --capture <file> [frames]: render normally, dump the back buffer to
     // <file> once `frames` have been presented (default 120 ≈ 4 s), then exit.
@@ -68,7 +65,15 @@ int main(int argc, char** argv)
                 presses[pressCount].hold = atoi(argv[++i]);
             }
             ++pressCount;
+        } else if (test_parse_arg(argc, argv, &i)) {
+            // --script / --record / --seed / --fast / --hidden / --mute
         }
+    }
+
+    // Test runs skip the guard so several can run side by side.
+    if (!test_requested() && !plat_single_instance_check()) {
+        fprintf(stderr, "[RE1] RESIDENT EVIL is already running.\n");
+        return 3;
     }
 
     // config.ini is the settings store for both builds now: created with
@@ -76,6 +81,10 @@ int main(int argc, char** argv)
     // the Windows build, so settings travel between them.
     ConfigFile_EnsureExists();
     ConfigFile_Load();
+
+    // Scripted / recorded runs (docs/TESTING.md). Before audio init: a test
+    // run drives the mixer itself.
+    if (!test_init()) return 2;
 
     const int width  = (int)g_dwScreenWidth;
     const int height = (int)g_dwScreenHeight;
@@ -88,10 +97,15 @@ int main(int argc, char** argv)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#if defined(__APPLE__)
+    // macOS only hands out a core context (3.2+, in practice 4.1) when it is
+    // also forward-compatible.
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+#endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+    Uint32 flags = SDL_WINDOW_OPENGL | (test_hidden() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN);
     SDL_Window* window = SDL_CreateWindow("RESIDENT EVIL", SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED, width, height, flags);
     if (window == NULL) {
@@ -157,6 +171,7 @@ int main(int argc, char** argv)
     g_dwGameTimer1 = lastTick;
     int running = 1;
     int presented = 0;
+    int testFrame = 0;
 
     while (running) {
         for (int p = 0; p < pressCount; ++p) {
@@ -185,18 +200,24 @@ int main(int argc, char** argv)
         while (SDL_PollEvent(&e)) {
             switch (e.type) {
             case SDL_QUIT:
-                running = 0;
+                // A recording closes at the next frame boundary instead.
+                if (test_active() && !test_replaying()) test_request_stop();
+                else running = 0;
                 break;
             case SDL_WINDOWEVENT:
                 if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) g_bWindowFocused = TRUE;
                 else if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) g_bWindowFocused = FALSE;
-                else if (e.window.event == SDL_WINDOWEVENT_CLOSE) running = 0;
+                else if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
+                    if (test_active() && !test_replaying()) test_request_stop();
+                    else running = 0;
+                }
                 break;
             case SDL_KEYDOWN:
-                plat_key_event(e.key.keysym.scancode, TRUE);
+                // A scripted run owns the input; a stray key must not leak in.
+                if (!test_replaying()) plat_key_event(e.key.keysym.scancode, TRUE);
                 break;
             case SDL_KEYUP:
-                plat_key_event(e.key.keysym.scancode, FALSE);
+                if (!test_replaying()) plat_key_event(e.key.keysym.scancode, FALSE);
                 break;
             default:
                 break;
@@ -204,12 +225,14 @@ int main(int argc, char** argv)
         }
 
         if (!running || g_bQuitFlag) break;
-        if (!g_bWindowFocused) { SDL_Delay(1); continue; }
+        if (!g_bWindowFocused && !test_active()) { SDL_Delay(1); continue; }
 
         DWORD now = plat_time_ms();
 
         // 0x00441f0c: the frame limiter. Skip a tick that arrives early.
-        if (kFrameLimiterEnabled) {
+        // A test run's virtual clock is always exactly one frame on, and its
+        // pacing (if any) happens in test_frame_end.
+        if (kFrameLimiterEnabled && !test_active()) {
             BOOL bSkipFrame = FALSE;
             if (g_bUseFrameSkip == 1) {
                 if (!g_bFrameSkipDetected) {
@@ -232,10 +255,23 @@ int main(int argc, char** argv)
 
         g_dwGameTimer1 = now;
 
+        // One test frame per tick that passed the limiter. The guard ends the
+        // frame on every path out of this iteration, the FMV `continue`
+        // included, so movies advance the virtual clock too.
+        struct TestFrameGuard {
+            int* frame;
+            ~TestFrameGuard() { if (test_active()) { test_frame_end(); ++*frame; } }
+        };
+        if (test_active() && !test_frame_begin(testFrame)) break;
+        TestFrameGuard testGuard = { &testFrame };
+        (void)testGuard;
+
         // Capture before the FMV gate: a movie's frames are presented by the
         // video backend, and the frame counter has to advance for those too or
         // --capture can never land inside a movie.
-        if (capturePath != NULL && ++presented >= captureFrame) {
+        // Advance unconditionally: --press keys off this counter too.
+        ++presented;
+        if (capturePath != NULL && presented >= captureFrame) {
             MarniDX* dx = Marni_DX();
             void* pixels = NULL;
             DWORD cw = 0, ch = 0;
@@ -248,7 +284,7 @@ int main(int argc, char** argv)
                     printf("[RE1] captured frame %d -> %s (%ux%u)\n",
                            presented, capturePath, (unsigned)cw, (unsigned)ch);
                 }
-                free(pixels);
+                operator_delete(pixels);   // CaptureBackbufferToRGBA uses operator_new
             } else {
                 fprintf(stderr, "[RE1] capture failed\n");
             }
@@ -289,9 +325,11 @@ int main(int argc, char** argv)
     // message loop calls it on exit.
     CleanupVideoConfigAndSaveAllSettings();
 
+    test_shutdown();
+
     MarniDX_DestroyGlobal();
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    return 0;
+    return test_exit_code();
 }

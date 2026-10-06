@@ -176,7 +176,7 @@ static void* g_doorTexSrc = NULL;       // DAT_00920b24 - door TIM pointer
 struct DoorCommandEntry {
     unsigned short status;              // +0x00 (1 = active)
     unsigned short counter;             // +0x02 (loop nesting depth)
-    unsigned char* data;                // +0x04 (script pointer)
+    Ptr32<unsigned char> data;          // +0x04 (script pointer)
     unsigned char  ws[0x30];            // +0x08..+0x37 (retaddr stack + loop counters)
 };
 #pragma pack(pop)
@@ -190,14 +190,14 @@ struct DoorOrderEntry {
     unsigned short flags;               // +0x00 (0x2000 light, 0x4000 rotate, 0x8000 draw; low nibble = draw type)
     unsigned short modelIdx;            // +0x02
     unsigned int   drawState;           // +0x04
-    void*          hierRoot;            // +0x08 -> &sca (set when flags byte 5 bit 7)
+    Ptr32<void> hierRoot;               // +0x08 -> &sca (set when flags byte 5 bit 7)
     unsigned int   unk0C[3];            // +0x0C..+0x17
     ScaMatrixData  sca;                 // +0x18 (0x50) - local/world matrices, owner links
     short          rotation[3];         // +0x68 (SVECTOR - RotMatrix input)
     short          pad68;               // +0x6E
     short          vel[3];              // +0x70 (position velocity)
     short          rotVel[3];           // +0x76 (rotation velocity, sign-extended)
-    void*          modelPtr;            // +0x7C (resolved TMD vertex pointer from the anim table)
+    Ptr32<void> modelPtr;               // +0x7C (resolved TMD vertex pointer from the anim table)
 };
 static_assert(sizeof(DoorOrderEntry) == 0x80, "DoorOrderEntry size mismatch");
 
@@ -494,23 +494,23 @@ static void DoorAnimInit(void)
     // Relocate the .dor header pointers: dword0 (script table), dword1 (TMD
     // header), dword2 (TIM) all gain the buffer base.
     unsigned int* hdr = (unsigned int*)g_doorFileData;
-    hdr[0] += (unsigned int)g_doorFileData;
-    hdr[1] += (unsigned int)g_doorFileData;
-    hdr[2] += (unsigned int)g_doorFileData;
+    hdr[0] += O(g_doorFileData);
+    hdr[1] += O(g_doorFileData);
+    hdr[2] += O(g_doorFileData);
 
     // ResolveAnimPointers on the TMD header: flag byte at +0, count at +4,
     // 7-dword per-object entries at +8 (vert/norm/prim pointers are
     // header-relative offsets; resolution makes them absolute in place).
-    g_doorAnimData = (unsigned char*)hdr[1] + 4;
+    g_doorAnimData = P<unsigned char>(hdr[1]) + 4;
     ResolveAnimPointers(g_doorAnimData);
     g_doorAnimData += 8;
 
     // Relocate the script table (NULL-terminated, offsets from the table base
     // = relocated dword0).
-    g_doorScriptTable = (int*)hdr[0];
+    g_doorScriptTable = P<int>(hdr[0]);
     int* table = g_doorScriptTable;
     while (*table != 0) {
-        *table += (int)hdr[0];
+        *table += (int)hdr[0];   // hdr[0] is already a slot value: O(table base)
         table++;
     }
 
@@ -519,7 +519,7 @@ static void DoorAnimInit(void)
     // direction and activates entries 1/2 with the phase scripts).
     g_doorCommands[0].status = 1;
     g_doorCommands[0].counter = 0;
-    g_doorCommands[0].data = (unsigned char*)g_doorScriptTable[0];
+    g_doorCommands[0].data = P<unsigned char>(g_doorScriptTable[0]);
 
     Task_sleep(1);
 }
@@ -636,7 +636,7 @@ static int door_op_loop_push(void)
     DoorCommandEntry* e = g_doorCmdCur;
     unsigned char* p = DATA;
     int n = e->counter;
-    *(int*)((unsigned char*)e + 8 + n * 4) = (int)(p + 4);
+    *(int*)((unsigned char*)e + 8 + n * 4) = (int)O(p + 4);
     *(unsigned short*)((unsigned char*)e + 0x28 + n * 2) = *(unsigned short*)(p + 2);
     e->counter = (unsigned short)(n + 1);
     DATA = p + 4;
@@ -658,7 +658,7 @@ static int door_op_loop(void)
         DATA = p + 2;
         return 1;
     }
-    DATA = (unsigned char*)*(int*)((unsigned char*)e + 4 + n * 4);
+    DATA = P<unsigned char>(*(int*)((unsigned char*)e + 4 + n * 4));
     return 0;
 }
 
@@ -673,7 +673,7 @@ static int door_op_activate(void)
     DoorCommandEntry* e = &g_doorCommands[idx];
     e->status = 1;
     e->counter = 0;
-    e->data = (unsigned char*)*(int*)((unsigned char*)g_doorScriptTable + tableOff);
+    e->data = P<unsigned char>(*(int*)((unsigned char*)g_doorScriptTable + tableOff));
     *(unsigned short*)((unsigned char*)e + 0x28) = 0;
     DATA += 4;
     return 1;
@@ -771,7 +771,7 @@ static int door_op_order_setup(void)
     if (p[3] != 0xFF) {
         owner = &g_doorOrders[p[3]].sca;
     }
-    InitScaMatrix((int)(size_t)owner, &e->sca);
+    InitScaMatrix((int)O(owner), &e->sca);
 
     if ((p[5] & 0x80) != 0) {
         DoorRequestTmdCreate(g_doorAnimData - 0xC, p[2], p[1]);
@@ -787,7 +787,7 @@ static int door_op_order_setup(void)
 
     // The resolved per-object vertex pointer from the TMD header (entry p[2]).
     unsigned int* tmdHdr = (unsigned int*)g_doorTmdHeader;
-    e->modelPtr = (void*)tmdHdr[p[2] * 7 + 3];
+    e->modelPtr = P<void>(tmdHdr[p[2] * 7 + 3]);
     e->flags = *(unsigned short*)(p + 4);
     e->modelIdx = p[2];
     DATA += 6;
@@ -1067,7 +1067,7 @@ static void DoorComposeChain(ScaMatrixData* node, MATRIX* out)
     ScaMatrixData* p = node;
     while (p != 0 && count < 0x14) {
         chain[count++] = p;
-        p = (ScaMatrixData*)(size_t)p->owner;
+        p = P<ScaMatrixData>(p->owner);   // owner is a 32-bit slot (platform/ptr32.h)
     }
 
     for (int i = count - 1; i >= 0; i--) {
@@ -1079,7 +1079,7 @@ static void DoorComposeChain(ScaMatrixData* node, MATRIX* out)
                 ((int*)&j->worldMatrix)[k] = ((int*)&j->localMatrix)[k];
             }
         } else {
-            CompMatrix(&((ScaMatrixData*)(size_t)j->owner)->worldMatrix,
+            CompMatrix(&P<ScaMatrixData>(j->owner)->worldMatrix,
                        &j->localMatrix, &j->worldMatrix);
         }
     }
@@ -1299,7 +1299,7 @@ static void FUN_00442180(void) { }
 // ============================================================================
 static void BuildEnemySnap(void)
 {
-    const unsigned char* record = (const unsigned char*)g_pendingDoorRecord;
+    const unsigned char* record = P<const unsigned char>(g_pendingDoorRecord);
 
     // Age every snapshot when the destination is a different room than the one
     // we last came from. g_AttractMode_RoomCameraId still holds the previous
@@ -1421,7 +1421,7 @@ int FUN_0048f330(unsigned char param)
 // ============================================================================
 void room_transition_load(void)
 {
-    unsigned char* record = (unsigned char*)g_pendingDoorRecord;
+    unsigned char* record = P<unsigned char>(g_pendingDoorRecord);
     if (record == nullptr) {
         dbg_printf("[roomtrans] g_pendingDoorRecord is NULL - nothing to load\n");
         return;
@@ -1518,7 +1518,7 @@ void room_transition_load(void)
             room_set();
         } else {
             g_stageId = (unsigned char)((g_nextRoomDest >> 5) - 1);
-            if ((Flg_ck((int)&g_ScenarioFlags, SCENARIO_FLAG_STAGE_VARIANT) != 0) && (g_stageId < 2)) {
+            if ((Flg_ck((int)O(&g_ScenarioFlags), SCENARIO_FLAG_STAGE_VARIANT) != 0) && (g_stageId < 2)) {
                 g_stageId = (unsigned char)(g_stageId + 5);
             }
             dbg_printf("[roomtrans] loading stage %u room %u (stage change)\n",
